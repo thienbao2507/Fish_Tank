@@ -1,7 +1,18 @@
 {
   "ui.rotateDevice": "Hãy xoay ngang thiết bị để chơi",
+  "ui.vacuum": "Hút",
+  "hud.cargo": "{used}/{capacity}",
+  "hud.charging": "Đang sạc",
+  "world.station": "Trạm",
+  "float.coins": "+{coins} xu",
+  "toast.cargoFull": "Khoang đầy! Về trạm để đổi rác lấy xu",
+  "toast.batteryEmpty": "Hết pin! Máy hút đã tắt",
+  "toast.noBattery": "Hết pin, về trạm để sạc",
   "debug.title": "Debug",
   "debug.fps": "FPS: {fps}",
   "debug.gameTime": "Giờ game: {time}",
-  "debug.timeScale": "Tốc độ thời gian"
+  "debug.timeScale": "Tốc độ thời gian",
+  "debug.currency": "Tiền",
+  "debug.addCoins": "+1000 xu",
+  "debug.addPearls": "+10 ngọc"
 }

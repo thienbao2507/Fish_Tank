@@ -35,6 +35,8 @@ export function createGame(ctx: GameContext): Phaser.Game {
       autoCenter: Phaser.Scale.CENTER_BOTH,
       autoRound: true,
     },
+    // Joystick (tay trái) và nút (tay phải) cùng lúc.
+    input: { activePointers: 3 },
     callbacks: {
       // Gắn context trước khi scene nào chạy.
       preBoot: (game) => setContext(game, ctx),

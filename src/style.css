@@ -59,10 +59,12 @@ body {
   white-space: pre-wrap;
 }
 
+/* Giữa mép trên, thu gọn sẵn: không che HUD hai bên. */
 .debug-panel {
   position: fixed;
   top: 8px;
-  right: 8px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 50;
   min-width: 160px;
   padding: 8px;

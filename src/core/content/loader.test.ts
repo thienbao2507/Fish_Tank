@@ -1,17 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ContentError, loadContent } from './loader';
+import { ContentError, loadContent, type RawContent } from './loader';
 import { rawContent } from './raw';
-
-const validArt = {
-  textures: {
-    robot: {
-      kind: 'shapes',
-      width: 10,
-      height: 10,
-      parts: [{ shape: 'rect', x: 0, y: 0, w: 10, h: 10, color: '#ffffff' }],
-    },
-  },
-};
 
 function errorOf(fn: () => unknown): ContentError {
   try {
@@ -23,29 +12,72 @@ function errorOf(fn: () => unknown): ContentError {
   throw new Error('Không có lỗi nào được ném ra');
 }
 
+// JSON thô, sửa tự do trong từng test.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MutableRaw = Record<keyof RawContent, any>;
+
+/** Bản sao sâu của dữ liệu thật để sửa trong từng test. */
+function rawCopy(): MutableRaw {
+  return structuredClone(rawContent) as MutableRaw;
+}
+
 describe('loadContent', () => {
   it('dữ liệu thật trong src/data hợp lệ', () => {
     expect(() => loadContent(rawContent)).not.toThrow();
   });
 
   it('báo rõ file và trường khi sai kiểu', () => {
-    const art = structuredClone(validArt);
-    art.textures.robot.parts[0]!.color = 'red';
-    const error = errorOf(() => loadContent({ strings: {}, art }));
+    const raw = rawCopy();
+    raw.art.textures.robot.parts[0].color = 'red';
+    const error = errorOf(() => loadContent(raw));
     expect(error.issues).toHaveLength(1);
     expect(error.issues[0]).toContain('art.json › textures.robot.parts.0.color');
   });
 
   it('báo lỗi khi có trường lạ (gõ sai tên trường)', () => {
-    const art = { textures: { robot: { ...validArt.textures.robot, colour: '#fff' } } };
-    const error = errorOf(() => loadContent({ strings: {}, art }));
-    expect(error.issues[0]).toContain('art.json › textures.robot');
+    const raw = rawCopy();
+    raw.balance.robot.maxSpeeed = 100;
+    const error = errorOf(() => loadContent(raw));
+    expect(error.issues[0]).toContain('balance.json › robot');
   });
 
   it('gom lỗi của nhiều file vào một lần báo', () => {
-    const error = errorOf(() => loadContent({ strings: { 'ui.ok': 5 }, art: { textures: 1 } }));
+    const raw = rawCopy();
+    raw.strings = { 'ui.ok': 5 };
+    raw.trash.sinkSpeed = -1;
+    const error = errorOf(() => loadContent(raw));
     expect(error.issues.some((issue) => issue.startsWith('strings.vi.json › ui.ok'))).toBe(true);
-    expect(error.issues.some((issue) => issue.startsWith('art.json › textures'))).toBe(true);
+    expect(error.issues.some((issue) => issue.startsWith('trash.json › sinkSpeed'))).toBe(true);
     expect(error.message).toContain('Dữ liệu game không hợp lệ');
+  });
+
+  describe('kiểm tra chéo giữa các file', () => {
+    it('khu tham chiếu loại rác không tồn tại', () => {
+      const raw = rawCopy();
+      raw.zones.zones[0].trash.weights.ghost = 1;
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues[0]).toContain('zones.json › zones.0.trash.weights.ghost');
+    });
+
+    it('loại rác dùng texture không có trong art.json', () => {
+      const raw = rawCopy();
+      raw.trash.types[0].texture = 'missing.texture';
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues[0]).toContain('trash.json › types.0.texture');
+    });
+
+    it('startZone không tồn tại', () => {
+      const raw = rawCopy();
+      raw.balance.startZone = 'nowhere';
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues[0]).toContain('balance.json › startZone');
+    });
+
+    it('mặt nước phải nằm trên đáy', () => {
+      const raw = rawCopy();
+      raw.zones.zones[0].surfaceY = raw.zones.zones[0].floorY + 1;
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('surfaceY < floorY'))).toBe(true);
+    });
   });
 });

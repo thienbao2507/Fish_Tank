@@ -1,0 +1,20 @@
+{
+  "zones": [
+    {
+      "id": "zone1",
+      "width": 1680,
+      "height": 540,
+      "surfaceY": 28,
+      "floorY": 500,
+      "wallWidth": 6,
+      "station": { "x": 36, "y": 460, "width": 48, "height": 40 },
+      "robotSpawn": { "x": 60, "y": 470 },
+      "trash": {
+        "initialCount": 14,
+        "maxCount": 24,
+        "spawnIntervalSeconds": 3,
+        "weights": { "bottle": 4, "bag": 3, "can": 3, "tire": 1 }
+      }
+    }
+  ]
+}

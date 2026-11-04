@@ -1,5 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { createRng } from './rng';
+import { createRng, pickWeighted } from './rng';
+
+describe('pickWeighted', () => {
+  it('tần suất xấp xỉ tỉ trọng', () => {
+    const rng = createRng(11);
+    const counts = { a: 0, b: 0 };
+    const entries = [
+      { item: 'a' as const, weight: 3 },
+      { item: 'b' as const, weight: 1 },
+    ];
+    for (let i = 0; i < 8_000; i++) counts[pickWeighted(rng, entries)]++;
+    expect(counts.a / 8_000).toBeCloseTo(0.75, 1);
+  });
+
+  it('báo lỗi khi danh sách rỗng hoặc tổng tỉ trọng bằng 0', () => {
+    const rng = createRng(1);
+    expect(() => pickWeighted(rng, [])).toThrow(RangeError);
+    expect(() => pickWeighted(rng, [{ item: 1, weight: 0 }])).toThrow(RangeError);
+  });
+});
 
 describe('createRng', () => {
   it('cùng seed cho cùng chuỗi số', () => {

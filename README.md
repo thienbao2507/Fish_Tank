@@ -15,6 +15,15 @@ npm run dev
 
 Mở http://localhost:5173. Thêm `?debug=1` (http://localhost:5173/?debug=1) để bật panel debug (FPS, giờ game, tua thời gian).
 
+## Điều khiển
+
+| | Điện thoại | Máy tính |
+|---|---|---|
+| Bơi | Chạm và kéo ở nửa trái màn hình (joystick hiện tại chỗ chạm) | `W A S D` hoặc phím mũi tên |
+| Bật/tắt máy hút | Nút **Hút** góc dưới phải | `Space` |
+
+Bơi vào **Trạm** (góc trái dưới) để đổi rác trong khoang lấy xu và sạc pin.
+
 ## Chơi thử trên điện thoại
 
 1. Điện thoại và máy tính dùng chung một mạng Wi‑Fi.

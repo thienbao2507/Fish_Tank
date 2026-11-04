@@ -1,0 +1,123 @@
+import type Phaser from 'phaser';
+import { t } from '../../core/i18n';
+import type { World } from '../../core/world';
+import { TextureKeys } from '../art/keys';
+import { HUD_MARGIN, HUD_ROW_1, HUD_ROW_2, TEXT_OFFSET_Y } from './layout';
+import { addPixelText, TEXT_COLOR, WARNING_COLOR } from './text';
+
+const BAR_WIDTH = 50;
+const BAR_HEIGHT = 10;
+const ICON_GAP = 4;
+
+const BAR_FRAME = 0x0b1d2e;
+const BAR_EMPTY = 0x1b2a41;
+const BAR_HIGH = 0x6fe08a;
+const BAR_MID = 0xf2c94c;
+const BAR_LOW = 0xe04f5f;
+
+function batteryColor(ratio: number): number {
+  if (ratio > 0.5) return BAR_HIGH;
+  if (ratio > 0.2) return BAR_MID;
+  return BAR_LOW;
+}
+
+function formatNumber(value: number): string {
+  return value.toLocaleString('vi-VN');
+}
+
+/** Thông số mép trên: pin + khoang (trái), xu + ngọc (phải). Chỉ vẽ lại khi giá trị đổi. */
+export class Hud {
+  private readonly batteryBar: Phaser.GameObjects.Graphics;
+  private readonly chargingText: Phaser.GameObjects.Text;
+  private readonly cargoText: Phaser.GameObjects.Text;
+  private readonly coinIcon: Phaser.GameObjects.Image;
+  private readonly coinText: Phaser.GameObjects.Text;
+  private readonly pearlIcon: Phaser.GameObjects.Image;
+  private readonly pearlText: Phaser.GameObjects.Text;
+  private width = 0;
+  private shown = { batteryPixels: -1, charging: false, used: -1, coins: -1, pearls: -1 };
+
+  constructor(
+    scene: Phaser.Scene,
+    private readonly world: World,
+  ) {
+    this.batteryBar = scene.add.graphics();
+    this.chargingText = addPixelText(
+      scene,
+      HUD_MARGIN + BAR_WIDTH + 6,
+      HUD_ROW_1 + TEXT_OFFSET_Y - 1,
+      t('hud.charging'),
+    ).setVisible(false);
+
+    scene.add.image(HUD_MARGIN, HUD_ROW_2, TextureKeys.iconCargo).setOrigin(0);
+    this.cargoText = addPixelText(scene, HUD_MARGIN + 10 + ICON_GAP, HUD_ROW_2 + TEXT_OFFSET_Y, '');
+
+    this.coinIcon = scene.add.image(0, HUD_ROW_1, TextureKeys.iconCoin).setOrigin(0);
+    this.coinText = addPixelText(scene, 0, HUD_ROW_1 + TEXT_OFFSET_Y, '').setOrigin(1, 0);
+    this.pearlIcon = scene.add.image(0, HUD_ROW_2, TextureKeys.iconPearl).setOrigin(0);
+    this.pearlText = addPixelText(scene, 0, HUD_ROW_2 + TEXT_OFFSET_Y, '').setOrigin(1, 0);
+  }
+
+  /** Gọi khi chiều rộng màn hình đổi: các thông số bên phải bám mép phải. */
+  layout(width: number): void {
+    this.width = width;
+    this.placeRight(this.coinText, this.coinIcon);
+    this.placeRight(this.pearlText, this.pearlIcon);
+  }
+
+  refresh(): void {
+    const { robot, wallet } = this.world;
+
+    const batteryPixels = Math.round((BAR_WIDTH - 4) * robot.battery.ratio);
+    if (batteryPixels !== this.shown.batteryPixels) {
+      this.shown.batteryPixels = batteryPixels;
+      this.drawBattery(batteryPixels, robot.battery.ratio);
+    }
+
+    const charging = this.world.isCharging;
+    if (charging !== this.shown.charging) {
+      this.shown.charging = charging;
+      this.chargingText.setVisible(charging);
+    }
+
+    const { used, capacity, free } = robot.cargo;
+    if (used !== this.shown.used) {
+      this.shown.used = used;
+      this.cargoText
+        .setText(t('hud.cargo', { used, capacity }))
+        .setColor(free === 0 ? WARNING_COLOR : TEXT_COLOR);
+    }
+
+    const coins = wallet.get('coins');
+    if (coins !== this.shown.coins) {
+      this.shown.coins = coins;
+      this.coinText.setText(formatNumber(coins));
+      this.placeRight(this.coinText, this.coinIcon);
+    }
+
+    const pearls = wallet.get('pearls');
+    if (pearls !== this.shown.pearls) {
+      this.shown.pearls = pearls;
+      this.pearlText.setText(formatNumber(pearls));
+      this.placeRight(this.pearlText, this.pearlIcon);
+    }
+  }
+
+  private placeRight(text: Phaser.GameObjects.Text, icon: Phaser.GameObjects.Image): void {
+    const right = this.width - HUD_MARGIN;
+    text.setX(right);
+    icon.setX(Math.round(right - text.width - ICON_GAP - icon.width));
+  }
+
+  private drawBattery(fillPixels: number, ratio: number): void {
+    const g = this.batteryBar.clear();
+    const x = HUD_MARGIN;
+    const y = HUD_ROW_1;
+    g.fillStyle(BAR_FRAME).fillRect(x, y, BAR_WIDTH, BAR_HEIGHT);
+    g.fillRect(x + BAR_WIDTH, y + 3, 2, BAR_HEIGHT - 6); // núm pin
+    g.fillStyle(BAR_EMPTY).fillRect(x + 2, y + 2, BAR_WIDTH - 4, BAR_HEIGHT - 4);
+    if (fillPixels > 0) {
+      g.fillStyle(batteryColor(ratio)).fillRect(x + 2, y + 2, fillPixels, BAR_HEIGHT - 4);
+    }
+  }
+}

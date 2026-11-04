@@ -2,9 +2,11 @@ import './style.css';
 import { isDebugMode, UI_FONT_FAMILY, UI_FONT_URL } from './config';
 import { ContentError, loadContent } from './core/content/loader';
 import { rawContent } from './core/content/raw';
+import { EventBus, type GameEvents } from './core/events';
 import { initI18n, t } from './core/i18n';
 import { createRng } from './core/rng';
 import { ScaledClock } from './core/time/clock';
+import { World } from './core/world';
 import { mountDebugPanel } from './debug/panel';
 import { createGame } from './game/createGame';
 
@@ -40,10 +42,15 @@ async function start(): Promise<void> {
   await loadUiFont();
   mountRotateOverlay();
 
+  const rng = createRng(Date.now());
+  const bus = new EventBus<GameEvents>();
   const ctx = {
     content,
     clock: new ScaledClock(() => Date.now()),
-    rng: createRng(Date.now()),
+    rng,
+    bus,
+    world: new World({ content, rng, bus }),
+    input: { moveX: 0, moveY: 0 },
   };
   const game = createGame(ctx);
 

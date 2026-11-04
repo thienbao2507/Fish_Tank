@@ -21,6 +21,7 @@ export function mountDebugPanel(game: Phaser.Game, ctx: GameContext): void {
   const panel = element('div', 'debug-panel');
   const title = element('div', 'debug-title', t('debug.title'));
   const body = element('div', 'debug-body');
+  body.hidden = true; // bấm tiêu đề "Debug" để mở
   const fps = element('div');
   const gameTime = element('div');
   const scaleLabel = element('div', undefined, t('debug.timeScale'));
@@ -37,6 +38,19 @@ export function mountDebugPanel(game: Phaser.Game, ctx: GameContext): void {
     return { scale, button };
   });
 
+  const currencyLabel = element('div', undefined, t('debug.currency'));
+  const currencyRow = element('div', 'debug-row');
+  const grants = [
+    { text: t('debug.addCoins'), grant: () => ctx.world.wallet.add('coins', 1000) },
+    { text: t('debug.addPearls'), grant: () => ctx.world.wallet.add('pearls', 10) },
+  ];
+  for (const { text, grant } of grants) {
+    const button = element('button', undefined, text);
+    button.type = 'button';
+    button.addEventListener('click', grant);
+    currencyRow.append(button);
+  }
+
   title.addEventListener('click', () => {
     body.hidden = !body.hidden;
   });
@@ -51,7 +65,7 @@ export function mountDebugPanel(game: Phaser.Game, ctx: GameContext): void {
     }
   }
 
-  body.append(fps, gameTime, scaleLabel, scaleRow);
+  body.append(fps, gameTime, scaleLabel, scaleRow, currencyLabel, currencyRow);
   panel.append(title, body);
   document.body.append(panel);
 

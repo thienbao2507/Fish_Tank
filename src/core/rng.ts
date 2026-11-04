@@ -9,6 +9,26 @@ export interface Rng {
   pick<T>(items: readonly T[]): T;
 }
 
+export interface Weighted<T> {
+  readonly item: T;
+  readonly weight: number;
+}
+
+/** Chọn một phần tử theo tỉ trọng (weight càng lớn càng dễ được chọn). */
+export function pickWeighted<T>(rng: Rng, entries: readonly Weighted<T>[]): T {
+  const total = entries.reduce((sum, entry) => sum + entry.weight, 0);
+  if (!(total > 0)) {
+    throw new RangeError('Tổng tỉ trọng phải lớn hơn 0');
+  }
+  let roll = rng.next() * total;
+  for (const entry of entries) {
+    roll -= entry.weight;
+    if (roll < 0) return entry.item;
+  }
+  // Sai số dấu phẩy động: rơi vào phần tử cuối.
+  return (entries.at(-1) as Weighted<T>).item;
+}
+
 export function createRng(seed: number): Rng {
   let state = seed >>> 0;
 

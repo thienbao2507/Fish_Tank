@@ -1,5 +1,8 @@
 import art from '../../data/art.json';
+import balance from '../../data/balance.json';
 import strings from '../../data/strings.vi.json';
+import trash from '../../data/trash.json';
+import zones from '../../data/zones.json';
 import type { RawContent } from './loader';
 
-export const rawContent: RawContent = { strings, art };
+export const rawContent: RawContent = { strings, art, balance, zones, trash };

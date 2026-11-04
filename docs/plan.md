@@ -26,7 +26,7 @@
 | Unit test | Vitest | Chạy chung cấu hình với Vite |
 | Lint / format | ESLint (typescript-eslint) + Prettier | Có rule chặn `src/core` import Phaser/DOM |
 | Kiểm tra dữ liệu | zod | JSON sai → báo lỗi rõ ngay khi tải |
-| Vật lý | Phaser Arcade Physics | Đủ cho va chạm/overlap 2D đơn giản |
+| Vật lý | Tự viết trong `src/core` (chuyển động có quán tính, giới hạn bể, khoảng cách hút) | Test được bằng unit test, đủ cho P1. *(Đổi từ Arcade Physics ở P1; dùng Arcade nếu sau này cần va chạm phức tạp.)* |
 | HUD, joystick | Vẽ bằng Phaser (scene UI chạy song song) | Đồng bộ với game, phản hồi chạm nhanh |
 | Menu (shop, nhiệm vụ, offline) | DOM overlay (HTML/CSS) | Danh sách, cuộn, chữ dễ làm hơn; chạy tốt trong WebView |
 | Độ phân giải logic | Cao 360, rộng 640–840 theo màn hình; `pixelArt: true` (nearest-neighbor) | Pixel art; phóng đúng ×2/×3 trên đa số điện thoại; máy dài không viền đen (spec 12.1) |
@@ -51,11 +51,10 @@ src/
     events.ts        # EventBus có kiểu
     i18n.ts          # t('key')
   game/              # PHASER
-    scenes/          # Boot, Preload, Game, UI
-    entities/        # Robot, Fish, Trash, Bubble, Pest, Algae…
-    systems/         # cầu nối core ↔ entity (đồng bộ trạng thái, phát sự kiện)
-    input/           # joystick ảo, bàn phím (dev)
-    art/             # manifest asset + bộ sinh texture placeholder
+    scenes/          # Boot, Preload, Game (vẽ theo World), UI (HUD + điều khiển)
+    hud/             # thông số, nút, thông báo
+    input/           # joystick ảo
+    art/             # khoá texture + bộ sinh texture placeholder
   ui/                # DOM overlay: shop, nhiệm vụ, màn offline
   platform/          # storage adapter (sau: ads/IAP stub)
   debug/             # panel debug
@@ -63,7 +62,7 @@ src/
 docs/                # spec.md, plan.md
 ```
 
-**Luồng dữ liệu:** input → entity/system (Phaser) → gọi hàm trong `core` → `core` cập nhật state + phát event → system/HUD cập nhật hiển thị.
+**Luồng dữ liệu:** UIScene đọc joystick/bàn phím → ghi `ctx.input` → GameScene gọi `World.update(dt, input)` (`src/core/world.ts`, toàn bộ luật chơi) → World cập nhật state + phát event → GameScene/HUD vẽ lại theo state.
 **Mở rộng nội dung:** thêm khu / loài cá / event = thêm bản ghi JSON (+ asset), không sửa code, trừ khi có cơ chế mới.
 
 ## 4. Định nghĩa "xong" (áp dụng mọi task)
@@ -101,19 +100,20 @@ Demo P0: `npm run dev -- --host` → mở trên Chrome PC và Chrome điện tho
 ### P1 — Robot và dọn rác
 Mục tiêu: vòng lặp tối thiểu "dọn rác → về trạm → đổi xu".
 
-- [ ] **P1-01** Khu 1 (dữ liệu zone): kích thước thế giới, biên bể, mặt nước, đáy cát; camera bám robot, giới hạn trong khu.
+- [x] **P1-01** Khu 1 (dữ liệu zone): kích thước thế giới, biên bể, mặt nước, đáy cát; camera bám robot, giới hạn trong khu.
   AC: robot không ra ngoài bể; camera không lộ ngoài biên.
-- [ ] **P1-02** Joystick ảo 8 hướng (nửa trái màn hình, hiện tại chỗ chạm) + WASD/mũi tên cho dev. Robot bơi 8 hướng, có quán tính nhẹ, quay mặt theo hướng.
+- [~] **P1-02** Joystick ảo 8 hướng (nửa trái màn hình, hiện tại chỗ chạm) + WASD/mũi tên cho dev. Robot bơi 8 hướng, có quán tính nhẹ, quay mặt theo hướng.
   AC: điều khiển được trên điện thoại bằng một ngón; nhả tay thì robot trôi chậm lại.
-- [ ] **P1-03** Rác: loại rác trong `trash.json` (nổi / lơ lửng / chìm, giá trị xu, số ô chiếm trong khoang). Bộ sinh rác theo khu, có trần số lượng, luôn sinh lại.
+  *(PC: bàn phím + cảm ứng giả lập đạt. Điện thoại thật: chờ người dùng kiểm tra.)*
+- [x] **P1-03** Rác: loại rác trong `trash.json` (nổi / lơ lửng / chìm, giá trị xu, số ô chiếm trong khoang). Bộ sinh rác theo khu, có trần số lượng, luôn sinh lại.
   AC: rác ở đúng tầng nước theo loại; dọn hết thì rác sinh lại.
-- [ ] **P1-04** Pin (`core/sim/battery`) + chế độ hút: nút bật/tắt, bán kính hút, rác bị kéo về robot, hút tốn pin, pin 0 → hút tự tắt.
+- [x] **P1-04** Pin (`core/sim/battery`) + chế độ hút: nút bật/tắt, bán kính hút, rác bị kéo về robot, hút tốn pin, pin 0 → hút tự tắt.
   AC: unit test pin; trên game, pin giảm chỉ khi hút đang bật.
-- [ ] **P1-05** Khoang chứa (`core/sim/cargo`): sức chứa theo ô; đầy → ngừng hút + thông báo.
+- [x] **P1-05** Khoang chứa (`core/sim/cargo`): sức chứa theo ô; đầy → ngừng hút + thông báo.
   AC: unit test cargo; HUD hiện `x/y` đúng.
-- [ ] **P1-06** Trạm tái chế: robot vào vùng trạm → đổi rác thành xu (`core/economy/wallet`), sạc pin (bản đơn giản theo thời gian). Thêm nút debug cộng xu/ngọc.
+- [x] **P1-06** Trạm tái chế: robot vào vùng trạm → đổi rác thành xu (`core/economy/wallet`), sạc pin (bản đơn giản theo thời gian). Thêm nút debug cộng xu/ngọc.
   AC: unit test wallet (không âm, cộng/trừ đúng); xu tăng đúng tổng giá trị rác.
-- [ ] **P1-07** HUD: thanh pin, khoang, xu, ngọc; nút Hút có trạng thái bật/tắt rõ ràng. HUD và cụm nút bám mép trái/phải theo chiều rộng thực tế (640–840).
+- [x] **P1-07** HUD: thanh pin, khoang, xu, ngọc; nút Hút có trạng thái bật/tắt rõ ràng. HUD và cụm nút bám mép trái/phải theo chiều rộng thực tế (640–840).
   AC: HUD cập nhật ngay khi giá trị đổi; không che joystick và cụm nút; đúng vị trí ở cả 16:9 và 20:9.
 
 Demo P1: chơi trọn vòng dọn → đổi xu trên điện thoại.

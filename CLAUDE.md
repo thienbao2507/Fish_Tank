@@ -30,7 +30,8 @@ FishTank — game 2D cho mobile (Android trước): người chơi điều khi�
 ## Kiến trúc
 
 - `src/core/` — logic thuần: mô phỏng, kinh tế, thời gian, nạp dữ liệu. ESLint chặn import Phaser, dùng DOM, hoặc import từ `game/ui/debug/platform` trong thư mục này. Mọi luật chơi nằm ở đây và có unit test (`*.test.ts` đặt cạnh file).
-- `src/game/` — Phaser: `scenes/` (Boot → Preload → Game; UIScene chạy song song, vẽ đè), `art/` (khoá texture + vẽ placeholder); sau này thêm `entities/`, `systems/` (cầu nối core ↔ Phaser), `input/`.
+- `src/core/world.ts` — `World`: trạng thái một ván chơi (zone, robot, rác, ví) và **toàn bộ luật chơi theo khung hình** (`update(dt, input)`: di chuyển → trạm (đổi rác, sạc) → rác → máy hút). Phát `toast` / `station:sold` qua `EventBus<GameEvents>` (`src/core/events.ts`). Thêm luật mới vào đây hoặc vào `src/core/sim/*`, không viết trong scene.
+- `src/game/` — Phaser, chỉ hiển thị và nhận input: `scenes/GameScene` vẽ theo state của World (sprite rác đồng bộ theo `id`), `scenes/UIScene` (camera không cuộn) chứa HUD (`hud/`), joystick (`input/`), bàn phím, và ghi `ctx.input` mỗi khung hình; `art/` (khoá texture + vẽ placeholder).
 - `src/ui/` — menu bằng DOM overlay (shop, nhiệm vụ…). HUD và joystick vẽ bằng Phaser trong UIScene.
 - `src/platform/` — adapter phụ thuộc nền tảng (storage web ↔ Capacitor).
 - `src/debug/` — panel debug DOM, chỉ hiện khi URL có `?debug=1`.
@@ -46,7 +47,8 @@ Luồng khởi động (`src/main.ts`): `loadContent(rawContent)` kiểm tra to�
 - **Pixel art / màn hình:** độ phân giải logic cao 360, rộng 640–840 theo tỉ lệ màn hình (`src/config.ts`, `src/game/viewport.ts`; `createGame.ts` gọi `setGameSize` khi có `RESIZE`). Không giả định chiều rộng cố định: đọc `this.scale.width` và nghe `Phaser.Scale.Events.RESIZE` (nhớ `off` khi scene shutdown). `pixelArt: true` đã bật.
 - **Placeholder:** chỉ dùng `rect` ở toạ độ nguyên để cạnh sắc (circle/roundRect/ellipse bị khử răng cưa). Kích thước placeholder = kích thước sprite thật.
 - **Font:** `UI_FONT_FAMILY` (VT323, file trong `public/fonts/`, nạp bằng `FontFace` trong `main.ts` trước khi tạo game), cỡ 16px theo pixel logic. Panel debug dùng monospace.
-- **Thời gian:** logic game đọc giờ từ `ctx.clock` (`ScaledClock`, có hệ số tua debug), không gọi `Date.now()` trực tiếp.
+- **Thời gian:** hành động trực tiếp (bơi, hút, pin, rác sinh/trôi) dùng delta khung hình (giây, GameScene kẹp tối đa 0.1s). Mốc thời gian và mô phỏng dài hạn (bộ đếm, nhu cầu cá, offline — từ P2/P3) đọc từ `ctx.clock` (`ScaledClock`, có hệ số tua debug); không gọi `Date.now()` trong logic.
+- **Số liệu gameplay:** `src/data/balance.json` (robot, máy hút, trạm), `zones.json` (kích thước khu, trạm, cấu hình sinh rác), `trash.json` (loại rác). Loader kiểm tra chéo giữa các file (id rác, texture, startZone…).
 - **Ngẫu nhiên:** luôn qua `ctx.rng` (có seed) để test tái hiện được.
 
 ## Lưu ý kỹ thuật

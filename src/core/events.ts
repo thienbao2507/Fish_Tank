@@ -1,8 +1,17 @@
+import type { StringKey, TranslateParams } from './i18n';
+
 type Handler<T> = (payload: T) => void;
+
+/** Các sự kiện của game. Thêm dần theo từng task. */
+export interface GameEvents {
+  /** Thông báo ngắn cho người chơi (HUD hiển thị). */
+  toast: { key: StringKey; params?: TranslateParams };
+  /** Đã đổi rác ở trạm; (x, y) là vị trí trong thế giới để hiện số xu bay lên. */
+  'station:sold': { coins: number; x: number; y: number };
+}
 
 /**
  * Bus sự kiện có kiểu. `Events` là bảng { tên sự kiện: kiểu dữ liệu đi kèm }.
- * Các sự kiện của game được khai báo dần theo từng task (bắt đầu từ P1).
  */
 export class EventBus<Events extends object> {
   private readonly handlers = new Map<keyof Events, Set<Handler<never>>>();

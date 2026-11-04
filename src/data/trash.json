@@ -1,0 +1,17 @@
+{
+  "sinkSpeed": 20,
+  "driftSpeed": 6,
+  "types": [
+    {
+      "id": "bottle",
+      "texture": "trash.bottle",
+      "layer": "float",
+      "value": 3,
+      "slots": 1,
+      "radius": 4
+    },
+    { "id": "bag", "texture": "trash.bag", "layer": "mid", "value": 2, "slots": 1, "radius": 5 },
+    { "id": "can", "texture": "trash.can", "layer": "sink", "value": 4, "slots": 1, "radius": 5 },
+    { "id": "tire", "texture": "trash.tire", "layer": "sink", "value": 12, "slots": 3, "radius": 8 }
+  ]
+}

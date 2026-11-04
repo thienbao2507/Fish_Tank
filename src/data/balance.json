@@ -1,0 +1,23 @@
+{
+  "startZone": "zone1",
+  "startingCoins": 0,
+  "startingPearls": 0,
+  "robot": {
+    "halfWidth": 14,
+    "halfHeight": 9,
+    "maxSpeed": 110,
+    "acceleration": 420,
+    "deceleration": 160,
+    "batteryCapacity": 100,
+    "cargoCapacity": 20,
+    "vacuum": {
+      "radius": 36,
+      "pullSpeed": 140,
+      "collectRadius": 8,
+      "drainPerSecond": 1.4
+    }
+  },
+  "station": {
+    "chargePerSecond": 25
+  }
+}
