@@ -1,0 +1,2 @@
+# Giữ LF trong working tree (máy đang bật core.autocrlf) để Prettier/ESLint không báo lệch xuống dòng.
+* text=auto eol=lf

@@ -29,8 +29,9 @@
 | Vật lý | Phaser Arcade Physics | Đủ cho va chạm/overlap 2D đơn giản |
 | HUD, joystick | Vẽ bằng Phaser (scene UI chạy song song) | Đồng bộ với game, phản hồi chạm nhanh |
 | Menu (shop, nhiệm vụ, offline) | DOM overlay (HTML/CSS) | Danh sách, cuộn, chữ dễ làm hơn; chạy tốt trong WebView |
-| Độ phân giải logic | 960×540, `Scale.FIT` | 16:9 phổ biến; đổi được trong `config.ts` nếu chọn pixel art |
-| Asset placeholder | Sinh texture bằng `Graphics.generateTexture` theo key | Thay sprite thật chỉ cần đổi manifest |
+| Độ phân giải logic | Cao 360, rộng 640–840 theo màn hình; `pixelArt: true` (nearest-neighbor) | Pixel art; phóng đúng ×2/×3 trên đa số điện thoại; máy dài không viền đen (spec 12.1) |
+| Asset placeholder | Sinh texture bằng `Graphics.generateTexture` theo key, vẽ theo lưới pixel đúng kích thước sprite thật | Thay bằng PNG cùng kích thước chỉ cần đổi `art.json` |
+| Font | VT323 (OFL), file font đóng gói trong `public/fonts/` | Font pixel, đủ dấu tiếng Việt, chạy offline |
 | Lưu game | Interface `Storage` → localStorage (web), Capacitor Preferences (Android, P6) | Không phải sửa logic khi lên Android |
 | Đóng gói Android | Capacitor (P6) | |
 
@@ -76,20 +77,24 @@ docs/                # spec.md, plan.md
 ### P0 — Khởi tạo
 Mục tiêu: dự án chạy được trên PC và điện thoại, có sẵn khung kiến trúc và công cụ kiểm tra.
 
-- [ ] **P0-01** Khởi tạo Vite + TypeScript strict + Phaser 4.2.1. Scripts: `dev`, `build`, `preview`, `typecheck`, `lint`, `test`, `check`.
+- [x] **P0-01** Khởi tạo Vite + TypeScript strict + Phaser 4.2.1. Scripts: `dev`, `build`, `preview`, `typecheck`, `lint`, `test`, `check`.
   AC: `npm run dev` mở trang; `npm run build` thành công.
-- [ ] **P0-02** Tạo cấu trúc thư mục như mục 3. ESLint + Prettier; rule cấm `src/core/**` import `phaser` và dùng DOM.
+- [x] **P0-02** Tạo cấu trúc thư mục như mục 3 (thư mục chưa có code được tạo khi task cần tới). ESLint + Prettier; rule cấm `src/core/**` import `phaser` và dùng DOM.
   AC: thêm thử `import Phaser` vào `src/core` → `npm run lint` báo lỗi.
-- [ ] **P0-03** Màn hình: 960×540, `Scale.FIT`, căn giữa; màn hình dọc → lớp phủ "Hãy xoay ngang thiết bị".
-  AC: đúng tỉ lệ trên Chrome PC (thử nhiều kích thước cửa sổ) và trên điện thoại.
-- [ ] **P0-04** Khung scene Boot → Preload → Game + UI (song song). Bộ sinh texture placeholder theo manifest.
-  AC: thấy bể nền gradient, một robot placeholder ở giữa.
-- [ ] **P0-05** Nền tảng `core`: Clock (giờ thực + hệ số tua), EventBus có kiểu, RNG có seed, i18n `t()`, content loader + zod.
+- [~] **P0-03** Màn hình pixel (spec 12.1): cao 360, rộng 640–840 theo tỉ lệ màn hình, `pixelArt: true`; màn hình hẹp hơn 16:9 có viền đen trên dưới; màn hình dọc → lớp phủ "Hãy xoay ngang thiết bị".
+  AC: Chrome PC thử 16:9, 20:9, 4:3 → pixel sắc không nhòe, 20:9 không viền đen hai bên, 4:3 có viền trên dưới; điện thoại hiển thị đúng.
+  *(PC: đạt cả 3 tỉ lệ. Điện thoại (gồm xoay máy và lớp phủ dọc): chờ người dùng kiểm tra.)*
+- [x] **P0-04** Khung scene Boot → Preload → Game + UI (song song). Bộ sinh texture placeholder theo manifest, vẽ theo lưới pixel (robot ~32×20).
+  AC: nền gradient phủ đủ chiều rộng hiện tại, một robot placeholder ở giữa, cạnh pixel sắc.
+- [x] **P0-05** Nền tảng `core`: Clock (giờ thực + hệ số tua), EventBus có kiểu, RNG có seed, i18n `t()`, content loader + zod.
   AC: unit test cho Clock, RNG; JSON sai kiểu → lỗi chỉ rõ file và trường.
-- [ ] **P0-06** Panel debug (bật bằng `?debug=1`): FPS, tua thời gian ×1/×10/×100, cộng xu/ngọc, xóa save.
+- [x] **P0-06** Panel debug (bật bằng `?debug=1`): FPS, giờ game, tua thời gian ×1/×10/×100.
+  *(Điều chỉnh: nút cộng xu/ngọc chuyển sang P1-06, nút xóa save chuyển sang P5-06 — làm khi hệ thống tương ứng đã tồn tại.)*
   AC: không có `?debug=1` thì không hiện.
-- [ ] **P0-07** `CLAUDE.md` (lệnh, kiến trúc, quy tắc làm việc trỏ về file này), `README.md` ngắn (cách chạy).
+- [x] **P0-07** `CLAUDE.md` (lệnh, kiến trúc, quy tắc làm việc trỏ về file này), `README.md` ngắn (cách chạy).
   AC: làm theo README chạy được từ máy sạch.
+- [x] **P0-08** Font pixel VT323: file font + giấy phép OFL trong `public/fonts/`, nạp xong font mới khởi động game; dùng cho lớp phủ xoay ngang (từ P1, mọi chữ trong game dùng font này; panel debug giữ font monospace). Bổ sung quy ước pixel art vào `CLAUDE.md`.
+  AC: chữ tiếng Việt có dấu hiển thị bằng VT323 khi tắt mạng; không có request nào tới máy chủ font bên ngoài.
 
 Demo P0: `npm run dev -- --host` → mở trên Chrome PC và Chrome điện thoại cùng Wi‑Fi.
 
@@ -106,10 +111,10 @@ Mục tiêu: vòng lặp tối thiểu "dọn rác → về trạm → đổi xu
   AC: unit test pin; trên game, pin giảm chỉ khi hút đang bật.
 - [ ] **P1-05** Khoang chứa (`core/sim/cargo`): sức chứa theo ô; đầy → ngừng hút + thông báo.
   AC: unit test cargo; HUD hiện `x/y` đúng.
-- [ ] **P1-06** Trạm tái chế: robot vào vùng trạm → đổi rác thành xu (`core/economy/wallet`), sạc pin (bản đơn giản theo thời gian).
+- [ ] **P1-06** Trạm tái chế: robot vào vùng trạm → đổi rác thành xu (`core/economy/wallet`), sạc pin (bản đơn giản theo thời gian). Thêm nút debug cộng xu/ngọc.
   AC: unit test wallet (không âm, cộng/trừ đúng); xu tăng đúng tổng giá trị rác.
-- [ ] **P1-07** HUD: thanh pin, khoang, xu, ngọc; nút Hút có trạng thái bật/tắt rõ ràng.
-  AC: HUD cập nhật ngay khi giá trị đổi; không che joystick và cụm nút.
+- [ ] **P1-07** HUD: thanh pin, khoang, xu, ngọc; nút Hút có trạng thái bật/tắt rõ ràng. HUD và cụm nút bám mép trái/phải theo chiều rộng thực tế (640–840).
+  AC: HUD cập nhật ngay khi giá trị đổi; không che joystick và cụm nút; đúng vị trí ở cả 16:9 và 20:9.
 
 Demo P1: chơi trọn vòng dọn → đổi xu trên điện thoại.
 
@@ -174,7 +179,7 @@ AC chung P4: bỏ qua mối đe dọa → nước bẩn nhanh hơn, cá buồn; 
 - [ ] **P5-03** Cá cố định trong khu được thả; sức chứa theo khu.
 - [ ] **P5-04** Nhiệm vụ: 5–10 nhiệm vụ trong `quests.json`, màn danh sách, nhận thưởng xu/ngọc.
 - [ ] **P5-05** Quà hằng ngày.
-- [ ] **P5-06** Lưu/tải: tự động lưu (định kỳ, khi app ẩn, sau mỗi giao dịch); schema có version + migration.
+- [ ] **P5-06** Lưu/tải: tự động lưu (định kỳ, khi app ẩn, sau mỗi giao dịch); schema có version + migration. Thêm nút debug xóa save.
   AC: unit test migration; tải lại trang → trạng thái giữ nguyên.
 - [ ] **P5-07** Tiến trình offline: khi mở lại, hoàn tất bộ đếm, cộng xu cá (có trần); màn "Trong lúc bạn vắng mặt".
   AC: tắt game, tua bằng debug/giả lập thời gian → kết quả đúng quy tắc offline.

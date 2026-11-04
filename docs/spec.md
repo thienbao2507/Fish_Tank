@@ -2,6 +2,7 @@
 
 > Chốt yêu cầu: 2026-11-04. Mọi thay đổi thiết kế phải sửa file này trước và được duyệt, rồi mới sửa code.
 > Kế hoạch triển khai: [plan.md](plan.md).
+> Cập nhật 2026-11-04: chốt phong cách pixel art (mục 11, 12, 16).
 
 ## 1. Tổng quan
 
@@ -133,12 +134,27 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 - Màn hình ngang. Màn hình dọc → hiện thông báo yêu cầu xoay ngang.
 - Dưới trái: joystick. Dưới phải: cụm nút (Hút to nhất; quanh là Bắn, Thức ăn, Thuốc, Sạc dự phòng).
 - Mép trên: thanh pin, khoang (dạng `12/20`), xu, ngọc trai.
+- HUD và cụm nút bám theo mép trái/phải thực tế của màn hình (chiều rộng thay đổi theo máy, xem mục 12.1).
 - Theo dõi cá gặp nguy: icon trên đầu cá + mũi tên ở mép màn hình. Không có minimap.
 - Ngôn ngữ prototype: **tiếng Việt**. Mọi chuỗi hiển thị nằm trong file ngôn ngữ riêng.
+- Font: **VT323** (font pixel, giấy phép OFL, đủ dấu tiếng Việt), đóng gói kèm game để chạy offline.
 
 ## 12. Đồ họa và âm thanh
-- Prototype: hình khối placeholder. Asset gọi qua tên khóa để thay sprite không phải sửa logic.
-- Âm thanh prototype: vài hiệu ứng cơ bản (hút, bắn, nhặt xu, cảnh báo); chưa có nhạc nền.
+
+### 12.1 Phong cách: pixel art
+- Độ phân giải logic: **cao 360 pixel**, **rộng 640–840** tùy tỉ lệ màn hình:
+  - Màn hình 16:9 → 640×360.
+  - Điện thoại dài hơn (19.5:9, 20:9, 21:9) → nhìn rộng hơn, tối đa 840 (thấy thêm phần bể hai bên), không viền đen.
+  - Màn hình vuông hơn 16:9 (tablet) → giữ 640×360, có viền đen trên dưới.
+- Phóng to kiểu nearest-neighbor (pixel sắc, không nhòe). Điện thoại 720p / 1080p phóng đúng ×2 / ×3; máy có độ phân giải lẻ chấp nhận pixel hơi không đều.
+- Lưới 16px. Kích thước tham khảo: robot ~32×20, cá 16–28px, rác 8–16px. Số chính xác nằm trong `src/data/art.json`.
+
+### 12.2 Asset
+- Prototype: placeholder hình khối vẽ theo lưới pixel, **đúng kích thước sprite thật**.
+- Asset thật: PNG nền trong suốt, cùng kích thước với placeholder. Thay bằng cách đổi bản ghi trong `art.json`, không sửa code.
+
+### 12.3 Âm thanh
+- Prototype: vài hiệu ứng cơ bản (hút, bắn, nhặt xu, cảnh báo); chưa có nhạc nền.
 
 ## 13. Lưu game
 - Tự động lưu trên máy, 1 slot. Dữ liệu lưu có số phiên bản để nâng cấp định dạng về sau.
@@ -153,5 +169,5 @@ Quảng cáo, mua hàng trong app, store, online, lưu đám mây, độ khó, i
 ## 16. Quyết định còn mở
 | Mục | Hạn chót |
 |---|---|
-| Phong cách đồ họa cuối (pixel art hay vector) và kích thước sprite | Trước khi bắt đầu làm asset thật (sau prototype) |
+| Định dạng animation / sprite sheet (vd. xuất từ Aseprite) | Khi bắt đầu vẽ asset thật |
 | "Mua vật phẩm được ngọc trai" là nạp tiền thật hay quà khi mua trong game | Khi làm monetization |

@@ -1,0 +1,7 @@
+{
+  "ui.rotateDevice": "Hãy xoay ngang thiết bị để chơi",
+  "debug.title": "Debug",
+  "debug.fps": "FPS: {fps}",
+  "debug.gameTime": "Giờ game: {time}",
+  "debug.timeScale": "Tốc độ thời gian"
+}
