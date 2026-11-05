@@ -1,10 +1,15 @@
 {
   "startZone": "zone1",
-  "startingCoins": 0,
+  "startingCoins": 40,
   "startingPearls": 0,
+  "startingFish": [{ "species": "guppy", "count": 3 }],
+  "economy": {
+    "pearlValueInCoins": 1000
+  },
   "robot": {
-    "halfWidth": 14,
-    "halfHeight": 9,
+    "displayScaleX": 1.15,
+    "halfWidth": 27,
+    "halfHeight": 23,
     "maxSpeed": 110,
     "acceleration": 420,
     "deceleration": 160,
@@ -19,5 +24,43 @@
   },
   "station": {
     "chargePerSecond": 25
+  },
+  "water": {
+    "changePerMinute": 6
+  },
+  "fish": {
+    "startFullness": 80,
+    "hungryBelow": 40,
+    "seekFoodBelow": 90,
+    "sadWaterBelow": 60,
+    "dirtyWaterBelow": 40,
+    "sickHealthBelow": 40,
+    "healthLossPerMinute": 20,
+    "starvationLossPerMinute": 15,
+    "recoveryPerMinute": 10,
+    "leaveAfterSeconds": 90,
+    "senseFoodRadius": 140,
+    "eatRadius": 6,
+    "jumpSpeed": 120
+  },
+  "food": {
+    "price": 5,
+    "pellets": 3,
+    "nutrition": 30,
+    "sinkSpeed": 14,
+    "dissolveSeconds": 40,
+    "pollution": 2,
+    "spread": 8
+  },
+  "medicine": {
+    "price": 20,
+    "radius": 48,
+    "healTo": 100
+  },
+  "drops": {
+    "sinkSpeed": 16,
+    "pickupMargin": 3,
+    "autoCollectSeconds": 25,
+    "autoCollectRatio": 0.5
   }
 }

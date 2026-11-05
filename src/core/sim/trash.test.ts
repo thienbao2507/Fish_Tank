@@ -4,9 +4,9 @@ import { createRng } from '../rng';
 import { TrashField, type TrashCollector } from './trash';
 
 const types: TrashTypeDef[] = [
-  { id: 'bottle', texture: 't', layer: 'float', value: 3, slots: 1, radius: 4 },
-  { id: 'bag', texture: 't', layer: 'mid', value: 2, slots: 1, radius: 5 },
-  { id: 'can', texture: 't', layer: 'sink', value: 4, slots: 1, radius: 5 },
+  { id: 'bottle', texture: 't', layer: 'float', value: 3, slots: 1, radius: 4, pollution: 2 },
+  { id: 'bag', texture: 't', layer: 'mid', value: 2, slots: 1, radius: 5, pollution: 2 },
+  { id: 'can', texture: 't', layer: 'sink', value: 4, slots: 1, radius: 5, pollution: 2 },
 ];
 const [bottle, bag, can] = types as [TrashTypeDef, TrashTypeDef, TrashTypeDef];
 const catalog: TrashCatalog = { sinkSpeed: 20, driftSpeed: 6, types };

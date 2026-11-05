@@ -1,0 +1,46 @@
+{
+  "species": [
+    {
+      "id": "guppy",
+      "name": "fish.guppy",
+      "texture": "fish.guppy",
+      "price": 30,
+      "radius": 5,
+      "speed": 30,
+      "hungerPerMinute": 8,
+      "waterSensitivity": 0.6,
+      "coinIntervalSeconds": 20,
+      "coinValue": 4,
+      "pearlChance": 0.01,
+      "growSeconds": 120
+    },
+    {
+      "id": "neon",
+      "name": "fish.neon",
+      "texture": "fish.neon",
+      "price": 80,
+      "radius": 5,
+      "speed": 36,
+      "hungerPerMinute": 10,
+      "waterSensitivity": 0.9,
+      "coinIntervalSeconds": 16,
+      "coinValue": 6,
+      "pearlChance": 0.02,
+      "growSeconds": 240
+    },
+    {
+      "id": "angel",
+      "name": "fish.angel",
+      "texture": "fish.angel",
+      "price": 200,
+      "radius": 7,
+      "speed": 24,
+      "hungerPerMinute": 12,
+      "waterSensitivity": 1.4,
+      "coinIntervalSeconds": 12,
+      "coinValue": 12,
+      "pearlChance": 0.05,
+      "growSeconds": 480
+    }
+  ]
+}

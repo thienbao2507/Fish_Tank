@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadContent, type Content } from './content/loader';
 import { rawContent } from './content/raw';
-import type { TrashTypeDef, ZoneDef } from './content/schemas';
+import type { Balance, TrashTypeDef, ZoneDef } from './content/schemas';
 import { EventBus, type GameEvents } from './events';
 import { createRng } from './rng';
 import { World } from './world';
@@ -9,28 +9,33 @@ import { World } from './world';
 const STILL = { moveX: 0, moveY: 0 };
 const DT = 1 / 60;
 
-/** World dùng dữ liệu thật nhưng không có rác ngẫu nhiên, để test chủ động đặt rác. */
-function setup() {
+/**
+ * World dùng dữ liệu thật nhưng không có rác ngẫu nhiên, để test chủ động đặt rác.
+ * `balance` ghi đè một phần balance.json (vd. bỏ cá có sẵn).
+ */
+function setup(balance: Partial<Balance> = {}) {
   const base = loadContent(rawContent);
   const startZone = base.zones.find((zone) => zone.id === base.balance.startZone) as ZoneDef;
   const zone: ZoneDef = {
     ...startZone,
     trash: { ...startZone.trash, initialCount: 0, spawnIntervalSeconds: 1e9 },
   };
-  const content: Content = { ...base, zones: [zone] };
+  const content: Content = { ...base, zones: [zone], balance: { ...base.balance, ...balance } };
   const bus = new EventBus<GameEvents>();
   const toasts: string[] = [];
   const sold: number[] = [];
+  const collected: GameEvents['drop:collected'][] = [];
   bus.on('toast', (event) => toasts.push(event.key));
   bus.on('station:sold', (event) => sold.push(event.coins));
+  bus.on('drop:collected', (event) => collected.push(event));
   const world = new World({ content, rng: createRng(1), bus });
   const trashType = (id: string) =>
     content.trash.types.find((type) => type.id === id) as TrashTypeDef;
-  return { world, content, zone, toasts, sold, trashType };
+  return { world, content, zone, toasts, sold, collected, trashType };
 }
 
-function run(world: World, seconds: number, input = STILL): void {
-  for (let t = 0; t < seconds - 1e-9; t += DT) world.update(DT, input);
+function run(world: World, seconds: number, input = STILL, timeScale = 1): void {
+  for (let t = 0; t < seconds - 1e-9; t += DT) world.update(DT, input, timeScale);
 }
 
 /** Đưa robot ra giữa bể (xa trạm) để pin không được sạc. */
@@ -47,13 +52,13 @@ function dock(world: World): void {
 }
 
 describe('World', () => {
-  it('bắt đầu ở trạm với pin đầy, khoang rỗng, 0 xu', () => {
-    const { world } = setup();
+  it('bắt đầu ở trạm với pin đầy, khoang rỗng, số xu ban đầu', () => {
+    const { world, content } = setup();
     world.update(DT, STILL);
     expect(world.isDocked).toBe(true);
     expect(world.robot.battery.isFull).toBe(true);
     expect(world.robot.cargo.isEmpty).toBe(true);
-    expect(world.wallet.get('coins')).toBe(0);
+    expect(world.wallet.get('coins')).toBe(content.balance.startingCoins);
   });
 
   it('pin chỉ giảm khi máy hút đang bật', () => {
@@ -116,10 +121,11 @@ describe('World', () => {
     world.robot.cargo.add(can.id, can.slots);
     world.robot.cargo.add(tire.id, tire.slots);
     const expected = can.value * 2 + tire.value;
+    const before = world.wallet.get('coins');
 
     dock(world);
     world.update(DT, STILL);
-    expect(world.wallet.get('coins')).toBe(expected);
+    expect(world.wallet.get('coins')).toBe(before + expected);
     expect(sold).toEqual([expected]);
     expect(world.robot.cargo.isEmpty).toBe(true);
   });
@@ -156,5 +162,126 @@ describe('World', () => {
     expect(world.robot.facingX).toBe(1);
     run(world, 30, { moveX: -1, moveY: 0 });
     expect(world.robot.facingX).toBe(-1);
+  });
+});
+
+describe('World — cá và nước (P2)', () => {
+  it('game mới có sẵn cá theo balance.json', () => {
+    const { world, content } = setup();
+    const expected = content.balance.startingFish.reduce((sum, entry) => sum + entry.count, 0);
+    expect(world.fish).toHaveLength(expected);
+  });
+
+  it('nhiều rác → nước bẩn dần; dọn sạch → nước trong lại', () => {
+    const { world, trashType } = setup({ startingFish: [] });
+    expect(world.water).toBe(100);
+    const tire = trashType('tire');
+    for (let i = 0; i < 10; i++) world.trash.add(tire, 300 + i * 20, 400);
+    run(world, 2, STILL, 60); // ~2 phút game
+    const dirty = world.water;
+    expect(dirty).toBeLessThan(100);
+    expect(dirty).toBeGreaterThanOrEqual(100 - world.pollution);
+
+    for (const item of [...world.trash.items]) {
+      world.trash.pull(item.x, item.y, { radius: 1, pullSpeed: 1, collectRadius: 1 }, DT, {
+        canFit: () => true,
+        collect: () => true,
+      });
+    }
+    run(world, 2, STILL, 60);
+    expect(world.water).toBeGreaterThan(dirty);
+  });
+
+  it('tua thời gian làm cá đói nhanh hơn', () => {
+    const normal = setup();
+    const fast = setup();
+    run(normal.world, 1);
+    run(fast.world, 1, STILL, 60);
+    const fullness = (w: World) => (w.fish[0] as World['fish'][number]).fullness;
+    expect(fullness(fast.world)).toBeLessThan(fullness(normal.world));
+  });
+
+  describe('cho ăn', () => {
+    it('tốn xu và thả thức ăn tại robot', () => {
+      const { world, content } = setup();
+      const before = world.wallet.get('coins');
+      expect(world.feed()).toBe(true);
+      expect(world.wallet.get('coins')).toBe(before - content.balance.food.price);
+      expect(world.food.pellets).toHaveLength(content.balance.food.pellets);
+    });
+
+    it('không đủ xu → báo và không thả', () => {
+      const { world, toasts } = setup({ startingCoins: 0 });
+      expect(world.feed()).toBe(false);
+      expect(world.food.pellets).toHaveLength(0);
+      expect(toasts).toContain('toast.notEnoughCoins');
+    });
+
+    it('thức ăn thừa dưới đáy làm bẩn nước', () => {
+      const { world } = setup({ startingFish: [] });
+      world.wallet.add('coins', 1000);
+      for (let i = 0; i < 10; i++) world.feed();
+      run(world, 30); // chìm tới đáy
+      expect(world.food.pollution).toBeGreaterThan(0);
+      run(world, 1, STILL, 60);
+      expect(world.water).toBeLessThan(100);
+    });
+  });
+
+  describe('chữa bệnh', () => {
+    it('không có cá ốm trong tầm → không làm gì, không trừ xu', () => {
+      const { world } = setup();
+      const before = world.wallet.get('coins');
+      expect(world.canGiveMedicine()).toBe(false);
+      expect(world.giveMedicine()).toBe(false);
+      expect(world.wallet.get('coins')).toBe(before);
+    });
+
+    it('có cá ốm gần robot → chữa khỏi và trừ xu', () => {
+      const { world, content } = setup();
+      const fish = world.fish[0] as World['fish'][number];
+      fish.health = 10;
+      fish.x = world.robot.x + 10;
+      fish.y = world.robot.y;
+      expect(world.canGiveMedicine()).toBe(true);
+      const before = world.wallet.get('coins');
+      expect(world.giveMedicine()).toBe(true);
+      expect(fish.health).toBe(content.balance.medicine.healTo);
+      expect(world.wallet.get('coins')).toBe(before - content.balance.medicine.price);
+    });
+  });
+
+  describe('xu và ngọc cá sinh ra', () => {
+    it('robot chạm vào là nhặt đủ giá trị', () => {
+      const { world, collected } = setup({ startingFish: [] });
+      moveAway(world);
+      const before = world.wallet.get('coins');
+      world.drops.spawn('coin', 4, world.robot.x, world.robot.y);
+      world.update(DT, STILL);
+      expect(world.wallet.get('coins')).toBe(before + 4);
+      expect(collected[0]).toMatchObject({ currency: 'coins', amount: 4, auto: false });
+    });
+
+    it('nhặt ngọc → cộng ngọc', () => {
+      const { world } = setup({ startingFish: [] });
+      moveAway(world);
+      world.drops.spawn('pearl', 1, world.robot.x, world.robot.y);
+      world.update(DT, STILL);
+      expect(world.wallet.get('pearls')).toBe(1);
+    });
+
+    it('để quá hạn → tự cộng 50%; ngọc quy ra xu', () => {
+      const { world, content, collected } = setup({ startingFish: [] });
+      moveAway(world);
+      const before = world.wallet.get('coins');
+      world.drops.spawn('coin', 4, 200, 100);
+      world.drops.spawn('pearl', 1, 260, 100);
+      run(world, content.balance.drops.autoCollectSeconds + 0.1);
+      const pearlAsCoins = content.balance.economy.pearlValueInCoins * 0.5;
+      expect(world.wallet.get('coins')).toBe(before + 2 + pearlAsCoins);
+      expect(world.wallet.get('pearls')).toBe(0);
+      expect(collected.every((event) => event.auto)).toBe(true);
+      expect(world.drops.items).toHaveLength(0);
+    });
   });
 });

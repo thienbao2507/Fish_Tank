@@ -147,11 +147,12 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
   - Điện thoại dài hơn (19.5:9, 20:9, 21:9) → nhìn rộng hơn, tối đa 840 (thấy thêm phần bể hai bên), không viền đen.
   - Màn hình vuông hơn 16:9 (tablet) → giữ 640×360, có viền đen trên dưới.
 - Phóng to kiểu nearest-neighbor (pixel sắc, không nhòe). Điện thoại 720p / 1080p phóng đúng ×2 / ×3; máy có độ phân giải lẻ chấp nhận pixel hơi không đều.
-- Lưới 16px. Kích thước tham khảo: robot ~32×20, cá 16–28px, rác 8–16px. Số chính xác nằm trong `src/data/art.json`.
+- Lưới 16px. Tàu ngầm của người chơi dùng sprite 48×48 theo ảnh mẫu được yêu cầu ngày 2026-11-04; cá 16–28px, rác 8–16px. Texture được khai báo trong `src/data/art.json`.
 
 ### 12.2 Asset
 - Prototype: placeholder hình khối vẽ theo lưới pixel, **đúng kích thước sprite thật**.
 - Asset thật: PNG nền trong suốt, cùng kích thước với placeholder. Thay bằng cách đổi bản ghi trong `art.json`, không sửa code.
+- Tàu ngầm: thân vàng cũ, khung máy tím, kính xanh phía trước và cụm máy cam; PNG nền trong suốt 48×48 tại `public/art/submarine.png`, mặc định quay phải. Theo phản hồi người dùng, hiển thị rộng hơn 15%, giữ nguyên chiều cao; vùng giới hạn di chuyển 54×46 khớp với kích thước hiển thị mới.
 
 ### 12.3 Âm thanh
 - Prototype: vài hiệu ứng cơ bản (hút, bắn, nhặt xu, cảnh báo); chưa có nhạc nền.

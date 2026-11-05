@@ -3,11 +3,13 @@ import type { Strings } from '../i18n';
 import {
   artSchema,
   balanceSchema,
+  fishSchema,
   stringsSchema,
   trashSchema,
   zonesSchema,
   type ArtManifest,
   type Balance,
+  type FishCatalog,
   type TrashCatalog,
   type ZoneDef,
 } from './schemas';
@@ -19,6 +21,7 @@ export interface RawContent {
   readonly balance: unknown;
   readonly zones: unknown;
   readonly trash: unknown;
+  readonly fish: unknown;
 }
 
 /** Dữ liệu đã kiểm tra, dùng trong toàn game. */
@@ -28,6 +31,7 @@ export interface Content {
   readonly balance: Balance;
   readonly zones: readonly ZoneDef[];
   readonly trash: TrashCatalog;
+  readonly fish: FishCatalog;
 }
 
 export class ContentError extends Error {
@@ -126,6 +130,30 @@ function crossCheck(content: Content, issues: string[]): void {
       `balance.json › startZone: không có khu "${content.balance.startZone}" trong zones.json`,
     );
   }
+
+  const speciesIds = new Set(content.fish.species.map((species) => species.id));
+  for (const duplicate of findDuplicates(content.fish.species.map((species) => species.id))) {
+    issues.push(`fish.json › species: id "${duplicate}" bị trùng`);
+  }
+  content.fish.species.forEach((species, index) => {
+    if (!textureKeys.has(species.texture)) {
+      issues.push(
+        `fish.json › species.${index}.texture: không có texture "${species.texture}" trong art.json`,
+      );
+    }
+    if (content.strings[species.name] === undefined) {
+      issues.push(
+        `fish.json › species.${index}.name: không có chuỗi "${species.name}" trong strings.vi.json`,
+      );
+    }
+  });
+  content.balance.startingFish.forEach((entry, index) => {
+    if (!speciesIds.has(entry.species)) {
+      issues.push(
+        `balance.json › startingFish.${index}.species: không có loài "${entry.species}" trong fish.json`,
+      );
+    }
+  });
 }
 
 /** Kiểm tra toàn bộ dữ liệu; gom lỗi của mọi file rồi ném một ContentError duy nhất. */
@@ -136,12 +164,13 @@ export function loadContent(raw: RawContent): Content {
   const balance = parseFile('balance.json', balanceSchema, raw.balance, issues);
   const zones = parseFile('zones.json', zonesSchema, raw.zones, issues);
   const trash = parseFile('trash.json', trashSchema, raw.trash, issues);
+  const fish = parseFile('fish.json', fishSchema, raw.fish, issues);
 
-  if (!strings || !art || !balance || !zones || !trash) {
+  if (!strings || !art || !balance || !zones || !trash || !fish) {
     throw new ContentError(issues);
   }
 
-  const content: Content = { strings, art, balance, zones: zones.zones, trash };
+  const content: Content = { strings, art, balance, zones: zones.zones, trash, fish };
   crossCheck(content, issues);
   if (issues.length > 0) {
     throw new ContentError(issues);

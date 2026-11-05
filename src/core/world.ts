@@ -1,12 +1,18 @@
 import type { Content } from './content/loader';
-import type { Balance, TrashTypeDef, ZoneDef } from './content/schemas';
-import { Wallet } from './economy/wallet';
+import type { Balance, FishSpeciesDef, TrashTypeDef, ZoneDef } from './content/schemas';
+import { Wallet, type Currency } from './economy/wallet';
 import type { EventBus, GameEvents } from './events';
+import { t, type StringKey } from './i18n';
 import type { PlayerInput } from './input';
 import type { Rng } from './rng';
+import { DropField, type Drop } from './sim/drops';
+import type { Fish, Mood } from './sim/fish';
+import { FoodField } from './sim/food';
 import { stepMotion, type Bounds } from './sim/movement';
 import { Robot } from './sim/robot';
+import { School } from './sim/school';
 import { TrashField } from './sim/trash';
+import { stepCleanliness, waterTarget } from './sim/water';
 
 export interface WorldDeps {
   readonly content: Content;
@@ -23,12 +29,17 @@ export class World {
   readonly wallet: Wallet;
   readonly robot: Robot;
   readonly trash: TrashField;
+  readonly food: FoodField;
+  readonly drops: DropField;
+  private readonly school: School;
   private readonly balance: Balance;
   private readonly bus: EventBus<GameEvents>;
   private readonly trashTypes: ReadonlyMap<string, TrashTypeDef>;
   private readonly robotBounds: Bounds;
   private docked = false;
   private cargoFullWarned = false;
+  /** Độ sạch nước của khu, 0–100%. */
+  private cleanliness: number;
 
   constructor({ content, rng, bus }: WorldDeps) {
     const { balance } = content;
@@ -49,6 +60,17 @@ export class World {
     );
     this.trash = new TrashField(zone, content.trash, rng);
     this.trash.fillInitial();
+    this.food = new FoodField(zone, balance.food, rng);
+    this.drops = new DropField(zone, balance.drops);
+    this.school = new School(zone, balance.fish, balance.food.nutrition, rng);
+
+    const speciesById = new Map(content.fish.species.map((species) => [species.id, species]));
+    for (const { species, count } of balance.startingFish) {
+      const def = speciesById.get(species) as FishSpeciesDef;
+      for (let i = 0; i < count; i++) this.school.add(def);
+    }
+    // Game mới bắt đầu với nước ở trạng thái cân bằng theo lượng rác ban đầu.
+    this.cleanliness = waterTarget(this.pollution);
 
     const { halfWidth, halfHeight } = balance.robot;
     this.robotBounds = {
@@ -69,6 +91,53 @@ export class World {
     return this.docked && !this.robot.battery.isFull;
   }
 
+  /** Độ sạch nước hiện tại, 0–100%. */
+  get water(): number {
+    return this.cleanliness;
+  }
+
+  /** Tổng ô nhiễm: rác + thức ăn thừa dưới đáy (P4 thêm tảo). */
+  get pollution(): number {
+    return this.trash.pollution + this.food.pollution;
+  }
+
+  get fish(): readonly Fish[] {
+    return this.school.fish;
+  }
+
+  moodOf(fish: Fish): Mood {
+    return this.school.moodOf(fish, this.cleanliness);
+  }
+
+  /** Có cá ốm trong tầm chữa quanh robot không (nút Thuốc sáng/mờ theo đây). */
+  canGiveMedicine(): boolean {
+    return this.nearestSickFish() !== undefined;
+  }
+
+  /** Thả thức ăn tại robot; tốn xu. Không đủ xu thì báo và không thả. */
+  feed(): boolean {
+    if (!this.wallet.spend('coins', this.balance.food.price)) {
+      this.bus.emit('toast', { key: 'toast.notEnoughCoins' });
+      return false;
+    }
+    this.food.drop(this.robot.x, this.robot.y);
+    return true;
+  }
+
+  /** Chữa con cá ốm gần robot nhất. Không có cá ốm trong tầm thì không làm gì, không trừ xu. */
+  giveMedicine(): boolean {
+    const target = this.nearestSickFish();
+    if (!target) return false;
+    if (!this.wallet.spend('coins', this.balance.medicine.price)) {
+      this.bus.emit('toast', { key: 'toast.notEnoughCoins' });
+      return false;
+    }
+    target.health = this.balance.medicine.healTo;
+    target.sickSeconds = 0;
+    this.bus.emit('fish:healed', { x: target.x, y: target.y });
+    return true;
+  }
+
   /** Bật/tắt máy hút; hết pin thì không bật được. Trả về trạng thái sau khi bấm. */
   toggleVacuum(): boolean {
     const { robot } = this;
@@ -84,12 +153,92 @@ export class World {
     return true;
   }
 
-  /** Chạy một khung hình. `dt` tính bằng giây. */
-  update(dt: number, input: PlayerInput): void {
+  /**
+   * Chạy một khung hình. `dt`: giây thực (bơi, hút, rác, thức ăn, xu rơi).
+   * `timeScale`: hệ số tua của đồng hồ game — nhân vào các mô phỏng dài hạn (nước, nhu cầu cá, sinh xu).
+   */
+  update(dt: number, input: PlayerInput, timeScale = 1): void {
+    const gameDt = dt * timeScale;
     this.moveRobot(dt, input);
     this.updateStation(dt);
     this.trash.update(dt);
     this.runVacuum(dt);
+    this.food.update(dt);
+    this.cleanliness = stepCleanliness(
+      this.cleanliness,
+      this.pollution,
+      this.balance.water.changePerMinute,
+      gameDt,
+    );
+    this.updateFish(dt, gameDt);
+    this.updateDrops(dt);
+  }
+
+  private updateFish(dt: number, gameDt: number): void {
+    const { becameSick, startedLeaving } = this.school.update(
+      dt,
+      gameDt,
+      this.cleanliness,
+      this.food,
+      this.drops,
+    );
+    for (const fish of becameSick) {
+      this.bus.emit('toast', { key: 'toast.fishSick', params: { name: this.nameOf(fish) } });
+    }
+    for (const fish of startedLeaving) {
+      this.bus.emit('toast', { key: 'toast.fishLeft', params: { name: this.nameOf(fish) } });
+      this.bus.emit('fish:left', { speciesId: fish.species.id, x: fish.x, y: fish.y });
+    }
+  }
+
+  /** Robot chạm là nhặt đủ; để quá hạn thì tự cộng một phần (spec 4.4). */
+  private updateDrops(dt: number): void {
+    const { robot } = this;
+    const { halfWidth, halfHeight } = this.balance.robot;
+    const margin = this.balance.drops.pickupMargin;
+    for (const drop of this.drops.pickup(
+      robot.x,
+      robot.y,
+      halfWidth + margin,
+      halfHeight + margin,
+    )) {
+      this.collectDrop(drop, false);
+    }
+    for (const drop of this.drops.update(dt)) {
+      this.collectDrop(drop, true);
+    }
+  }
+
+  /**
+   * Nhặt tay: nhận đủ. Tự cộng: nhận `autoCollectRatio` giá trị; ngọc không chia đôi được
+   * nên quy ra xu theo tỉ giá (1 ngọc × 1000 × 50% = 500 xu).
+   */
+  private collectDrop(drop: Drop, auto: boolean): void {
+    const { autoCollectRatio } = this.balance.drops;
+    let currency: Currency;
+    let amount: number;
+    if (!auto) {
+      currency = drop.kind === 'coin' ? 'coins' : 'pearls';
+      amount = drop.value;
+    } else {
+      currency = 'coins';
+      const valueInCoins =
+        drop.kind === 'coin' ? drop.value : drop.value * this.balance.economy.pearlValueInCoins;
+      amount = Math.floor(valueInCoins * autoCollectRatio);
+    }
+    if (amount <= 0) return;
+    this.wallet.add(currency, amount);
+    this.bus.emit('drop:collected', { currency, amount, x: drop.x, y: drop.y, auto });
+  }
+
+  private nearestSickFish(): Fish | undefined {
+    const { robot } = this;
+    return this.school.nearestSick(robot.x, robot.y, this.balance.medicine.radius);
+  }
+
+  private nameOf(fish: Fish): string {
+    // fish.json › name đã được loader kiểm tra là khoá có trong strings.vi.json.
+    return t(fish.species.name as StringKey);
   }
 
   private moveRobot(dt: number, input: PlayerInput): void {

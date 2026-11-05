@@ -1,13 +1,23 @@
 import type Phaser from 'phaser';
+import type { FishRules } from '../../core/content/schemas';
 import { t } from '../../core/i18n';
 import type { World } from '../../core/world';
 import { TextureKeys } from '../art/keys';
 import { HUD_MARGIN, HUD_ROW_1, HUD_ROW_2, TEXT_OFFSET_Y } from './layout';
-import { addPixelText, TEXT_COLOR, WARNING_COLOR } from './text';
+import { addPixelText, COIN_COLOR, TEXT_COLOR, WARNING_COLOR } from './text';
 
 const BAR_WIDTH = 50;
 const BAR_HEIGHT = 10;
 const ICON_GAP = 4;
+/** Độ sạch nước hiển thị sau ô khoang, cùng hàng 2 (P2-01: tạm thời). */
+const WATER_X = HUD_MARGIN + 64;
+
+/** Màu % nước: bình thường / làm cá buồn (vàng) / làm cá mất máu (đỏ). */
+function waterColor(percent: number, rules: FishRules): string {
+  if (percent < rules.dirtyWaterBelow) return WARNING_COLOR;
+  if (percent < rules.sadWaterBelow) return COIN_COLOR;
+  return TEXT_COLOR;
+}
 
 const BAR_FRAME = 0x0b1d2e;
 const BAR_EMPTY = 0x1b2a41;
@@ -30,16 +40,25 @@ export class Hud {
   private readonly batteryBar: Phaser.GameObjects.Graphics;
   private readonly chargingText: Phaser.GameObjects.Text;
   private readonly cargoText: Phaser.GameObjects.Text;
+  private readonly waterText: Phaser.GameObjects.Text;
   private readonly coinIcon: Phaser.GameObjects.Image;
   private readonly coinText: Phaser.GameObjects.Text;
   private readonly pearlIcon: Phaser.GameObjects.Image;
   private readonly pearlText: Phaser.GameObjects.Text;
   private width = 0;
-  private shown = { batteryPixels: -1, charging: false, used: -1, coins: -1, pearls: -1 };
+  private shown = {
+    batteryPixels: -1,
+    charging: false,
+    used: -1,
+    water: -1,
+    coins: -1,
+    pearls: -1,
+  };
 
   constructor(
     scene: Phaser.Scene,
     private readonly world: World,
+    private readonly fishRules: FishRules,
   ) {
     this.batteryBar = scene.add.graphics();
     this.chargingText = addPixelText(
@@ -51,6 +70,8 @@ export class Hud {
 
     scene.add.image(HUD_MARGIN, HUD_ROW_2, TextureKeys.iconCargo).setOrigin(0);
     this.cargoText = addPixelText(scene, HUD_MARGIN + 10 + ICON_GAP, HUD_ROW_2 + TEXT_OFFSET_Y, '');
+    scene.add.image(WATER_X, HUD_ROW_2, TextureKeys.iconWater).setOrigin(0);
+    this.waterText = addPixelText(scene, WATER_X + 6 + ICON_GAP, HUD_ROW_2 + TEXT_OFFSET_Y, '');
 
     this.coinIcon = scene.add.image(0, HUD_ROW_1, TextureKeys.iconCoin).setOrigin(0);
     this.coinText = addPixelText(scene, 0, HUD_ROW_1 + TEXT_OFFSET_Y, '').setOrigin(1, 0);
@@ -93,6 +114,14 @@ export class Hud {
       this.shown.coins = coins;
       this.coinText.setText(formatNumber(coins));
       this.placeRight(this.coinText, this.coinIcon);
+    }
+
+    const water = Math.round(this.world.water);
+    if (water !== this.shown.water) {
+      this.shown.water = water;
+      this.waterText
+        .setText(t('hud.water', { percent: water }))
+        .setColor(waterColor(water, this.fishRules));
     }
 
     const pearls = wallet.get('pearls');

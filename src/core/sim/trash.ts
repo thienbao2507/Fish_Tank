@@ -64,6 +64,11 @@ export class TrashField {
     return this.list;
   }
 
+  /** Tổng mức ô nhiễm nước do rác còn trong khu. */
+  get pollution(): number {
+    return this.list.reduce((sum, item) => sum + item.type.pollution, 0);
+  }
+
   /** Rải rác lúc bắt đầu game mới; rác chìm nằm sẵn dưới đáy. */
   fillInitial(): void {
     for (let i = 0; i < this.zone.trash.initialCount; i++) {

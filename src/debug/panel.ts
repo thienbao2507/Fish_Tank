@@ -18,6 +18,9 @@ function element<K extends keyof HTMLElementTagNameMap>(
 
 /** Panel debug (chỉ hiện khi URL có `?debug=1`). Các nút khác được thêm khi hệ thống tương ứng tồn tại. */
 export function mountDebugPanel(game: Phaser.Game, ctx: GameContext): void {
+  // Soi/chỉnh trạng thái từ console trình duyệt hoặc script kiểm thử: fishtank.world, fishtank.clock…
+  (window as unknown as { fishtank: GameContext }).fishtank = ctx;
+
   const panel = element('div', 'debug-panel');
   const title = element('div', 'debug-title', t('debug.title'));
   const body = element('div', 'debug-body');

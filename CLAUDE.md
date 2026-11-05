@@ -20,7 +20,7 @@ FishTank — game 2D cho mobile (Android trước): người chơi điều khi�
 
 | Lệnh | Việc |
 |---|---|
-| `npm run dev` | Dev server tại http://localhost:5173 (thêm `?debug=1` để bật panel debug) |
+| `npm run dev` | Dev server tại http://localhost:5173 (thêm `?debug=1` để bật panel debug và `window.fishtank` = GameContext để soi/chỉnh state từ console) |
 | `npm run dev:host` | Như trên, mở cho điện thoại cùng mạng Wi‑Fi |
 | `npm run check` | typecheck + lint + test — phải xanh trước khi báo xong task |
 | `npm run build` | typecheck rồi build vào `dist/` |
@@ -30,8 +30,8 @@ FishTank — game 2D cho mobile (Android trước): người chơi điều khi�
 ## Kiến trúc
 
 - `src/core/` — logic thuần: mô phỏng, kinh tế, thời gian, nạp dữ liệu. ESLint chặn import Phaser, dùng DOM, hoặc import từ `game/ui/debug/platform` trong thư mục này. Mọi luật chơi nằm ở đây và có unit test (`*.test.ts` đặt cạnh file).
-- `src/core/world.ts` — `World`: trạng thái một ván chơi (zone, robot, rác, ví) và **toàn bộ luật chơi theo khung hình** (`update(dt, input)`: di chuyển → trạm (đổi rác, sạc) → rác → máy hút). Phát `toast` / `station:sold` qua `EventBus<GameEvents>` (`src/core/events.ts`). Thêm luật mới vào đây hoặc vào `src/core/sim/*`, không viết trong scene.
-- `src/game/` — Phaser, chỉ hiển thị và nhận input: `scenes/GameScene` vẽ theo state của World (sprite rác đồng bộ theo `id`), `scenes/UIScene` (camera không cuộn) chứa HUD (`hud/`), joystick (`input/`), bàn phím, và ghi `ctx.input` mỗi khung hình; `art/` (khoá texture + vẽ placeholder).
+- `src/core/world.ts` — `World`: trạng thái một ván chơi (zone, robot, ví, rác `TrashField`, thức ăn `FoodField`, xu/ngọc rơi `DropField`, đàn cá `School`, độ sạch nước) và **toàn bộ luật chơi theo khung hình** (`update(dt, input, timeScale)`: di chuyển → trạm (đổi rác, sạc) → rác → máy hút → thức ăn → nước → cá (nhu cầu, bơi, ăn, sinh xu, bỏ đi) → nhặt/tự cộng xu). Hành động người chơi: `toggleVacuum`, `feed`, `giveMedicine`. Phát `toast`, `station:sold`, `drop:collected`, `fish:healed`, `fish:left` qua `EventBus<GameEvents>` (`src/core/events.ts`). Luật từng phần nằm ở `src/core/sim/*` (movement, battery, cargo, trash, water, food, drops, fish, school). Thêm luật mới vào đây, không viết trong scene.
+- `src/game/` — Phaser, chỉ hiển thị và nhận input: `scenes/GameScene` vẽ theo state của World (rác, thức ăn, xu, cá đồng bộ qua `SpriteSync` theo `id`; chữ bay lên khi có event), `scenes/UIScene` (camera không cuộn) chứa HUD (`hud/`: thông số, `ActionButton` Hút/Thức ăn/Thuốc, thông báo, mũi tên chỉ cá ốm), joystick (`input/`), bàn phím, và ghi `ctx.input` mỗi khung hình; `art/` (khoá texture + vẽ placeholder).
 - `src/ui/` — menu bằng DOM overlay (shop, nhiệm vụ…). HUD và joystick vẽ bằng Phaser trong UIScene.
 - `src/platform/` — adapter phụ thuộc nền tảng (storage web ↔ Capacitor).
 - `src/debug/` — panel debug DOM, chỉ hiện khi URL có `?debug=1`.
@@ -47,8 +47,9 @@ Luồng khởi động (`src/main.ts`): `loadContent(rawContent)` kiểm tra to�
 - **Pixel art / màn hình:** độ phân giải logic cao 360, rộng 640–840 theo tỉ lệ màn hình (`src/config.ts`, `src/game/viewport.ts`; `createGame.ts` gọi `setGameSize` khi có `RESIZE`). Không giả định chiều rộng cố định: đọc `this.scale.width` và nghe `Phaser.Scale.Events.RESIZE` (nhớ `off` khi scene shutdown). `pixelArt: true` đã bật.
 - **Placeholder:** chỉ dùng `rect` ở toạ độ nguyên để cạnh sắc (circle/roundRect/ellipse bị khử răng cưa). Kích thước placeholder = kích thước sprite thật.
 - **Font:** `UI_FONT_FAMILY` (VT323, file trong `public/fonts/`, nạp bằng `FontFace` trong `main.ts` trước khi tạo game), cỡ 16px theo pixel logic. Panel debug dùng monospace.
-- **Thời gian:** hành động trực tiếp (bơi, hút, pin, rác sinh/trôi) dùng delta khung hình (giây, GameScene kẹp tối đa 0.1s). Mốc thời gian và mô phỏng dài hạn (bộ đếm, nhu cầu cá, offline — từ P2/P3) đọc từ `ctx.clock` (`ScaledClock`, có hệ số tua debug); không gọi `Date.now()` trong logic.
-- **Số liệu gameplay:** `src/data/balance.json` (robot, máy hút, trạm), `zones.json` (kích thước khu, trạm, cấu hình sinh rác), `trash.json` (loại rác). Loader kiểm tra chéo giữa các file (id rác, texture, startZone…).
+- **Thời gian:** `World.update(dt, input, timeScale)`. Hành động trực tiếp (bơi, hút, pin, rác/thức ăn/xu rơi, cá bơi) dùng `dt` = delta khung hình (giây, GameScene kẹp tối đa 0.1s). Mô phỏng dài hạn (độ sạch nước, nhu cầu cá, chu kỳ sinh xu) dùng `dt × timeScale` — GameScene truyền `ctx.clock.scale` nên tua debug ×10/×100 làm chúng chạy nhanh. Mốc thời gian tuyệt đối (bộ đếm P3, offline P5) đọc `ctx.clock.now()`; không gọi `Date.now()` trong logic.
+- **Số liệu gameplay:** `src/data/balance.json` (robot, máy hút, trạm, nước, luật cá, thức ăn, thuốc, xu rơi, cá khởi đầu), `zones.json` (kích thước khu, trạm, cấu hình sinh rác), `trash.json` (loại rác + mức ô nhiễm), `fish.json` (loài cá). Loader kiểm tra chéo giữa các file (id, texture, khoá chuỗi tên cá, startZone, startingFish…).
+- **Danh sách vật thể → sprite:** dùng `SpriteSync` (`src/game/SpriteSync.ts`) khớp theo `id`; không tự quản lý Map sprite trong scene.
 - **Ngẫu nhiên:** luôn qua `ctx.rng` (có seed) để test tái hiện được.
 
 ## Lưu ý kỹ thuật

@@ -118,26 +118,32 @@ Mục tiêu: vòng lặp tối thiểu "dọn rác → về trạm → đổi xu
 
 Demo P1: chơi trọn vòng dọn → đổi xu trên điện thoại.
 
+- [~] **P1-Art** Theo yêu cầu ngày 2026-11-04: thay robot placeholder bằng tàu ngầm pixel art theo ảnh mẫu (thân vàng, kính xanh, khung tím), PNG trong suốt 48×48; cập nhật vùng giới hạn di chuyển theo sprite.
+  Cập nhật theo phản hồi: kéo ngang thêm 15%, giữ chiều cao; vùng giới hạn 54×46. Lint hai file code thay đổi và 15 test loader/movement đạt; lần chạy check này bị chặn bởi lỗi TS2554 tại `UIScene.ts` đang được sửa đồng thời.
+  AC: tải PNG qua manifest, quay mặt theo hướng bơi, không vượt biên bể; `npm run check` và `npm run build` xanh.
+  *(Đã tích hợp asset và vùng giới hạn mới; `npm run check` đạt với 109 test, `npm run build` đạt; PNG trả HTTP 200 và có trong bản build. Chưa kiểm tra trực quan trong game do Browser không kết nối và lệnh Chrome bị chặn. Chi tiết asset và prompt: [submarine-art.md](submarine-art.md).)*
+
 ### P2 — Cá và nước
 Mục tiêu: cá sống trong bể, phản ứng với nước bẩn và việc chăm sóc.
 
-- [ ] **P2-01** Độ sạch nước theo khu (`core/sim/water`): giảm theo rác, thức ăn thừa (tảo thêm ở P4); tự hồi chậm khi sạch.
+- [x] **P2-01** Độ sạch nước theo khu (`core/sim/water`): giảm theo rác, thức ăn thừa (tảo thêm ở P4); tự hồi chậm khi sạch.
   AC: unit test công thức; hiển thị độ sạch trên HUD (tạm thời).
-- [ ] **P2-02** `fish.json`: 3 loài (giá, tốc độ đói, độ nhạy nước, xu/chu kỳ, tỉ lệ ngọc, thời gian lớn).
+- [x] **P2-02** `fish.json`: 3 loài (giá, tốc độ đói, độ nhạy nước, xu/chu kỳ, tỉ lệ ngọc, thời gian lớn).
   AC: loader validate đủ trường.
-- [ ] **P2-03** Cá bơi: đi lang thang trong khu, tránh biên, bơi tới thức ăn gần nhất.
+- [x] **P2-03** Cá bơi: đi lang thang trong khu, tránh biên, bơi tới thức ăn gần nhất.
   AC: cá không kẹt ở biên/góc; nhìn tự nhiên.
-- [ ] **P2-04** Máy trạng thái cá (`core/sim/fish`): No, Bệnh, Vui → Buồn → Ốm → cảnh báo + đếm ngược → nhảy khỏi bể; nước sạch thì hồi phục dần.
+- [x] **P2-04** Máy trạng thái cá (`core/sim/fish`): No, Bệnh, Vui → Buồn → Ốm → cảnh báo + đếm ngược → nhảy khỏi bể; nước sạch thì hồi phục dần.
   AC: unit test mọi chuyển trạng thái; cá nhảy ra có hiệu ứng và bị xóa khỏi save.
-- [ ] **P2-05** Nút Thức ăn: tốn xu, viên thức ăn chìm dần, cá ăn; thừa rơi xuống đáy → làm bẩn nước, tan sau một thời gian.
+- [x] **P2-05** Nút Thức ăn: tốn xu, viên thức ăn chìm dần, cá ăn; thừa rơi xuống đáy → làm bẩn nước, tan sau một thời gian.
   AC: cho ăn quá nhiều làm độ sạch giảm thấy rõ.
-- [ ] **P2-06** Nút Thuốc: tốn xu, chữa cá ốm gần robot nhất trong bán kính.
+- [x] **P2-06** Nút Thuốc: tốn xu, chữa cá ốm gần robot nhất trong bán kính.
   AC: không có cá ốm trong bán kính → nút mờ, không trừ xu.
-- [ ] **P2-07** Cá vui sinh xu (tỉ lệ nhỏ ra ngọc), rơi ra; robot chạm là nhặt; quá thời gian → tự cộng 50%.
+- [x] **P2-07** Cá vui sinh xu (tỉ lệ nhỏ ra ngọc), rơi ra; robot chạm là nhặt; quá thời gian → tự cộng 50%.
   AC: unit test tỉ lệ (RNG seed) và quy tắc 50%.
-- [ ] **P2-08** Cảnh báo: icon trên đầu cá; mũi tên ở mép màn hình khi cá ngoài tầm nhìn.
+  *(Ngọc không nhặt: 1 viên không chia đôi được nên tự cộng 50% giá trị quy ra xu = 500 xu. Chờ người dùng xác nhận.)*
+- [x] **P2-08** Cảnh báo: icon trên đầu cá; mũi tên ở mép màn hình khi cá ngoài tầm nhìn.
   AC: mũi tên chỉ đúng hướng, biến mất khi cá vào khung hình.
-- [ ] **P2-09** Trạng thái khởi đầu game mới (số liệu trong `balance.json`): vài cá loài rẻ ở khu 1, ít xu.
+- [x] **P2-09** Trạng thái khởi đầu game mới (số liệu trong `balance.json`): vài cá loài rẻ ở khu 1, ít xu.
   AC: game mới luôn chơi được ngay.
 
 Demo P2: bỏ bê thì cá buồn → ốm → bỏ đi; chăm tốt thì cá sinh xu.
@@ -201,6 +207,14 @@ Demo P6: cài APK lên máy Android, chơi trọn vòng.
 | Ý tưởng | Lý do | Ngày ghi |
 |---|---|---|
 | | | |
+
+### Việc đang chờ người dùng quyết định
+| Việc | Hiện trạng | Ngày ghi |
+|---|---|---|
+| Ngọc trai không nhặt, tự cộng sau 25 giây được bao nhiêu? (spec 4.4 ghi "50% giá trị" nhưng 1 viên không chia đôi được) | Đang quy ra xu: 1 ngọc × 1000 × 50% = **500 xu** (`World.collectDrop`). Phương án khác: 50% khả năng được nguyên viên, hoặc ngọc không tự cộng | 2026-11-04 |
+| Tầm hút / tầm chữa bệnh sau khi đổi sang tàu ngầm lớn hơn (P1-Art) | Bán kính hút 36px chỉ vươn khỏi thân ~9–13px; tầm thuốc 48px. Chưa chỉnh, chờ người dùng chơi thử rồi quyết (`balance.json › robot.vacuum.radius`, `medicine.radius`) | 2026-11-05 |
+| P1-Art (tàu ngầm) do một phiên khác làm, đang `[~]` | Đã gộp vào commit P2 vì dùng chung `art.json`, `balance.json`, `spec.md`. Cần người dùng xác nhận P1-Art xong để đánh dấu `[x]` | 2026-11-05 |
+| Kiểm tra trên điện thoại thật cho P0-03, P1-02 | Còn `[~]`, đã đạt trên PC + cảm ứng giả lập | 2026-11-05 |
 
 ## 7. Ngoài phạm vi prototype
 Xem [spec.md mục 15](spec.md#15-ngoài-phạm-vi-prototype).

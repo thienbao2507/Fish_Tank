@@ -28,10 +28,10 @@ describe('loadContent', () => {
 
   it('báo rõ file và trường khi sai kiểu', () => {
     const raw = rawCopy();
-    raw.art.textures.robot.parts[0].color = 'red';
+    raw.art.textures.station.parts[0].color = 'red';
     const error = errorOf(() => loadContent(raw));
     expect(error.issues).toHaveLength(1);
-    expect(error.issues[0]).toContain('art.json › textures.robot.parts.0.color');
+    expect(error.issues[0]).toContain('art.json › textures.station.parts.0.color');
   });
 
   it('báo lỗi khi có trường lạ (gõ sai tên trường)', () => {
@@ -71,6 +71,24 @@ describe('loadContent', () => {
       raw.balance.startZone = 'nowhere';
       const error = errorOf(() => loadContent(raw));
       expect(error.issues[0]).toContain('balance.json › startZone');
+    });
+
+    it('loài cá dùng texture hoặc tên không tồn tại', () => {
+      const raw = rawCopy();
+      raw.fish.species[0].texture = 'missing.texture';
+      raw.fish.species[0].name = 'missing.name';
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('fish.json › species.0.texture'))).toBe(
+        true,
+      );
+      expect(error.issues.some((issue) => issue.includes('fish.json › species.0.name'))).toBe(true);
+    });
+
+    it('cá có sẵn thuộc loài không tồn tại', () => {
+      const raw = rawCopy();
+      raw.balance.startingFish = [{ species: 'shark', count: 1 }];
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues[0]).toContain('balance.json › startingFish.0.species');
     });
 
     it('mặt nước phải nằm trên đáy', () => {
