@@ -1,14 +1,16 @@
 import type { FoodRules, ZoneDef } from '../content/schemas';
 import type { Rng } from '../rng';
-import { floorAt } from './terrain';
+import { nearestLane } from './lanes';
 
 export interface FoodPellet {
   readonly id: number;
   x: number;
   y: number;
-  /** Làn sâu nơi robot thả viên thức ăn. */
-  readonly lane: number;
-  /** Đã chìm tới đáy (thành thức ăn thừa, gây ô nhiễm). */
+  /** Tầng nước hiện tại, làm tròn từ z. */
+  lane: number;
+  /** Vị trí liên tục giữa các tầng nước. */
+  z: number;
+  /** Đã chìm tới tầng Đáy (thành thức ăn thừa, gây ô nhiễm). */
   settled: boolean;
   /** Số giây đã nằm dưới đáy. */
   age: number;
@@ -23,6 +25,7 @@ export class FoodField {
     private readonly zone: ZoneDef,
     private readonly rules: FoodRules,
     private readonly rng: Rng,
+    private readonly fallSeconds: number,
   ) {}
 
   get pellets(): readonly FoodPellet[] {
@@ -45,9 +48,10 @@ export class FoodField {
       this.list.push({
         id: this.nextId++,
         x: pelletX,
-        y: Math.min(y, this.restY(pelletX)),
+        y,
         lane,
-        settled: false,
+        z: lane,
+        settled: lane === 0,
         age: 0,
       });
     }
@@ -57,10 +61,9 @@ export class FoodField {
     for (let i = this.list.length - 1; i >= 0; i--) {
       const pellet = this.list[i] as FoodPellet;
       if (!pellet.settled) {
-        const restY = this.restY(pellet.x);
-        pellet.y += this.rules.sinkSpeed * dt;
-        if (pellet.y >= restY) {
-          pellet.y = restY;
+        pellet.z = Math.max(0, pellet.z - dt / this.fallSeconds);
+        pellet.lane = nearestLane(pellet.z);
+        if (pellet.z === 0) {
           pellet.settled = true;
         }
       } else {
@@ -89,9 +92,5 @@ export class FoodField {
   remove(pellet: FoodPellet): void {
     const index = this.list.indexOf(pellet);
     if (index >= 0) this.list.splice(index, 1);
-  }
-
-  private restY(x: number): number {
-    return floorAt(this.zone, x) - 2;
   }
 }

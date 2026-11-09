@@ -10,6 +10,8 @@ import {
   heroDepth,
   moveInRoom,
   projectRoom,
+  ROOM_LIGHT_DEPTH,
+  ROOM_LIGHTS,
   ROOM_PROPS,
   ROOM_SHELL_WIDTH,
   ROOM_SHELL_Y,
@@ -43,6 +45,7 @@ export class RoomPrototypeScene extends Phaser.Scene {
   private shell!: Phaser.GameObjects.Image;
   private propViews: PropView[] = [];
   private hero!: Phaser.GameObjects.Sprite;
+  private lightLayers: Phaser.GameObjects.Image[] = [];
   private joystick!: VirtualJoystick;
   private moveKeys?: MoveKeys;
   private shellX = 0;
@@ -63,6 +66,14 @@ export class RoomPrototypeScene extends Phaser.Scene {
 
     this.createHeroAnimations();
     this.hero = this.add.sprite(0, 0, TextureKeys.roomHero, 0).setOrigin(12 / 24, 38 / 40);
+    this.lightLayers = ROOM_LIGHTS.map(({ key, alpha }) =>
+      this.add
+        .image(0, 0, TextureKeys[key])
+        .setOrigin(0, 0)
+        .setDepth(ROOM_LIGHT_DEPTH)
+        .setAlpha(alpha)
+        .setBlendMode(Phaser.BlendModes.ADD),
+    );
     this.joystick = new VirtualJoystick(this, {
       baseRadius: 28,
       knobRadius: 11,
@@ -71,7 +82,7 @@ export class RoomPrototypeScene extends Phaser.Scene {
       topInset: 0,
     });
     this.setupKeyboard();
-    addCameraBloom(this);
+    addCameraBloom(this, { threshold: 0.86, blendAmount: 0.4 });
 
     const onResize = (gameSize: Phaser.Structs.Size): void => this.layout(gameSize.width);
     this.scale.on(Phaser.Scale.Events.RESIZE, onResize);
@@ -144,6 +155,9 @@ export class RoomPrototypeScene extends Phaser.Scene {
   private layout(width: number): void {
     this.shellX = Math.round((width - ROOM_SHELL_WIDTH) / 2);
     this.shell.setPosition(this.shellX, ROOM_SHELL_Y);
+    for (const light of this.lightLayers) {
+      light.setPosition(this.shellX, ROOM_SHELL_Y);
+    }
     for (const { prop, image } of this.propViews) {
       image.setPosition(this.shellX + prop.x, ROOM_SHELL_Y + prop.y);
     }

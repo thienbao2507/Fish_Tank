@@ -3,6 +3,5 @@ export const SceneKeys = {
   Preload: 'Preload',
   Game: 'Game',
   UI: 'UI',
-  IsoPrototype: 'IsoPrototype',
   Room: 'Room',
 } as const;

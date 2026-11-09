@@ -5,7 +5,7 @@ import { Fish, isSick, moodOf, stepNeeds, type Mood } from './fish';
 import type { FoodField } from './food';
 import { LANE_COUNT, nearestLane, stepLane } from './lanes';
 import { stepMotion, type Bounds } from './movement';
-import { floorAt } from './terrain';
+import { blockedBy, resolveMove } from './obstacles';
 
 export interface SchoolUpdateResult {
   /** Cá vừa chuyển sang Ốm trong khung hình này. */
@@ -23,8 +23,8 @@ const ARRIVE_DISTANCE = 4;
 const SLOW_DISTANCE = 12;
 const SEEK_FOOD_SPEED = 1.4;
 const SICK_SPEED = 0.5;
-/** Cá nhảy lên quá mức này phía trên đỉnh bể thì biến mất. */
-const GONE_ABOVE_TOP = -20;
+/** Cá vượt quá tầng Mặt chừng này thì biến mất. */
+const GONE_ABOVE_SURFACE = 2.6;
 
 /** Đàn cá trong một khu: bơi, ăn, nhu cầu, sinh xu, bỏ đi. */
 export class School {
@@ -44,16 +44,26 @@ export class School {
 
   /** Thả một con cá; không cho vị trí thì đặt ngẫu nhiên trong nước. */
   add(species: FishSpeciesDef, x?: number, y?: number, lane?: number): Fish {
-    const horizontalBounds = this.bounds(species, x ?? this.zone.width / 2);
-    const fishX =
-      x ??
-      horizontalBounds.minX + this.rng.next() * (horizontalBounds.maxX - horizontalBounds.minX);
-    const bounds = this.bounds(species, fishX);
+    const bounds = this.bounds(species);
+    let fishX = x ?? bounds.minX + this.rng.next() * (bounds.maxX - bounds.minX);
+    let fishY = Math.min(
+      bounds.maxY,
+      Math.max(bounds.minY, y ?? bounds.minY + this.rng.next() * (bounds.maxY - bounds.minY)),
+    );
+    let attempts = 0;
+    while (blockedBy(this.zone.obstacles ?? [], fishX, fishY, species.radius, species.radius)) {
+      fishX = bounds.minX + this.rng.next() * (bounds.maxX - bounds.minX);
+      fishY = bounds.minY + this.rng.next() * (bounds.maxY - bounds.minY);
+      attempts++;
+      if (attempts >= 1_000) {
+        throw new Error(`Không tìm được vị trí thả cá ngoài vật cản trong khu "${this.zone.id}"`);
+      }
+    }
     const fish = new Fish(
       this.nextId++,
       species,
       fishX,
-      Math.min(y ?? bounds.minY + this.rng.next() * (bounds.maxY - bounds.minY), bounds.maxY),
+      fishY,
       this.rules.startFullness,
       lane ?? this.rng.int(0, LANE_COUNT - 1),
     );
@@ -98,8 +108,8 @@ export class School {
       const fish = this.list[i] as Fish;
 
       if (fish.leaving) {
-        fish.y -= this.rules.jumpSpeed * dt;
-        if (fish.y < GONE_ABOVE_TOP) this.list.splice(i, 1);
+        fish.z += dt / this.rules.leaveRiseSeconds;
+        if (fish.z > GONE_ABOVE_SURFACE) this.list.splice(i, 1);
         continue;
       }
 
@@ -154,8 +164,6 @@ export class School {
     }
     if (isSick(fish.health, rules)) speed *= SICK_SPEED;
 
-    targetY = Math.min(targetY, floorAt(this.zone, targetX) - fish.species.radius - 2);
-
     const dx = targetX - fish.x;
     const dy = targetY - fish.y;
     const distance = Math.hypot(dx, dy);
@@ -166,18 +174,31 @@ export class School {
       dirX = dx * k;
       dirY = dy * k;
     }
+    const fromX = fish.x;
+    const fromY = fish.y;
     stepMotion(
       fish,
       dirX,
       dirY,
       dt,
       { maxSpeed: speed, acceleration: speed * 2, deceleration: speed },
-      this.bounds(fish.species, fish.x),
+      this.bounds(fish.species),
     );
-    const terrainMaxY = floorAt(this.zone, fish.x) - fish.species.radius - 2;
-    if (fish.y > terrainMaxY) {
-      fish.y = terrainMaxY;
-      fish.vy = Math.min(fish.vy, 0);
+    const move = resolveMove(
+      this.zone.obstacles ?? [],
+      fromX,
+      fromY,
+      fish.x,
+      fish.y,
+      fish.species.radius,
+      fish.species.radius,
+    );
+    fish.x = move.x;
+    fish.y = move.y;
+    if (move.hitX || move.hitY) {
+      if (move.hitX) fish.vx = 0;
+      if (move.hitY) fish.vy = 0;
+      this.pickWanderTarget(fish);
     }
     if (Math.abs(fish.vx) > 2) fish.facingX = fish.vx > 0 ? 1 : -1;
   }
@@ -201,12 +222,26 @@ export class School {
   }
 
   private pickWanderTarget(fish: Fish): void {
-    const bounds = this.bounds(fish.species, fish.x);
+    const bounds = this.bounds(fish.species);
     const minX = Math.max(bounds.minX, fish.x - WANDER_RANGE_X);
     const maxX = Math.min(bounds.maxX, fish.x + WANDER_RANGE_X);
-    fish.wanderX = minX + this.rng.next() * (maxX - minX);
-    const targetBounds = this.bounds(fish.species, fish.wanderX);
-    fish.wanderY = targetBounds.minY + this.rng.next() * (targetBounds.maxY - targetBounds.minY);
+    let attempts = 0;
+    do {
+      fish.wanderX = minX + this.rng.next() * (maxX - minX);
+      fish.wanderY = bounds.minY + this.rng.next() * (bounds.maxY - bounds.minY);
+      attempts++;
+      if (attempts >= 1_000) {
+        throw new Error(`Không tìm được điểm bơi ngoài vật cản trong khu "${this.zone.id}"`);
+      }
+    } while (
+      blockedBy(
+        this.zone.obstacles ?? [],
+        fish.wanderX,
+        fish.wanderY,
+        fish.species.radius,
+        fish.species.radius,
+      )
+    );
     fish.wanderTimer = WANDER_MIN_SECONDS + this.rng.next() * WANDER_EXTRA_SECONDS;
     if (this.rng.chance(0.25)) {
       let lane = this.rng.int(0, LANE_COUNT - 2);
@@ -215,14 +250,14 @@ export class School {
     }
   }
 
-  private bounds(species: FishSpeciesDef, x: number): Bounds {
+  private bounds(species: FishSpeciesDef): Bounds {
     const { zone } = this;
     const r = species.radius;
     return {
       minX: zone.wallWidth + r + 4,
       maxX: zone.width - zone.wallWidth - r - 4,
       minY: zone.surfaceY + r + 6,
-      maxY: floorAt(zone, x) - r - 2,
+      maxY: zone.floorY - r - 2,
     };
   }
 }

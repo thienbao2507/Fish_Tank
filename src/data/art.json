@@ -947,6 +947,30 @@
       "file": "art/gen/room-hero.png",
       "frameWidth": 24,
       "frameHeight": 40
+    },
+    "room.nightstand": {
+      "kind": "image",
+      "file": "art/gen/room-nightstand.png"
+    },
+    "room.light.pc": {
+      "kind": "image",
+      "file": "art/gen/room-light-pc.png"
+    },
+    "room.light.tank": {
+      "kind": "image",
+      "file": "art/gen/room-light-tank.png"
+    },
+    "room.light.lamp": {
+      "kind": "image",
+      "file": "art/gen/room-light-lamp.png"
+    },
+    "room.bookcase": {
+      "kind": "image",
+      "file": "art/gen/room-bookcase.png"
+    },
+    "room.plant": {
+      "kind": "image",
+      "file": "art/gen/room-plant.png"
     }
   }
 }

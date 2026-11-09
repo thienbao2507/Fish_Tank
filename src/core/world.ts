@@ -10,9 +10,9 @@ import type { Fish, Mood } from './sim/fish';
 import { FoodField } from './sim/food';
 import { LANE_COUNT, nearestLane, stepLane } from './sim/lanes';
 import { stepMotion, type Bounds } from './sim/movement';
+import { resolveMove } from './sim/obstacles';
 import { Robot } from './sim/robot';
 import { School } from './sim/school';
-import { floorUnder } from './sim/terrain';
 import { TrashField } from './sim/trash';
 import { stepCleanliness, waterTarget } from './sim/water';
 
@@ -23,9 +23,9 @@ export interface WorldDeps {
 }
 
 class WorldRobot extends Robot {
-  /** Làn sâu đích: 0 Gần, 1 Giữa, 2 Xa. */
+  /** Tầng nước đích: 0 Đáy, 1 Giữa, 2 Mặt. */
   lane = 0;
-  /** Vị trí sâu liên tục khi đang trượt giữa các làn. */
+  /** Vị trí tầng nước liên tục khi đang chuyển tầng. */
   z = 0;
 }
 
@@ -67,10 +67,10 @@ export class World {
       balance.robot.batteryCapacity,
       balance.robot.cargoCapacity,
     );
-    this.trash = new TrashField(zone, content.trash, rng);
+    this.trash = new TrashField(zone, content.trash, rng, balance.lanes.trashFallSeconds);
     this.trash.fillInitial();
-    this.food = new FoodField(zone, balance.food, rng);
-    this.drops = new DropField(zone, balance.drops);
+    this.food = new FoodField(zone, balance.food, rng, balance.lanes.foodFallSeconds);
+    this.drops = new DropField(zone, balance.drops, balance.lanes.dropFallSeconds);
     this.school = new School(zone, balance.fish, balance.food.nutrition, rng);
 
     const speciesById = new Map(content.fish.species.map((species) => [species.id, species]));
@@ -123,7 +123,7 @@ export class World {
     return this.nearestSickFish() !== undefined;
   }
 
-  /** Đổi làn sâu đích; trả false nếu robot đã ở biên theo hướng đó. */
+  /** Đổi tầng nước đích; trả false nếu robot đã ở biên theo hướng đó. */
   changeLane(delta: -1 | 1): boolean {
     const lane = Math.min(LANE_COUNT - 1, Math.max(0, this.robot.lane + delta));
     if (lane === this.robot.lane) return false;
@@ -151,7 +151,7 @@ export class World {
     }
     target.health = this.balance.medicine.healTo;
     target.sickSeconds = 0;
-    this.bus.emit('fish:healed', { x: target.x, y: target.y, z: target.z });
+    this.bus.emit('fish:healed', { x: target.x, y: target.y, z: nearestLane(target.z) });
     return true;
   }
 
@@ -251,7 +251,7 @@ export class World {
       amount,
       x: drop.x,
       y: drop.y,
-      z: drop.lane,
+      z: nearestLane(drop.z),
       auto,
     });
   }
@@ -274,13 +274,23 @@ export class World {
   private moveRobot(dt: number, input: PlayerInput): void {
     const { robot } = this;
     robot.z = stepLane(robot.z, robot.lane, dt / this.balance.robot.laneSwitchSeconds);
+    const fromX = robot.x;
+    const fromY = robot.y;
     stepMotion(robot, input.moveX, input.moveY, dt, this.balance.robot, this.robotBounds);
     const { halfWidth, halfHeight } = this.balance.robot;
-    const terrainMaxY = floorUnder(this.zone, robot.x, halfWidth) - halfHeight;
-    if (robot.y > terrainMaxY) {
-      robot.y = terrainMaxY;
-      robot.vy = Math.min(robot.vy, 0);
-    }
+    const move = resolveMove(
+      this.zone.obstacles ?? [],
+      fromX,
+      fromY,
+      robot.x,
+      robot.y,
+      halfWidth,
+      halfHeight,
+    );
+    robot.x = move.x;
+    robot.y = move.y;
+    if (move.hitX) robot.vx = 0;
+    if (move.hitY) robot.vy = 0;
     if (input.moveX !== 0 || input.moveY !== 0) {
       robot.aimX = input.moveX;
       robot.aimY = input.moveY;

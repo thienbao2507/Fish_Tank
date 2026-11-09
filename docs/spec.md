@@ -10,8 +10,8 @@
 
 | Mục | Nội dung |
 |---|---|
-| Thể loại | Quản lý bể cá có hành động, 2D, góc nhìn mặt cắt ngang bể (side view) |
-| Vai trò người chơi | Điều khiển một robot dọn bể trong một bể cá đang ô nhiễm |
+| Thể loại | Quản lý bể cá có hành động, 2D, góc nhìn mặt cắt ngang bể (side view); căn phòng isometric (mục 17) |
+| Vai trò người chơi | Một nhân vật người sống trong căn phòng có hồ cá (mua sắm, qua ngày); khi vào hồ thì điều khiển robot dọn bể đang ô nhiễm |
 | Nền tảng đích | Android, màn hình ngang (landscape). Giai đoạn phát triển chạy và test trên trình duyệt |
 | Mục tiêu trước mắt | Prototype chạy local, core loop hoàn chỉnh |
 | Mục tiêu dài hạn | Game thương mại trên store |
@@ -19,7 +19,7 @@
 
 ## 2. Core loop
 
-Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về trạm: rác đổi thành xu, sạc pin → mua cá / thức ăn / thuốc, nâng cấp, lắp thiết bị → bể sạch, cá vui sinh xu (đôi khi ngọc trai) → đủ điều kiện mở khu mới.
+Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về trạm: rác đổi thành xu, sạc pin → về phòng đặt hàng trên PC (cá, thiết bị, nâng cấp) → chờ hàng hoặc đi ngủ → mở cửa nhận hàng vào Kho → vào bể thả cá, lắp thiết bị → bể sạch, cá vui sinh xu (đôi khi ngọc trai) → đủ điều kiện mở khu mới.
 
 - Không có màn, không có khái niệm "lượt". Tiến trình lưu liên tục.
 - Không có game over. Không có cơ chế nào trừ tiền người chơi đã có.
@@ -53,7 +53,7 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 
 - Pin về 0: hút và bắn tự tắt; robot vẫn bơi, cho ăn, cho thuốc được. Không có hình phạt.
 - **Loại pin**: mua pin loại khác (S / M / L / XL…) để tăng dung lượng.
-- **Sạc ở trạm**: robot phải đậu ở trạm mới sạc; sạc mất thời gian; rời đi giữa chừng thì giữ phần đã sạc. Trong lúc sạc vẫn mở shop được.
+- **Sạc ở trạm**: robot phải đậu ở trạm mới sạc; sạc mất thời gian; rời đi giữa chừng thì giữ phần đã sạc.
 - **Bộ sạc ở trạm**: mua loại tốt hơn để sạc nhanh hơn.
 - **Sạc dự phòng**: vật phẩm tiêu hao, nhiều loại (mức nạp khác nhau), dùng ngay giữa bể.
 
@@ -83,8 +83,8 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 
 ### 4.5 Loài, nguồn cá, sức chứa
 - Prototype có **3 loài**: rẻ và dễ nuôi / trung bình / đắt và khó tính (sinh nhiều xu, tỉ lệ ngọc cao hơn).
-- Cá mua bằng xu. Cá mua về là **cá con**, cần thời gian làm quen và lớn rồi mới sinh xu. Không có sinh sản.
-- Mỗi khu có **giới hạn số cá**. Cá ở cố định trong khu được thả.
+- Cá mua bằng xu, đặt qua PC (mục 17). Cá mua về là **cá con**, cần thời gian làm quen và lớn rồi mới sinh xu. Không có sinh sản.
+- Mỗi khu có **giới hạn số cá**, kiểm tra lúc thả từ Kho (đặt mua không bị giới hạn). Cá ở cố định trong khu được thả.
 
 ## 5. Mối đe dọa
 | Loại | Mô tả | Cách xử lý |
@@ -115,9 +115,9 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 | Trạm | Bộ sạc | Mua loại bộ sạc |
 | Thiết bị bể | Máy lọc nước, máy cho ăn tự động, trạm sạc phụ, san hô/trang trí | Lv1 → Lv5 |
 
-- Mua / nâng cấp qua shop khi robot ở trạm.
+- Mọi thứ trong bảng đều đặt mua trên **PC trong phòng** dưới dạng hàng hoặc linh kiện (mục 17). Trạm trong bể chỉ còn đổi rác và sạc pin.
 - Thiết bị đặt vào các **vị trí có sẵn** trong mỗi khu.
-- Nâng cấp và lắp đặt mất thời gian chờ.
+- Thời gian giao hàng **thay cho** thời gian lắp: hàng về Kho, bấm lắp là xong ngay.
 
 ## 8. Bản đồ và khu vực
 - Một bể lớn cố định, **3 khu nối theo chiều ngang**, mỗi khu rộng khoảng 2 màn hình:
@@ -137,8 +137,11 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 - Mở khu mang lại thêm chỗ nuôi cá, vị trí đặt thiết bị, rác giá trị hơn.
 
 ## 9. Thời gian và offline
-- Bộ đếm theo **giờ thực**, vẫn chạy khi tắt game: sạc pin, nâng cấp / lắp thiết bị, cá làm quen / lớn, mở khu.
+- Bộ đếm theo **giờ thực**, vẫn chạy khi tắt game: sạc pin, giao hàng, cá làm quen / lớn, mở khu.
 - Offline **chỉ có lợi**: cá sinh xu (có trần), không đói, không ốm, không bỏ đi.
+- **Khi nhân vật ở phòng**, bể tính theo đúng luật offline; quay lại bể thì nhận phần xu tích luỹ. Ngủ, ở phòng và offline dùng chung một luật tính.
+- **Đồng hồ ngày/đêm** riêng của game: 1 ngày game ≈ 24 phút thực (số trong `balance.json`), chạy theo giờ thực nên vẫn trôi khi tắt game. Chia sáng / trưa / chiều / tối.
+- **Ngủ** (mục 17): từ tối mới ngủ được, nhảy tới 6h sáng hôm sau. Khoảng bị bỏ qua (tối đa khoảng 10 phút thực) tua luôn các bộ đếm và cộng xu cá như offline. Bộ đếm dài vẫn cần ngọc để tua.
 - Rủi ro người chơi chỉnh giờ máy: chấp nhận ở prototype; xử lý khi có monetization.
 
 ## 10. Nhiệm vụ và quà hằng ngày
@@ -149,10 +152,11 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 - Màn hình ngang. Màn hình dọc → hiện thông báo yêu cầu xoay ngang.
 - Dưới trái: joystick. Dưới phải: cụm nút (Hút to nhất; quanh là Bắn, Thức ăn, Thuốc, Sạc dự phòng).
 - Mép trên: thanh pin, khoang (dạng `12/20`), xu, ngọc trai.
+- Trong bể có thêm nút **Kho** (mục 17) và nút **về phòng**. HUD ở phòng gồm joystick, xu, ngọc, giờ trong ngày và một nút hành động theo ngữ cảnh.
 - HUD và cụm nút bám theo mép trái/phải thực tế của màn hình (chiều rộng thay đổi theo máy, xem mục 12.1).
 - Theo dõi cá gặp nguy: icon trên đầu cá + mũi tên ở mép màn hình. Không có minimap.
 - Ngôn ngữ prototype: **tiếng Việt**. Mọi chuỗi hiển thị nằm trong file ngôn ngữ riêng.
-- Font: **VT323** (font pixel, giấy phép OFL, đủ dấu tiếng Việt), đóng gói kèm game để chạy offline.
+- Font: **SVN-Determination Sans** (font pixel, đủ dấu tiếng Việt), đóng gói kèm game để chạy offline. Giấy phép chưa xác nhận, phải làm rõ trước khi phát hành.
 
 ## 12. Đồ họa và âm thanh
 
@@ -299,3 +303,52 @@ Quảng cáo, mua hàng trong app, store, online, lưu đám mây, độ khó, i
 |---|---|
 | Định dạng animation / sprite sheet (vd. xuất từ Aseprite) | Khi bắt đầu vẽ asset thật |
 | "Mua vật phẩm được ngọc trai" là nạp tiền thật hay quà khi mua trong game | Khi làm monetization |
+
+## 17. Căn phòng
+Cảnh "ngôi nhà" của nhân vật người. Mở game vào thẳng căn phòng.
+
+### 17.1 Các khu
+| Khu | Chức năng |
+|---|---|
+| Giường | Ngủ để tua thời gian (mục 9) |
+| PC | "Lên web đặt hàng": mua mọi thứ (cá, phụ kiện, thiết bị bể, pin, bộ sạc, sạc dự phòng, linh kiện nâng cấp robot) |
+| Cửa phòng | Nơi nhận hàng. Tính năng khác của cửa để sau |
+| Hồ cá | Đi vào cảnh bể; trong bể có nút quay về phòng |
+| Cửa sổ | Xem trời theo giờ trong ngày, nắng ban mai chiếu vào phòng. Tính năng khác để sau |
+
+### 17.2 Điều khiển
+- Dùng joystick như trong bể. Đứng gần đồ vật thì hiện một nút hành động theo ngữ cảnh ("Ngủ", "Đặt hàng"...).
+
+### 17.3 Đặt hàng và giao hàng
+- Trả xu lúc đặt. Mỗi món có thời gian giao riêng, khai báo trong dữ liệu: đồ rẻ khoảng 1 phút thực, đồ đắt khoảng 10 phút.
+- Thời gian giao là bộ đếm giờ thực: vẫn chạy khi tắt game, ngủ tua được, ngọc tua được.
+- Hàng tới thì cửa sáng lên và có thông báo. Mở cửa là lấy hết hàng đã tới vào Kho.
+- Thức ăn và thuốc không qua giao hàng: vẫn bấm nút trừ xu ngay trong bể.
+
+### 17.4 Kho (inventory)
+- Mở bằng nút Kho trên HUD bể, ở đâu trong bể cũng được. Prototype không giới hạn số ô.
+- Cá: thả tại chỗ robot (không thả được khi khu đã đủ sức chứa).
+- Thiết bị: chọn một vị trí trống có sẵn trong khu.
+- Sạc dự phòng: dùng ngay.
+- Linh kiện robot: bấm lắp, có hiệu lực ngay.
+
+### 17.5 Hình ảnh
+- Isometric, phòng cắt góc với hai bức tường và sàn hình thoi, gói trong một màn hình, không cuộn camera.
+- Nhân vật cao khoảng 32–40px, đi 4 hướng chéo; đồ vật và nhân vật xếp vẽ theo chiều sâu.
+- Ảnh mẫu người dùng gửi ngày 2026-11-09 là **key art**: đích về không khí, màu sắc, ánh sáng. Vẽ lại thành pixel art theo 12.1, chi tiết đơn giản hơn ảnh. Không đưa nhân vật có bản quyền trong ảnh vào game (thú bông Totoro thay bằng linh vật tự thiết kế).
+- **Phong cách** (2026-11-09): Modern Tech Bedroom + Cozy HD-2D, phòng cá nhân của một developer. Góc PC và hồ cá là hai điểm nhấn.
+- **Ánh sáng tách lớp:** ba nguồn PC (xanh lạnh), hồ cá (xanh ngọc), đèn ngủ (vàng ấm) là ba ảnh PNG cộng sáng phủ lên cả phòng, vẽ sẵn theo mặt sàn và tường, nhân vật cũng được hắt sáng. Không dùng Lighting của Phaser. Độ mạnh từng lớp là số để PR-02 đổi theo giờ.
+- **Tủ đầu giường** cạnh giường (có va chạm) mang đèn ngủ.
+
+## 18. Góc nhìn chéo cho cảnh bể
+Người dùng duyệt ngày 2026-11-09. Mục này **thay thế** phần "3 làn sâu" ở 3.1, "Mặt đáy lồi lõm" ở mục 8 và hộp bể nhìn ngang ở 12.5 khi bản mới chạy xong.
+
+- **Điều khiển:** joystick đi trái/phải và xa/gần trên mặt đáy. Hai nút ▲▼ (Q/E) đổi **3 tầng nước**: Đáy (0), Giữa (1), Mặt (2); chuyển mỗi tầng 0,35 giây.
+- **Cùng tầng mới tương tác:** hút rác, chữa cá, nhặt xu/ngọc chỉ với vật cùng tầng với tàu (tầng gần nhất khi đang chuyển).
+- **Bản đồ khu 1:** 1024×1024 đơn vị, bố cục theo bản thử (cao nguyên, hang, đền). Trạm đặt trên đáy gần chỗ xuất phát, chỉ đậu được ở tầng Đáy.
+- **Rác:** nổi ở tầng Mặt, lơ lửng ở tầng Giữa, cả hai trôi chậm trên mặt phẳng. Rác chìm nằm ở tầng Đáy; rác chìm mới sinh rơi dần từ tầng Mặt xuống.
+- **Thức ăn:** thả ở tầng của tàu, chìm dần xuống tầng Đáy; cá đói tự tới chỗ thức ăn và đúng tầng của nó mới ăn được.
+- **Cá:** bơi tự do trên mặt phẳng, thỉnh thoảng đổi tầng.
+- **Xu/ngọc:** rơi từ chỗ cá xuống tầng Đáy; luật tự cộng sau thời hạn giữ nguyên.
+- **Vật cản:** vách, đền và khối đá lớn chặn tàu và cá ở cả 3 tầng; mặt cao nguyên chỉ để ngắm. Rác không sinh trong vùng bị chặn. Có lối cát để đi vòng.
+- **Hiển thị:** theo bản thử `?iso=1`. Tầng thể hiện bằng độ cao của vật và bóng đổ xuống đáy.

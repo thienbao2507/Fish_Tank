@@ -6,6 +6,13 @@ export const ROOM_ORIGIN_X = 248;
 export const ROOM_ORIGIN_Y = 104;
 export const ROOM_TILE_HALF_WIDTH = 30;
 export const ROOM_TILE_HALF_HEIGHT = 15;
+export const ROOM_LIGHT_DEPTH = 100;
+
+export const ROOM_LIGHTS = [
+  { key: 'roomLightPc', alpha: 1 },
+  { key: 'roomLightTank', alpha: 1 },
+  { key: 'roomLightLamp', alpha: 1 },
+] as const;
 
 export const HERO_START = { gx: 4.5, gy: 4.5 } as const;
 export const HERO_SPEED = 2.6;
@@ -14,7 +21,15 @@ export const ROOM_MIN = HERO_RADIUS;
 export const ROOM_MAX = ROOM_SIZE - HERO_RADIUS;
 
 export type RoomFacing = 'SE' | 'SW' | 'NE' | 'NW';
-export type RoomPropKey = 'roomWindow' | 'roomDoor' | 'roomDesk' | 'roomTank' | 'roomBed';
+export type RoomPropKey =
+  | 'roomWindow'
+  | 'roomDoor'
+  | 'roomBookcase'
+  | 'roomDesk'
+  | 'roomTank'
+  | 'roomNightstand'
+  | 'roomBed'
+  | 'roomPlant';
 
 export interface RoomPosition {
   readonly gx: number;
@@ -47,11 +62,20 @@ export const ROOM_PROPS: readonly RoomProp[] = [
   { key: 'roomWindow', x: 116, y: 42, width: 84, height: 94, depth: 1 },
   { key: 'roomDoor', x: 449, y: 128, width: 30, height: 92, depth: 2 },
   {
+    key: 'roomBookcase',
+    x: 209,
+    y: 25,
+    width: 51,
+    height: 106,
+    footprint: { gx0: 0.02, gy0: 0.1, gx1: 0.48, gy1: 1.3 },
+    depth: 4,
+  },
+  {
     key: 'roomDesk',
     x: 218,
-    y: 41,
+    y: 24,
     width: 120,
-    height: 131,
+    height: 148,
     footprint: { gx0: 0.5, gy0: 0, gx1: 3, gy1: 1.5 },
     depth: 10,
   },
@@ -62,7 +86,16 @@ export const ROOM_PROPS: readonly RoomProp[] = [
     width: 114,
     height: 132,
     footprint: { gx0: 3.5, gy0: 0, gx1: 6.2, gy1: 1.1 },
-    depth: 20,
+    depth: 16,
+  },
+  {
+    key: 'roomNightstand',
+    x: 99,
+    y: 128,
+    width: 43,
+    height: 61,
+    footprint: { gx0: 0, gy0: 4.25, gx1: 0.7, gy1: 4.95 },
+    depth: 22,
   },
   {
     key: 'roomBed',
@@ -72,6 +105,15 @@ export const ROOM_PROPS: readonly RoomProp[] = [
     height: 125,
     footprint: { gx0: 0, gy0: 5, gx1: 3.2, gy1: 7.2 },
     depth: 30,
+  },
+  {
+    key: 'roomPlant',
+    x: 8,
+    y: 150,
+    width: 44,
+    height: 84,
+    footprint: { gx0: 0.15, gy0: 7.45, gx1: 0.55, gy1: 7.85 },
+    depth: 36,
   },
 ];
 
@@ -113,11 +155,11 @@ export function facingFromDirection(dir: ScreenDirection, current: RoomFacing): 
 }
 
 function blocksHorizontal(footprint: RoomFootprint, gy: number): boolean {
-  return gy >= footprint.gy0 - HERO_RADIUS && gy <= footprint.gy1 + HERO_RADIUS;
+  return gy > footprint.gy0 - HERO_RADIUS && gy < footprint.gy1 + HERO_RADIUS;
 }
 
 function blocksVertical(footprint: RoomFootprint, gx: number): boolean {
-  return gx >= footprint.gx0 - HERO_RADIUS && gx <= footprint.gx1 + HERO_RADIUS;
+  return gx > footprint.gx0 - HERO_RADIUS && gx < footprint.gx1 + HERO_RADIUS;
 }
 
 function moveGx(pos: RoomPosition, amount: number): RoomPosition {
@@ -160,7 +202,10 @@ export function heroDepth(pos: RoomPosition, props: readonly RoomProp[]): number
   let depth = 5;
   for (const prop of props) {
     const footprint = prop.footprint;
-    if (footprint && (pos.gx >= footprint.gx1 || pos.gy >= footprint.gy1)) {
+    const frontEdge = footprint
+      ? Math.min(footprint.gx1 + footprint.gy0, footprint.gx0 + footprint.gy1)
+      : Number.POSITIVE_INFINITY;
+    if (pos.gx + pos.gy >= frontEdge) {
       depth = Math.max(depth, prop.depth + 5);
     }
   }

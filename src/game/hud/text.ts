@@ -6,7 +6,7 @@ export const SHADOW_COLOR = '#0b1d2e';
 export const WARNING_COLOR = '#ff8a80';
 export const COIN_COLOR = '#f2c94c';
 
-/** Chữ pixel (VT323 16px) có bóng 1px để đọc được trên nền nước. */
+/** Chữ pixel (font UI 16px) có bóng 1px để đọc được trên nền nước. */
 export function addPixelText(
   scene: Phaser.Scene,
   x: number,

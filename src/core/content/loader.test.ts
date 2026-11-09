@@ -100,6 +100,11 @@ describe('loadContent', () => {
 
     it('các điểm terrain phải tăng dần và nằm trong chiều rộng khu', () => {
       const raw = rawCopy();
+      raw.zones.zones[0].terrain = [
+        [0, 0],
+        [100, 10],
+        [200, 0],
+      ];
       raw.zones.zones[0].terrain[0][0] = -1;
       raw.zones.zones[0].terrain[2][0] = raw.zones.zones[0].terrain[1][0];
       const error = errorOf(() => loadContent(raw));
@@ -113,7 +118,10 @@ describe('loadContent', () => {
 
     it('đáy trong khoảng ngang của trạm phải phẳng ở floorY', () => {
       const raw = rawCopy();
-      raw.zones.zones[0].terrain[0][1] = 1;
+      raw.zones.zones[0].terrain = [
+        [0, 1],
+        [raw.zones.zones[0].width, 1],
+      ];
       const error = errorOf(() => loadContent(raw));
       expect(error.issues.some((issue) => issue.includes('station: mặt đáy'))).toBe(true);
     });
@@ -123,6 +131,39 @@ describe('loadContent', () => {
       raw.zones.zones[0].robotSpawn.y = raw.zones.zones[0].floorY;
       const error = errorOf(() => loadContent(raw));
       expect(error.issues.some((issue) => issue.includes('robotSpawn'))).toBe(true);
+    });
+
+    it('vật cản phải nằm trọn trong biên khu', () => {
+      const raw = rawCopy();
+      raw.zones.zones[0].obstacles[0].y = raw.zones.zones[0].surfaceY;
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('obstacles.0: vật cản nằm ngoài'))).toBe(
+        true,
+      );
+    });
+
+    it('từ chối trạm nằm trong vật cản', () => {
+      const raw = rawCopy();
+      const obstacle = raw.zones.zones[0].obstacles[0];
+      const station = raw.zones.zones[0].station;
+      station.x = obstacle.x - station.width / 2;
+      station.y = obstacle.y - station.height / 2;
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('station: trạm nằm trong vật cản'))).toBe(
+        true,
+      );
+    });
+
+    it('từ chối điểm xuất phát nằm trong vật cản', () => {
+      const raw = rawCopy();
+      const obstacle = raw.zones.zones[0].obstacles[0];
+      raw.zones.zones[0].robotSpawn = { x: obstacle.x, y: obstacle.y };
+      const error = errorOf(() => loadContent(raw));
+      expect(
+        error.issues.some((issue) =>
+          issue.includes('robotSpawn: điểm xuất phát nằm trong vật cản'),
+        ),
+      ).toBe(true);
     });
   });
 

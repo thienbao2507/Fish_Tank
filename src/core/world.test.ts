@@ -4,8 +4,6 @@ import { rawContent } from './content/raw';
 import type { Balance, TrashTypeDef, ZoneDef } from './content/schemas';
 import { EventBus, type GameEvents } from './events';
 import { createRng } from './rng';
-import { floorUnder } from './sim/terrain';
-import { testHillyZone } from './sim/testFixtures';
 import { World } from './world';
 
 const STILL = { moveX: 0, moveY: 0 };
@@ -54,10 +52,11 @@ function dock(world: World): void {
 }
 
 describe('World', () => {
-  it('bắt đầu ở trạm với pin đầy, khoang rỗng, số xu ban đầu', () => {
-    const { world, content } = setup();
+  it('bắt đầu đúng điểm xuất phát với pin đầy, khoang rỗng, số xu ban đầu', () => {
+    const { world, content, zone } = setup();
     world.update(DT, STILL);
-    expect(world.isDocked).toBe(true);
+    expect(world.robot.x).toBe(zone.robotSpawn.x);
+    expect(world.robot.y).toBe(zone.robotSpawn.y);
     expect(world.robot.battery.isFull).toBe(true);
     expect(world.robot.cargo.isEmpty).toBe(true);
     expect(world.wallet.get('coins')).toBe(content.balance.startingCoins);
@@ -209,8 +208,14 @@ describe('World', () => {
   it('robot không ra khỏi nước và không xuyên thành bể', () => {
     const { world, zone, content } = setup();
     const { halfWidth, halfHeight } = content.balance.robot;
+    world.robot.x = zone.wallWidth + halfWidth;
+    world.robot.y = 200;
     run(world, 10, { moveX: 0, moveY: -1 });
     expect(world.robot.y).toBe(zone.surfaceY + halfHeight);
+    world.robot.x = zone.width / 2;
+    world.robot.y = 550;
+    world.robot.vx = 0;
+    world.robot.vy = 0;
     run(world, 30, { moveX: 1, moveY: 0 });
     expect(world.robot.x).toBe(zone.width - zone.wallWidth - halfWidth);
     expect(world.robot.facingX).toBe(1);
@@ -218,29 +223,18 @@ describe('World', () => {
     expect(world.robot.facingX).toBe(-1);
   });
 
-  it('robot không thể đi xuống dưới một gò cao', () => {
-    const base = loadContent(rawContent);
-    const sourceZone = base.zones[0] as ZoneDef;
-    const zone: ZoneDef = {
-      ...testHillyZone,
-      id: base.balance.startZone,
-      trash: { ...testHillyZone.trash, weights: sourceZone.trash.weights },
-    };
-    const content: Content = {
-      ...base,
-      zones: [zone],
-      balance: { ...base.balance, startingFish: [] },
-    };
-    const world = new World({ content, rng: createRng(12), bus: new EventBus<GameEvents>() });
-    world.robot.x = 300;
-    world.robot.y = zone.floorY;
-    world.robot.vy = 50;
+  it('robot bị vách chặn và vận tốc trên trục va chạm về 0', () => {
+    const { world, zone, content } = setup({ startingFish: [] });
+    const obstacle = zone.obstacles?.[0];
+    expect(obstacle).toBeDefined();
+    if (!obstacle) return;
+    world.robot.x = obstacle.x - obstacle.width / 2 - content.balance.robot.halfWidth - 20;
+    world.robot.y = obstacle.y;
 
-    world.update(DT, STILL);
+    run(world, 3, { moveX: 1, moveY: 0 });
 
-    const { halfWidth, halfHeight } = content.balance.robot;
-    expect(world.robot.y).toBeCloseTo(floorUnder(zone, world.robot.x, halfWidth) - halfHeight);
-    expect(world.robot.vy).toBeLessThanOrEqual(0);
+    expect(world.robot.x).toBe(obstacle.x - obstacle.width / 2 - content.balance.robot.halfWidth);
+    expect(world.robot.vx).toBe(0);
   });
 });
 

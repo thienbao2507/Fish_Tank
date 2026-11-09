@@ -31,7 +31,7 @@
 | Menu (shop, nhiệm vụ, offline) | DOM overlay (HTML/CSS) | Danh sách, cuộn, chữ dễ làm hơn; chạy tốt trong WebView |
 | Độ phân giải logic | Cao 360, rộng 640–840 theo màn hình; `pixelArt: true` (nearest-neighbor) | Pixel art; phóng đúng ×2/×3 trên đa số điện thoại; máy dài không viền đen (spec 12.1) |
 | Asset placeholder | Sinh texture bằng `Graphics.generateTexture` theo key, vẽ theo lưới pixel đúng kích thước sprite thật | Thay bằng PNG cùng kích thước chỉ cần đổi `art.json` |
-| Font | VT323 (OFL), file font đóng gói trong `public/fonts/` | Font pixel, đủ dấu tiếng Việt, chạy offline |
+| Font | SVN-Determination Sans (giấy phép chưa xác nhận), file font đóng gói trong `public/fonts/` | Font pixel, đủ dấu tiếng Việt, chạy offline |
 | Lưu game | Interface `Storage` → localStorage (web), Capacitor Preferences (Android, P6) | Không phải sửa logic khi lên Android |
 | Đóng gói Android | Capacitor (P6) | |
 
@@ -190,29 +190,53 @@ Mục tiêu: cá sống trong bể, phản ứng với nước bẩn và việc 
     - giữ hậu kỳ HD-2D (bloom, tilt-shift, vignette) và vân sáng nước.
   - **Bước 1 có thêm:** chụp ảnh và cho người dùng xem trên điện thoại.
   - Tiến độ bước 1 (2026-11-09): bản thử mở bằng `?iso=1` đã có cao nguyên, vách, hang, đền làm điểm nhấn, bóng đổ có hướng, 3 tầng chiều sâu, bố cục tự đặt (`src/game/iso/scenePlan.ts`). Sau đó thêm: bóng tiếp xúc và bóng đổ theo loại vật, tông màu tối, vân sáng dạng sóng, chùm tia nắng. Người dùng xem ảnh chụp và ưng, đã commit `31ee53e` (2026-11-09). Chưa thử joystick, chưa xem trên điện thoại, chưa đo FPS trên máy thật.
-  - **Bước 2 (chưa làm), chỉ làm khi người dùng yêu cầu chuyển hẳn sang góc này:**
-    - sửa spec (mục 3, 8, 12.4, 12.5);
-    - viết lại di chuyển, va chạm, cá bơi cho mặt phẳng xa/gần, thay 3 làn;
-    - vẽ lại asset theo góc 3/4.
+  - **Bước 2 (đang làm, người dùng duyệt 2026-11-09, thiết kế ở spec mục 18):**
+    - [x] 2a. Luật trong `src/core`: mặt phẳng xa/gần, 3 tầng nước, vật cản, kèm test;
+    - [x] 2b. Đưa game thật lên góc nhìn chéo: tàu, rác, cá, xu, trạm, HUD;
+    - [~] 2c. Chơi thử, cân lại số liệu;
+    - [ ] Sau: vẽ lại cá, rác, tàu theo góc 3/4.
   - Hiện trạng để so sánh: game đang nhìn ngang qua kính bể, trục dọc màn hình là độ cao trong nước, chiều sâu chỉ có 3 làn và parallax.
 
 Demo P2: bỏ bê thì cá buồn → ốm → bỏ đi; chăm tốt thì cá sinh xu.
 
-### P3 — Kinh tế và shop
-Mục tiêu: có đủ vòng chi tiêu và nâng cấp, có thời gian chờ và tua bằng ngọc.
+### PR — Căn phòng (spec 17, thống nhất ngày 2026-11-09)
+Mục tiêu: nhân vật người đi lại trong phòng isometric, có ngày/đêm, vào được bể, ngủ được. Phần PC, giao hàng, Kho nằm ở P3. Vào giai đoạn này sau khi P2 đã demo, được duyệt và commit; P2-Iso độc lập, không chặn nhau.
 
-- [ ] **P3-01** Hệ thống bộ đếm (`core/time/timers`): lưu bằng mốc thời gian (bắt đầu + thời lượng), tự hoàn tất khi offline; giá tua bằng ngọc theo thời gian còn lại.
-  AC: unit test (kể cả trường hợp đóng game rồi mở lại sau thời lượng).
-- [ ] **P3-02** Khung shop (DOM overlay), mở khi robot ở trạm; các tab Robot / Thiết bị / Cá / Vật phẩm / Đổi ngọc.
-  AC: mở/đóng được trên điện thoại; game tạm dừng khi shop mở.
-- [ ] **P3-03** Nâng cấp Lv1–5 trong `upgrades.json` (giá, thời gian, hiệu ứng): khoang chứa, tốc độ bơi, máy hút. Nâng cấp mất thời gian chờ.
+- [x] **PR-01** Bản thử hình ảnh, chưa đụng luật chơi: scene phòng riêng mở bằng tham số URL, tường + sàn isometric, 5 khu đồ vật, nhân vật đi bằng joystick 4 hướng chéo, va chạm với đồ, xếp vẽ theo chiều sâu. Công thức chiếu isometric là hàm thuần có test.
+  AC: chụp ảnh và người dùng duyệt (cả trên điện thoại) trước khi làm tiếp.
+- [~] **PR-01b** Nâng cấp đồ họa căn phòng (yêu cầu ngày 2026-11-09, spec 17.5). Làm từng bước, xem ảnh rồi mới làm tiếp; không đổi gameplay, góc nhìn, kích thước phòng.
+  - [~] Bước 1: góc PC (3 màn hình, case kính quạt RGB, bàn phím, tai nghe, LED).
+  - [~] Bước 2: ba lớp ánh sáng, tủ đầu giường và đèn ngủ, chỉnh bloom riêng cho phòng.
+  - [ ] Bước 3: hồ cá nhiều lớp cảnh.
+  - [ ] Bước 4: bóng tiếp xúc, ambient occlusion, viền đồng bộ, chất liệu.
+  - [ ] Bước 5: kệ sách góc trong, chậu cây (có va chạm), mô hình, tranh.
+  - [ ] Bước 6: soát tỉ lệ, hạ cửa còn khoảng 66px, ảnh trước/sau, đo FPS.
+- [ ] **PR-02** Đồng hồ ngày/đêm (`src/core/time/`, số trong `balance.json`, đọc `ctx.clock.now()`): cửa sổ đổi trời, nắng ban mai, ánh sáng phòng theo giờ.
+  AC: unit test đồng hồ; tua debug thấy trời đổi đủ sáng/trưa/chiều/tối.
+- [ ] **PR-03** Chuyển cảnh phòng ↔ bể (`UIScene` tách HUD phòng/bể, nút hành động theo ngữ cảnh, nút về phòng, mở game vào phòng) và hàm tính vắng mặt trong `src/core/`: cá chỉ sinh xu có trần, không đói, không ốm, không bỏ đi.
+  AC: unit test luật vắng mặt; ở phòng một lúc rồi vào bể thì nhận đúng xu tích luỹ, cá không đổi trạng thái.
+- [ ] **PR-04** Giường: từ tối mới ngủ được, nhảy tới 6h sáng, cộng xu qua hàm vắng mặt của PR-03. Phần tua bộ đếm nối ở P3-01.
+  AC: unit test (ban ngày không ngủ được; thời lượng bỏ qua đúng theo giờ lúc ngủ).
+
+Demo PR: đi trong phòng, ngắm trời đổi qua cửa sổ, vào bể rồi về phòng nhận xu, ngủ qua đêm.
+
+### P3 — Kinh tế và shop
+Mục tiêu: có đủ vòng chi tiêu và nâng cấp qua PC trong phòng, có thời gian chờ và tua bằng ngọc.
+
+- [ ] **P3-01** Hệ thống bộ đếm (`core/time/timers`): lưu bằng mốc thời gian (bắt đầu + thời lượng), tự hoàn tất khi offline; giá tua bằng ngọc theo thời gian còn lại. Tua được theo một khoảng thời gian để giường (PR-04) dùng.
+  AC: unit test (kể cả trường hợp đóng game rồi mở lại sau thời lượng, và ngủ tua bộ đếm).
+- [ ] **P3-02** Trang "web đặt hàng" (DOM overlay), mở ở PC trong phòng; các tab Robot / Thiết bị / Cá / Vật phẩm / Đổi ngọc. Trả xu lúc đặt, mỗi món một thời gian giao trong dữ liệu.
+  AC: mở/đóng được trên điện thoại; game tạm dừng khi trang mở; unit test đơn hàng (đủ xu mới đặt được, bộ đếm giao đúng thời lượng).
+- [ ] **P3-02b** Cửa phòng và Kho: hàng tới thì cửa sáng + thông báo; mở cửa lấy hết hàng đã tới vào Kho; nút Kho trên HUD bể mở được ở mọi chỗ.
+  AC: unit test inventory; đặt hàng → chờ/ngủ → mở cửa → thấy hàng trong Kho.
+- [ ] **P3-03** Nâng cấp Lv1–5 trong `upgrades.json` (giá, thời gian giao, hiệu ứng): khoang chứa, tốc độ bơi, máy hút. Đặt mua linh kiện trên PC, lắp từ Kho có hiệu lực ngay.
   AC: unit test áp dụng hiệu ứng theo cấp; hiệu ứng thấy được trong game.
-- [ ] **P3-04** Pin theo loại, bộ sạc ở trạm (tốc độ sạc), sạc dự phòng (vật phẩm + nút dùng). Sạc ở trạm thay bằng bản dùng bộ đếm.
+- [ ] **P3-04** Pin theo loại, bộ sạc ở trạm (tốc độ sạc), sạc dự phòng (vật phẩm, dùng từ Kho). Tất cả đặt mua trên PC. Sạc ở trạm thay bằng bản dùng bộ đếm.
   AC: đổi pin thì dung lượng đổi; rời trạm giữa chừng giữ phần đã sạc.
-- [ ] **P3-05** Thiết bị đặt vào vị trí có sẵn: máy lọc, máy cho ăn tự động, trạm sạc phụ, san hô; Lv1–5; lắp mất thời gian.
+- [ ] **P3-05** Thiết bị đặt vào vị trí có sẵn: máy lọc, máy cho ăn tự động, trạm sạc phụ, san hô; Lv1–5. Đặt mua trên PC, chọn vị trí trống từ Kho, lắp xong ngay (thời gian giao thay thời gian lắp).
   AC: mỗi thiết bị có tác động đo được (lọc → nước bẩn chậm hơn; san hô → cá vui hơn…).
-- [ ] **P3-06** Mua cá: thả cá con vào khu, thời gian làm quen/lớn rồi mới sinh xu.
-  AC: không mua được khi khu đã đủ sức chứa.
+- [ ] **P3-06** Mua cá: đặt trên PC, thả cá con từ Kho tại chỗ robot, thời gian làm quen/lớn rồi mới sinh xu.
+  AC: không thả được khi khu đã đủ sức chứa.
 - [ ] **P3-07** Đổi ngọc → xu (1:1000) và tua thời gian bằng ngọc.
   AC: unit test; không có đường đổi xu → ngọc.
 
@@ -237,7 +261,7 @@ AC chung P4: bỏ qua mối đe dọa → nước bẩn nhanh hơn, cá buồn; 
 - [ ] **P5-05** Quà hằng ngày.
 - [ ] **P5-06** Lưu/tải: tự động lưu (định kỳ, khi app ẩn, sau mỗi giao dịch); schema có version + migration. Thêm nút debug xóa save.
   AC: unit test migration; tải lại trang → trạng thái giữ nguyên.
-- [ ] **P5-07** Tiến trình offline: khi mở lại, hoàn tất bộ đếm, cộng xu cá (có trần); màn "Trong lúc bạn vắng mặt".
+- [ ] **P5-07** Tiến trình offline: khi mở lại, hoàn tất bộ đếm, cộng xu cá (có trần) bằng hàm tính vắng mặt của PR-03; màn "Trong lúc bạn vắng mặt".
   AC: tắt game, tua bằng debug/giả lập thời gian → kết quả đúng quy tắc offline.
 
 Demo P5: chơi từ game mới tới mở được khu 3; tắt mở lại không mất gì.

@@ -1,5 +1,5 @@
 import type { DropRules, ZoneDef } from '../content/schemas';
-import { floorAt } from './terrain';
+import { nearestLane } from './lanes';
 
 export type DropKind = 'coin' | 'pearl';
 
@@ -10,8 +10,10 @@ export interface Drop {
   readonly value: number;
   x: number;
   y: number;
-  /** Làn sâu nơi cá sinh ra xu/ngọc. */
-  readonly lane: number;
+  /** Tầng nước hiện tại, làm tròn từ z. */
+  lane: number;
+  /** Vị trí liên tục giữa các tầng nước. */
+  z: number;
   /** Số giây kể từ khi rơi ra. */
   age: number;
 }
@@ -21,8 +23,9 @@ export class DropField {
   private nextId = 1;
 
   constructor(
-    private readonly zone: ZoneDef,
+    _zone: ZoneDef,
     private readonly rules: DropRules,
+    private readonly fallSeconds: number,
   ) {}
 
   get items(): readonly Drop[] {
@@ -30,7 +33,7 @@ export class DropField {
   }
 
   spawn(kind: DropKind, value: number, x: number, y: number, lane = 0): Drop {
-    const drop: Drop = { id: this.nextId++, kind, value, x, y, lane, age: 0 };
+    const drop: Drop = { id: this.nextId++, kind, value, x, y, lane, z: lane, age: 0 };
     this.list.push(drop);
     return drop;
   }
@@ -40,8 +43,8 @@ export class DropField {
     const expired: Drop[] = [];
     for (let i = this.list.length - 1; i >= 0; i--) {
       const drop = this.list[i] as Drop;
-      const restY = floorAt(this.zone, drop.x) - 3;
-      drop.y = Math.min(restY, drop.y + this.rules.sinkSpeed * dt);
+      drop.z = Math.max(0, drop.z - dt / this.fallSeconds);
+      drop.lane = nearestLane(drop.z);
       drop.age += dt;
       if (drop.age >= this.rules.autoCollectSeconds) {
         this.list.splice(i, 1);
@@ -56,7 +59,7 @@ export class DropField {
     const picked: Drop[] = [];
     for (let i = this.list.length - 1; i >= 0; i--) {
       const drop = this.list[i] as Drop;
-      if (drop.lane !== lane) continue;
+      if (nearestLane(drop.z) !== lane) continue;
       if (Math.abs(drop.x - x) <= halfWidth && Math.abs(drop.y - y) <= halfHeight) {
         this.list.splice(i, 1);
         picked.push(drop);

@@ -7,8 +7,8 @@ export const GAME_MIN_WIDTH = 640; // 16:9
 export const GAME_MAX_WIDTH = 840; // 21:9
 
 /** Font pixel có đủ dấu tiếng Việt, đóng gói trong public/fonts (đường dẫn tương đối với index.html). */
-export const UI_FONT_FAMILY = 'VT323';
-export const UI_FONT_URL = 'fonts/VT323-Regular.ttf';
+export const UI_FONT_FAMILY = 'SVN-Determination Sans';
+export const UI_FONT_URL = 'fonts/SVN-Determination-Sans.ttf';
 
 /** Bật panel debug bằng cách thêm `?debug=1` vào URL. */
 export function isDebugMode(): boolean {

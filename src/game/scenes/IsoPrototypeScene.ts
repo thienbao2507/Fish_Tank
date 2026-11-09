@@ -1,30 +1,33 @@
 import Phaser from 'phaser';
 import { isDebugMode } from '../../config';
-import { keysToDirection, type Direction } from '../../core/input';
+import { t } from '../../core/i18n';
 import { createRng } from '../../core/rng';
+import type { Drop } from '../../core/sim/drops';
+import type { Fish } from '../../core/sim/fish';
+import type { FoodPellet } from '../../core/sim/food';
+import type { TrashItem } from '../../core/sim/trash';
 import { TextureKeys } from '../art/keys';
+import { getContext, type GameContext } from '../context';
 import { addCameraBloom } from '../env/bloom';
 import { addCameraPostFx } from '../env/postfx';
-import { VirtualJoystick } from '../input/VirtualJoystick';
-import { composeReefs, SPAWN, type ReefProp } from '../iso/layout';
-import { FOCAL, groundRow, project, type GroundPoint } from '../iso/projection';
+import { headlightAlpha } from '../env/waterVisual';
+import { addPixelText, COIN_COLOR, TEXT_COLOR, WARNING_COLOR } from '../hud/text';
+import { composeReefs, type ReefProp } from '../iso/layout';
+import {
+  FOCAL,
+  groundRow,
+  project,
+  sceneZFromCoreY,
+  tierHeight,
+  type GroundPoint,
+  type Projection,
+} from '../iso/projection';
 import { CLEARINGS, HEROES, PALETTES, PLATEAUS, REEFS, type Plateau } from '../iso/scenePlan';
 import { applyRim, RIM_LIGHT, RIM_LIGHT_MIRRORED, type LightDirection } from '../iso/rimLight';
 import { shadowProfileOf, type ShadowProfile } from '../iso/shadowProfile';
 import { altitudeShadow, heightAt, sortZ } from '../iso/terrain';
+import { SpriteSync, type Destroyable } from '../SpriteSync';
 import { SceneKeys } from './keys';
-
-interface MoveKeys {
-  readonly up: Phaser.Input.Keyboard.Key[];
-  readonly down: Phaser.Input.Keyboard.Key[];
-  readonly left: Phaser.Input.Keyboard.Key[];
-  readonly right: Phaser.Input.Keyboard.Key[];
-}
-
-interface IsoPlayer {
-  x: number;
-  z: number;
-}
 
 interface GroundStrip {
   readonly ground: Phaser.GameObjects.TileSprite;
@@ -72,16 +75,29 @@ interface LightPoolView {
   readonly alpha: number;
 }
 
+interface ShadowedWorldView extends Destroyable {
+  readonly sprite: Phaser.GameObjects.Image;
+  readonly shadow: Phaser.GameObjects.Image;
+}
+
+interface FishView extends ShadowedWorldView {
+  readonly alert: Phaser.GameObjects.Image;
+  readonly countdown: Phaser.GameObjects.Text;
+}
+
+interface StationView {
+  readonly sprite: Phaser.GameObjects.Image;
+  readonly shadow: Phaser.GameObjects.Image;
+  readonly label: Phaser.GameObjects.Text;
+}
+
 /** Camera nhìn trước tàu một đoạn: tàu nằm thấp hơn giữa màn hình, thấy được địa hình phía xa. */
 const LOOK_AHEAD = 60;
 const STRIP_H = 3;
-const PLAYER_SPEED = 130;
-const PLAYER_MIN = 30;
-const PLAYER_MAX = 994;
-const PLAYER_HEIGHT = 34;
-const PLAYER_ALTITUDE_LERP = 0.15;
 const CAMERA_LERP = 0.12;
 const MAX_FRAME_SECONDS = 0.1;
+/** Độ mờ của vật khác tầng với tàu. */
+const OTHER_TIER_ALPHA = 0.75;
 const FOG_NEAR = 430;
 const FOG_FAR = 860;
 const FOG_COLOR = 0x2f93bd;
@@ -97,11 +113,20 @@ const ROBOT_ANIMATION = 'iso.robot.swim';
 /** Tàu lật trái dùng bộ ảnh có viền vẽ ngược, để sau khi lật viền vẫn ở phía nguồn sáng. */
 const ROBOT_ANIMATION_MIRRORED = 'iso.robot.swim.mirrored';
 const ROBOT_FRAME_WIDTH = 56;
+const ROBOT_SPIN_IDLE_SCALE = 0.35;
+const ROBOT_SPIN_MAX_SCALE = 1.6;
 const ISO_BLOOM_THRESHOLD = 0.6;
 /** Vật khối (vách, đá, đền, tàu) viền đậm; vật nhiều cạnh nhỏ (san hô nhánh, cỏ) viền nhẹ để khỏi lốm đốm. */
 const RIM_STRENGTH_SOLID = 1;
 const RIM_STRENGTH_DETAILED = 0.4;
 const HEADLIGHT_OFFSET = 24;
+const VACUUM_RING_COLOR = 0xbfefff;
+const FLOAT_TEXT_RISE = 18;
+const FLOAT_TEXT_MS = 1200;
+const HEALED_COLOR = '#6fe08a';
+const SICK_TINT = 0x9fb8a0;
+const DROP_BLINK_SECONDS = 5;
+const LEAVING_ANGLE = 60;
 const BUBBLE_COUNT = 14;
 const BUBBLE_MAX_HEIGHT = 180;
 const CULL_MARGIN = 96;
@@ -133,7 +158,6 @@ const CAST_ANGLE = -60;
 const CAST_SCALE_X = 0.8;
 const FOOT_ALPHA_MIN = 128;
 const FOOT_ROWS = 3;
-const STILL: Direction = { x: 0, y: 0 };
 
 /** Lớp màu nước phủ toàn màn hình: nâng vùng tối lên tông xanh, bớt ngả nâu. */
 const WATER_WASH_COLOR = 0x1f8fb0;
@@ -167,18 +191,13 @@ const LIGHT_POOL_POINTS = [
   { x: 735, z: 610, size: 0.9, alpha: 0.12 },
 ] as const;
 
-function anyDown(keys: readonly Phaser.Input.Keyboard.Key[]): boolean {
-  return keys.some((key) => key.isDown);
-}
-
-/** Bản thử đáy bể 2.5D, hoàn toàn tách biệt với trạng thái của GameScene. */
+/** Cảnh game 2.5D: World giữ luật chơi, scene chỉ chiếu và hiển thị trạng thái. */
 export class IsoPrototypeScene extends Phaser.Scene {
-  private readonly player: IsoPlayer = { x: SPAWN.x, z: SPAWN.z };
+  private ctx!: GameContext;
   private readonly focus: GroundPoint & { x: number; z: number } = {
-    x: SPAWN.x,
-    z: SPAWN.z,
+    x: 512,
+    z: 512,
   };
-  private altitude = 0;
   private strips: GroundStrip[] = [];
   private propViews: PropView[] = [];
   private readonly footWidths = new Map<string, number>();
@@ -187,8 +206,6 @@ export class IsoPrototypeScene extends Phaser.Scene {
   private lightPools: LightPoolView[] = [];
   private rays: Phaser.GameObjects.Image[] = [];
   private topGlow!: Phaser.GameObjects.Image;
-  private joystick!: VirtualJoystick;
-  private moveKeys?: MoveKeys;
   private backwall!: Phaser.GameObjects.TileSprite;
   private surfaceGlow!: Phaser.GameObjects.Image;
   private foregroundLeft!: Phaser.GameObjects.Image;
@@ -196,15 +213,25 @@ export class IsoPrototypeScene extends Phaser.Scene {
   private robot!: Phaser.GameObjects.Sprite;
   private shadow!: Phaser.GameObjects.Image;
   private headlight!: Phaser.GameObjects.Image;
-  private facing = 1;
+  private vacuumRing!: Phaser.GameObjects.Graphics;
+  private trashViews!: SpriteSync<TrashItem, ShadowedWorldView>;
+  private foodViews!: SpriteSync<FoodPellet, ShadowedWorldView>;
+  private dropViews!: SpriteSync<Drop, ShadowedWorldView>;
+  private fishViews!: SpriteSync<Fish, FishView>;
+  private stationView!: StationView;
+  private now = 0;
   /** Tổng thời gian tạo ảnh có viền lúc nạp (ms), để đo chi phí. */
   private rimMilliseconds = 0;
 
   constructor() {
-    super(SceneKeys.IsoPrototype);
+    super(SceneKeys.Game);
   }
 
   create(): void {
+    this.ctx = getContext(this);
+    const { world, bus } = this.ctx;
+    this.focus.x = world.robot.x;
+    this.focus.z = sceneZFromCoreY(world.robot.y);
     this.rebuildStrips(this.scale.width, this.scale.height);
     this.createBackdrop();
     this.createPlateaus();
@@ -212,15 +239,8 @@ export class IsoPrototypeScene extends Phaser.Scene {
     this.createAtmosphere();
     this.createForeground();
     this.createPlayer();
-    this.shadow.setTexture(TextureKeys.isoContact);
-    this.joystick = new VirtualJoystick(this, {
-      baseRadius: 28,
-      knobRadius: 11,
-      maxDistance: 24,
-      deadzone: 6,
-      topInset: 0,
-    });
-    this.setupKeyboard();
+    this.createWorldViews();
+    this.createStation();
 
     // Hạ ngưỡng để viền đón sáng mạnh nhất loang sáng trên nền tối của cảnh này.
     addCameraBloom(this, { threshold: ISO_BLOOM_THRESHOLD });
@@ -238,13 +258,29 @@ export class IsoPrototypeScene extends Phaser.Scene {
     };
     this.scale.on(Phaser.Scale.Events.RESIZE, onResize);
 
+    const unsubscribers = [
+      bus.on('station:sold', ({ coins, x, y, z }) => {
+        this.floatText(t('float.coins', { coins }), x, y, z, COIN_COLOR);
+      }),
+      bus.on('drop:collected', ({ currency, amount, x, y, z }) => {
+        const pearls = currency === 'pearls';
+        const message = pearls
+          ? t('float.pearls', { pearls: amount })
+          : t('float.coins', { coins: amount });
+        this.floatText(message, x, y, z, pearls ? TEXT_COLOR : COIN_COLOR);
+      }),
+      bus.on('fish:healed', ({ x, y, z }) => {
+        this.floatText(t('float.healed'), x, y, z, HEALED_COLOR);
+      }),
+    ];
+
     const debugWindow = window as typeof window & {
-      fishtankIso?: { player: IsoPlayer; readonly fps: number; readonly rimMs: () => number };
+      fishtankIso?: { player: object; readonly fps: number; readonly rimMs: () => number };
     };
     const game = this.game;
     if (isDebugMode()) {
       debugWindow.fishtankIso = {
-        player: this.player,
+        player: world.robot,
         rimMs: () => this.rimMilliseconds,
         get fps() {
           return game.loop.actualFps;
@@ -253,43 +289,29 @@ export class IsoPrototypeScene extends Phaser.Scene {
     }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      for (const unsubscribe of unsubscribers) unsubscribe();
       this.scale.off(Phaser.Scale.Events.RESIZE, onResize);
-      if (debugWindow.fishtankIso?.player === this.player) delete debugWindow.fishtankIso;
+      if (debugWindow.fishtankIso?.player === world.robot) delete debugWindow.fishtankIso;
     });
 
     this.renderScene(0, 0);
+    this.scene.launch(SceneKeys.UI);
   }
 
   override update(time: number, delta: number): void {
     const seconds = Math.min(delta / 1000, MAX_FRAME_SECONDS);
-    const direction = this.joystick.isActive ? this.joystick.direction : this.keyboardDirection();
-    this.player.x = Phaser.Math.Clamp(
-      this.player.x + direction.x * PLAYER_SPEED * seconds,
-      PLAYER_MIN,
-      PLAYER_MAX,
-    );
-    this.player.z = Phaser.Math.Clamp(
-      this.player.z - direction.y * PLAYER_SPEED * seconds,
-      PLAYER_MIN,
-      PLAYER_MAX,
-    );
-    if (direction.x !== 0) this.facing = Math.sign(direction.x);
-
-    const altitudeLerp = 1 - Math.pow(1 - PLAYER_ALTITUDE_LERP, seconds * 60);
-    this.altitude = Phaser.Math.Linear(
-      this.altitude,
-      heightAt(PLATEAUS, this.player.x, this.player.z),
-      altitudeLerp,
-    );
+    const { world, input, clock } = this.ctx;
+    world.update(seconds, input, clock.scale);
+    this.now = time;
 
     const cameraLerp = 1 - Math.pow(1 - CAMERA_LERP, seconds * 60);
     this.focus.x = Phaser.Math.Clamp(
-      Phaser.Math.Linear(this.focus.x, this.player.x, cameraLerp),
+      Phaser.Math.Linear(this.focus.x, world.robot.x, cameraLerp),
       340,
       684,
     );
     this.focus.z = Phaser.Math.Clamp(
-      Phaser.Math.Linear(this.focus.z, this.player.z + LOOK_AHEAD, cameraLerp),
+      Phaser.Math.Linear(this.focus.z, sceneZFromCoreY(world.robot.y) + LOOK_AHEAD, cameraLerp),
       190,
       860,
     );
@@ -499,7 +521,6 @@ export class IsoPrototypeScene extends Phaser.Scene {
   private createPlayer(): void {
     this.createRobotAnimation(ROBOT_ANIMATION, RIM_LIGHT);
     this.createRobotAnimation(ROBOT_ANIMATION_MIRRORED, RIM_LIGHT_MIRRORED);
-    this.altitude = heightAt(PLATEAUS, this.player.x, this.player.z);
     this.shadow = this.add.image(0, 0, TextureKeys.isoShadowLong).setOrigin(0.5).setAlpha(0.5);
     this.robot = this.add
       .sprite(0, 0, this.litTexture(TextureKeys.robot, RIM_LIGHT, ROBOT_FRAME_WIDTH))
@@ -507,6 +528,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
     this.headlight = this.add
       .image(0, 0, TextureKeys.headlight)
       .setBlendMode(Phaser.BlendModes.ADD);
+    this.vacuumRing = this.add.graphics();
   }
 
   private createRobotAnimation(key: string, light: LightDirection): void {
@@ -550,30 +572,6 @@ export class IsoPrototypeScene extends Phaser.Scene {
     return litKey;
   }
 
-  private setupKeyboard(): void {
-    const keyboard = this.input.keyboard;
-    if (!keyboard) return;
-    const { KeyCodes } = Phaser.Input.Keyboard;
-    const key = (code: number): Phaser.Input.Keyboard.Key => keyboard.addKey(code);
-    this.moveKeys = {
-      up: [key(KeyCodes.W), key(KeyCodes.UP)],
-      down: [key(KeyCodes.S), key(KeyCodes.DOWN)],
-      left: [key(KeyCodes.A), key(KeyCodes.LEFT)],
-      right: [key(KeyCodes.D), key(KeyCodes.RIGHT)],
-    };
-  }
-
-  private keyboardDirection(): Direction {
-    const keys = this.moveKeys;
-    if (!keys) return STILL;
-    return keysToDirection(
-      anyDown(keys.left),
-      anyDown(keys.right),
-      anyDown(keys.up),
-      anyDown(keys.down),
-    );
-  }
-
   private renderScene(time: number, seconds: number): void {
     const viewW = this.scale.width;
     const viewH = this.scale.height;
@@ -584,7 +582,9 @@ export class IsoPrototypeScene extends Phaser.Scene {
     this.updateRays(time);
     this.updateProps(time, viewW, viewH);
     this.updateBubbles(time, seconds, viewW, viewH);
+    this.updateStation(viewW, viewH);
     this.updatePlayer(viewW, viewH);
+    this.syncViews();
     this.layoutForeground(viewW, viewH);
   }
 
@@ -762,26 +762,25 @@ export class IsoPrototypeScene extends Phaser.Scene {
   }
 
   private updatePlayer(viewW: number, viewH: number): void {
-    const sortedZ = sortZ(PLATEAUS, this.player.x, this.player.z);
-    const bodyY = this.altitude + PLAYER_HEIGHT;
-    const body = project(this.player.x, bodyY, this.player.z, this.focus, viewW, viewH);
-    const sorted = project(this.player.x, bodyY, sortedZ, this.focus, viewW, viewH);
+    const { world, content } = this.ctx;
+    const { robot } = world;
+    const facing = robot.facingX;
+    const sceneZ = sceneZFromCoreY(robot.y);
+    const bodyY = tierHeight(robot.z);
+    const body = project(robot.x, bodyY, sceneZ, this.focus, viewW, viewH);
     const nose = project(
-      this.player.x + this.facing * HEADLIGHT_OFFSET,
+      robot.x + facing * HEADLIGHT_OFFSET,
       bodyY,
-      this.player.z,
+      sceneZ,
       this.focus,
       viewW,
       viewH,
     );
-    // Bóng bám đúng mặt địa hình ngay dưới tàu, lệch nhẹ theo hướng sáng khi tàu ở cao.
-    const roughClearance = bodyY - heightAt(PLATEAUS, this.player.x, this.player.z);
-    const shadowX = this.player.x + roughClearance * 0.25;
-    const shadowZ = this.player.z - roughClearance * 0.15;
-    const surface = heightAt(PLATEAUS, shadowX, shadowZ);
+    // Bóng nằm trên đáy ngay dưới tàu: tầng càng cao bóng càng lớn và mờ.
+    const surface = 0;
     const style = altitudeShadow(bodyY - surface);
-    const shadowPoint = project(shadowX, surface, shadowZ, this.focus, viewW, viewH);
-    const depth = -sorted.zc;
+    const shadowPoint = project(robot.x, surface, sceneZ, this.focus, viewW, viewH);
+    const depth = -body.zc;
     this.shadow
       .setPosition(shadowPoint.sx, shadowPoint.sy)
       .setScale(
@@ -789,22 +788,276 @@ export class IsoPrototypeScene extends Phaser.Scene {
         ((SUB_SHADOW_WIDTH * style.scale * 0.42) / CONTACT_HEIGHT) * shadowPoint.scale,
       )
       .setAlpha(style.alpha)
-      .setDepth(this.shadowDepthAt(shadowX, shadowZ, viewW, viewH) + 0.03);
-    const animation = this.facing < 0 ? ROBOT_ANIMATION_MIRRORED : ROBOT_ANIMATION;
+      .setDepth(this.shadowDepthAt(robot.x, sceneZ, viewW, viewH) + 0.03);
+    const animation = facing < 0 ? ROBOT_ANIMATION_MIRRORED : ROBOT_ANIMATION;
     if (this.robot.anims.currentAnim?.key !== animation) this.robot.play(animation);
+    // Chân vịt quay nhanh theo vận tốc.
+    const speedRatio = Phaser.Math.Clamp(
+      Math.hypot(robot.vx, robot.vy) / content.balance.robot.maxSpeed,
+      0,
+      1,
+    );
+    this.robot.anims.timeScale = Phaser.Math.Linear(
+      ROBOT_SPIN_IDLE_SCALE,
+      ROBOT_SPIN_MAX_SCALE,
+      speedRatio,
+    );
     this.robot
       .setPosition(body.sx, body.sy)
       .setScale(body.scale)
-      .setFlipX(this.facing < 0)
+      .setFlipX(facing < 0)
       .setDepth(depth + 0.2);
     this.applyLight(this.robot, body.zc, 1);
     this.headlight
       .setPosition(nose.sx, nose.sy)
-      .setOrigin(this.facing < 0 ? 1 : 0, 0.5)
-      .setFlipX(this.facing < 0)
+      .setOrigin(facing < 0 ? 1 : 0, 0.5)
+      .setFlipX(facing < 0)
       .setScale(body.scale)
+      .setAlpha(headlightAlpha(world.water))
       .setDepth(depth + 0.3)
       .setTint(this.fogTint(body.zc));
+
+    // Vòng máy hút: elip trên mặt phẳng quanh tàu.
+    this.vacuumRing.clear().setDepth(depth + 0.25);
+    if (robot.vacuumOn) {
+      const { radius } = content.balance.robot.vacuum;
+      const alpha = 0.45 + 0.2 * Math.sin(this.now / 120);
+      this.vacuumRing
+        .lineStyle(1, VACUUM_RING_COLOR, alpha)
+        .strokeEllipse(body.sx, body.sy, radius * 2 * body.scale, radius * 2 * 0.55 * body.scale);
+    }
+  }
+
+  /** Vị trí màn hình của một con cá, để mũi tên chỉ cá ốm dùng. */
+  toScreen(fish: Fish): { x: number; y: number } {
+    const p = this.projectEntity(fish.x, fish.y, fish.z);
+    return { x: p.sx, y: p.sy };
+  }
+
+  /** Chiếu một vật có toạ độ core (x, y) và tầng z; quy đổi y sang chiều sâu chỉ ở đây. */
+  private projectEntity(x: number, coreY: number, tier: number, lift = 0): Projection {
+    return project(
+      x,
+      tierHeight(tier) + lift,
+      sceneZFromCoreY(coreY),
+      this.focus,
+      this.scale.width,
+      this.scale.height,
+    );
+  }
+
+  private createShadowedView(texture: string): ShadowedWorldView {
+    const sprite = this.add.image(0, 0, this.litTexture(texture)).setOrigin(0.5, 1);
+    const shadow = this.add.image(0, 0, TextureKeys.isoContact);
+    return {
+      sprite,
+      shadow,
+      destroy: () => {
+        sprite.destroy();
+        shadow.destroy();
+      },
+    };
+  }
+
+  /**
+   * Đặt sprite và bóng của một vật: sprite ở độ cao của tầng, bóng ngay dưới trên đáy.
+   * Trả về projection của sprite, hoặc undefined khi vật ngoài màn hình (đã ẩn).
+   */
+  private placeEntity(
+    view: ShadowedWorldView,
+    x: number,
+    coreY: number,
+    tier: number,
+    lift = 0,
+  ): Projection | undefined {
+    const viewW = this.scale.width;
+    const viewH = this.scale.height;
+    const p = this.projectEntity(x, coreY, tier, lift);
+    const visible = this.onScreen(p.sx, p.sy, p.zc, viewW, viewH);
+    view.sprite.setVisible(visible);
+    view.shadow.setVisible(visible);
+    if (!visible) return undefined;
+
+    const sceneZ = sceneZFromCoreY(coreY);
+    const ground = project(x, 0, sceneZ, this.focus, viewW, viewH);
+    const style = altitudeShadow(tierHeight(tier));
+    const width = Math.max(10, view.sprite.width * 0.9) * style.scale;
+    view.sprite.setPosition(p.sx, p.sy).setScale(p.scale).setDepth(-p.zc);
+    view.shadow
+      .setPosition(ground.sx, ground.sy)
+      .setScale(
+        (width / CONTACT_WIDTH) * ground.scale,
+        ((width * 0.42) / CONTACT_HEIGHT) * ground.scale,
+      )
+      .setAlpha(style.alpha)
+      .setDepth(this.shadowDepthAt(x, sceneZ, viewW, viewH) + 0.03);
+    return p;
+  }
+
+  /** Vật khác tầng với tàu thì nhạt đi, báo là không tương tác được. */
+  private tierAlpha(tier: number): number {
+    return Math.round(tier) === Math.round(this.ctx.world.robot.z) ? 1 : OTHER_TIER_ALPHA;
+  }
+
+  private createWorldViews(): void {
+    const { balance } = this.ctx.content;
+
+    this.trashViews = new SpriteSync(
+      (item) => this.createShadowedView(item.type.texture),
+      (view, item) => {
+        // Rác nổi nhấp nhô nhẹ theo sóng.
+        const bob = item.type.layer === 'float' ? Math.sin(this.now / 400 + item.id) * 1.5 : 0;
+        const p = this.placeEntity(view, item.x, item.y, item.z, bob);
+        if (!p) return;
+        this.applyLight(view.sprite, p.zc, 1);
+        view.sprite.setAlpha(this.tierAlpha(item.z));
+      },
+    );
+
+    this.foodViews = new SpriteSync(
+      () => this.createShadowedView(TextureKeys.foodPellet),
+      (view, pellet) => {
+        const p = this.placeEntity(view, pellet.x, pellet.y, pellet.z);
+        if (!p) return;
+        this.applyLight(view.sprite, p.zc, 1);
+        view.sprite.setAlpha(this.tierAlpha(pellet.z));
+      },
+    );
+
+    const blinkAfter = balance.drops.autoCollectSeconds - DROP_BLINK_SECONDS;
+    this.dropViews = new SpriteSync(
+      (drop) =>
+        this.createShadowedView(
+          drop.kind === 'coin' ? TextureKeys.dropCoin : TextureKeys.dropPearl,
+        ),
+      (view, drop) => {
+        // Xu/ngọc nhấp nháy trong mấy giây cuối trước khi tự cộng.
+        const blinkOn = drop.age < blinkAfter || Math.floor(this.now / 150) % 2 === 0;
+        const p = this.placeEntity(view, drop.x, drop.y, drop.z);
+        if (!p) return;
+        this.applyLight(view.sprite, p.zc, 1);
+        view.sprite.setAlpha(this.tierAlpha(drop.z)).setVisible(blinkOn);
+        view.shadow.setVisible(blinkOn);
+      },
+    );
+
+    this.fishViews = new SpriteSync(
+      (fish) => this.createFishView(fish),
+      (view, fish) => this.updateFishView(view, fish),
+    );
+  }
+
+  private createFishView(fish: Fish): FishView {
+    const base = this.createShadowedView(fish.species.texture);
+    const alert = this.add
+      .image(0, 0, TextureKeys.alert)
+      .setDepth(FOREGROUND_DEPTH + 10)
+      .setVisible(false);
+    const countdown = addPixelText(this, 0, 0, '')
+      .setOrigin(0, 1)
+      .setColor(WARNING_COLOR)
+      .setDepth(FOREGROUND_DEPTH + 10)
+      .setVisible(false);
+    return {
+      ...base,
+      alert,
+      countdown,
+      destroy: () => {
+        base.destroy();
+        alert.destroy();
+        countdown.destroy();
+      },
+    };
+  }
+
+  private updateFishView(view: FishView, fish: Fish): void {
+    const { world, content } = this.ctx;
+    const sick = !fish.leaving && world.moodOf(fish) === 'sick';
+    const p = this.placeEntity(view, fish.x, fish.y, fish.z);
+    view.alert.setVisible(p !== undefined && sick);
+    view.countdown.setVisible(p !== undefined && sick);
+    if (!p) return;
+
+    view.sprite.setFlipX(fish.facingX < 0).setAlpha(this.tierAlpha(fish.z));
+    if (sick) view.sprite.setTint(SICK_TINT);
+    else this.applyLight(view.sprite, p.zc, 1);
+
+    if (fish.leaving) {
+      // Nhảy khỏi bể: chúc đầu lên, mờ dần khi đã lên khỏi mặt nước.
+      view.sprite.setAngle(fish.facingX > 0 ? -LEAVING_ANGLE : LEAVING_ANGLE);
+      const above = world.zone.surfaceY - fish.y;
+      view.sprite.setAlpha(above > 0 ? Math.max(0, 1 - above / 20) : 1);
+    }
+
+    if (sick) {
+      // Dấu "!" và bộ đếm giữ cỡ 1×, đặt phía trên đầu cá.
+      const top = p.sy - view.sprite.displayHeight - 6;
+      view.alert.setPosition(Math.round(p.sx), Math.round(top - 4));
+      const secondsLeft = Math.max(
+        0,
+        Math.ceil(content.balance.fish.leaveAfterSeconds - fish.sickSeconds),
+      );
+      const label = String(secondsLeft);
+      if (view.countdown.text !== label) view.countdown.setText(label);
+      view.countdown.setPosition(Math.round(p.sx + 4), Math.round(top + 2));
+    }
+  }
+
+  private createStation(): void {
+    const sprite = this.add.image(0, 0, TextureKeys.station).setOrigin(0.5, 1);
+    const shadow = this.add.image(0, 0, TextureKeys.isoContact);
+    const label = addPixelText(this, 0, 0, t('world.station'))
+      .setOrigin(0.5, 1)
+      .setDepth(FOREGROUND_DEPTH + 10);
+    this.stationView = { sprite, shadow, label };
+  }
+
+  private updateStation(viewW: number, viewH: number): void {
+    const { station } = this.ctx.world.zone;
+    const view = this.stationView;
+    const cx = station.x + station.width / 2;
+    const cy = station.y + station.height / 2;
+    const sceneZ = sceneZFromCoreY(cy);
+    const p = project(cx, 0, sceneZ, this.focus, viewW, viewH);
+    const visible = this.onScreen(p.sx, p.sy, p.zc, viewW, viewH);
+    view.sprite.setVisible(visible);
+    view.shadow.setVisible(visible);
+    view.label.setVisible(visible);
+    if (!visible) return;
+
+    const scale = (station.width / view.sprite.width) * p.scale;
+    view.sprite.setPosition(p.sx, p.sy).setScale(scale).setDepth(-p.zc);
+    this.applyLight(view.sprite, p.zc, 1);
+    view.shadow
+      .setPosition(p.sx, p.sy)
+      .setScale(((station.width * 1.1) / CONTACT_WIDTH) * p.scale, (16 / CONTACT_HEIGHT) * p.scale)
+      .setDepth(this.shadowDepthAt(cx, sceneZ, viewW, viewH) + 0.03);
+    view.label.setPosition(Math.round(p.sx), Math.round(p.sy - view.sprite.displayHeight - 2));
+  }
+
+  private floatText(message: string, x: number, y: number, tier: number, color: string): void {
+    const p = this.projectEntity(x, y, tier);
+    const label = addPixelText(this, 0, 0, message)
+      .setOrigin(0.5, 1)
+      .setColor(color)
+      .setDepth(FOREGROUND_DEPTH + 10);
+    label.setPosition(Math.round(p.sx), Math.round(p.sy - 4));
+    this.tweens.add({
+      targets: label,
+      y: label.y - FLOAT_TEXT_RISE,
+      alpha: 0,
+      duration: FLOAT_TEXT_MS,
+      ease: 'Sine.easeOut',
+      onComplete: () => label.destroy(),
+    });
+  }
+
+  private syncViews(): void {
+    const { world } = this.ctx;
+    this.trashViews.sync(world.trash.items);
+    this.foodViews.sync(world.food.pellets);
+    this.dropViews.sync(world.drops.items);
+    this.fishViews.sync(world.fish);
   }
 
   private layoutRays(viewW: number, viewH: number): void {

@@ -8,6 +8,7 @@ import { ActionButton } from '../hud/ActionButton';
 import { Hud } from '../hud/Hud';
 import { HUD_MARGIN, HUD_TOP_RESERVED } from '../hud/layout';
 import { SickFishArrows } from '../hud/SickFishArrows';
+import type { IsoPrototypeScene } from './IsoPrototypeScene';
 import { Toasts } from '../hud/Toasts';
 import { VirtualJoystick } from '../input/VirtualJoystick';
 import { SceneKeys } from './keys';
@@ -102,7 +103,8 @@ export class UIScene extends Phaser.Scene {
       size: LANE_BUTTON_SIZE,
     });
     this.toasts = new Toasts(this);
-    this.arrows = new SickFishArrows(this, world, this.scene.get(SceneKeys.Game).cameras.main);
+    const gameScene = this.scene.get(SceneKeys.Game) as IsoPrototypeScene;
+    this.arrows = new SickFishArrows(this, world, (fish) => gameScene.toScreen(fish));
     this.joystick = new VirtualJoystick(this, {
       baseRadius: 28,
       knobRadius: 11,

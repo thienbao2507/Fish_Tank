@@ -1,15 +1,17 @@
 import type { TrashCatalog, TrashTypeDef, ZoneDef } from '../content/schemas';
 import { pickWeighted, type Rng, type Weighted } from '../rng';
-import { LANE_COUNT } from './lanes';
-import { floorAt } from './terrain';
+import { nearestLane } from './lanes';
+import { blockedBy, resolveMove } from './obstacles';
 
 export interface TrashItem {
   readonly id: number;
   readonly type: TrashTypeDef;
   x: number;
   y: number;
-  /** Làn sâu cố định của món rác. */
+  /** Tầng nước đích: float = 2, mid = 1, sink = 0. */
   readonly lane: number;
+  /** Vị trí liên tục giữa các tầng nước. */
+  z: number;
   /** Vận tốc trôi ngang (rác nổi và lơ lửng); rác chìm = 0. */
   vx: number;
 }
@@ -36,12 +38,10 @@ export interface PullResult {
 
 /** Khoảng cách tối thiểu từ rác tới thành bể (px). */
 const WALL_MARGIN = 4;
-/** Rác lơ lửng sinh cách mặt nước và đáy ít nhất chừng này (px). */
-const MID_MARGIN = 24;
-
-function approach(current: number, target: number, maxStep: number): number {
-  if (current < target) return Math.min(target, current + maxStep);
-  return Math.max(target, current - maxStep);
+function laneFor(type: TrashTypeDef): number {
+  if (type.layer === 'float') return 2;
+  if (type.layer === 'mid') return 1;
+  return 0;
 }
 
 /** Toàn bộ rác trong một khu: sinh rác, rác trôi/chìm/nổi, và bị máy hút kéo. */
@@ -55,6 +55,7 @@ export class TrashField {
     private readonly zone: ZoneDef,
     private readonly catalog: TrashCatalog,
     private readonly rng: Rng,
+    private readonly fallSeconds: number,
   ) {
     const byId = new Map(catalog.types.map((type) => [type.id, type]));
     this.spawnTable = Object.entries(zone.trash.weights).map(([id, weight]) => {
@@ -81,13 +82,14 @@ export class TrashField {
   }
 
   /** Đặt một món rác tại vị trí cho trước (dùng cho test và các đợt rác tràn ở P4). */
-  add(type: TrashTypeDef, x: number, y: number, lane = this.rng.int(0, LANE_COUNT - 1)): TrashItem {
+  add(type: TrashTypeDef, x: number, y: number, lane = laneFor(type), z = lane): TrashItem {
     const item: TrashItem = {
       id: this.nextId++,
       type,
       x,
       y,
       lane,
+      z,
       vx: this.randomDrift(type),
     };
     this.list.push(item);
@@ -128,7 +130,7 @@ export class TrashField {
 
     for (let i = this.list.length - 1; i >= 0; i--) {
       const item = this.list[i] as TrashItem;
-      if (item.lane !== lane) continue;
+      if (nearestLane(item.z) !== lane) continue;
       const dx = x - item.x;
       const dy = y - item.y;
       const distance = Math.hypot(dx, dy);
@@ -148,9 +150,17 @@ export class TrashField {
         continue;
       }
       const step = Math.min(distance, params.pullSpeed * dt);
-      item.x += (dx / distance) * step;
-      item.y += (dy / distance) * step;
-      item.y = Math.min(item.y, floorAt(this.zone, item.x) - item.type.radius);
+      const move = resolveMove(
+        this.zone.obstacles ?? [],
+        item.x,
+        item.y,
+        item.x + (dx / distance) * step,
+        item.y + (dy / distance) * step,
+        item.type.radius,
+        item.type.radius,
+      );
+      item.x = move.x;
+      item.y = move.y;
     }
 
     return { collected, blocked };
@@ -162,33 +172,32 @@ export class TrashField {
   }
 
   private moveItem(item: TrashItem, dt: number): void {
-    const { zone } = this;
-    const { radius } = item.type;
-    const verticalStep = this.catalog.sinkSpeed * dt;
-
     switch (item.type.layer) {
       case 'float':
-        // Bị hút xuống rồi thả ra thì nổi lên lại.
-        item.y = approach(item.y, zone.surfaceY + radius, verticalStep);
         this.drift(item, dt);
         break;
       case 'mid':
         this.drift(item, dt);
-        item.y = Math.min(
-          floorAt(zone, item.x) - radius - MID_MARGIN,
-          Math.max(zone.surfaceY + radius, item.y),
-        );
         break;
       case 'sink':
-        item.y = Math.min(floorAt(zone, item.x) - radius, item.y + verticalStep);
+        item.z = Math.max(0, item.z - dt / this.fallSeconds);
         break;
     }
-    item.y = Math.min(item.y, floorAt(zone, item.x) - radius);
   }
 
   private drift(item: TrashItem, dt: number): void {
     const { min, max } = this.xRange(item.type);
-    item.x += item.vx * dt;
+    const move = resolveMove(
+      this.zone.obstacles ?? [],
+      item.x,
+      item.y,
+      item.x + item.vx * dt,
+      item.y,
+      item.type.radius,
+      item.type.radius,
+    );
+    item.x = move.x;
+    if (move.hitX) item.vx = -item.vx;
     if (item.x < min) {
       item.x = min;
       item.vx = Math.abs(item.vx);
@@ -209,24 +218,26 @@ export class TrashField {
     const type = pickWeighted(rng, this.spawnTable);
     const { radius } = type;
     const { min, max } = this.xRange(type);
-    const x = min + rng.next() * (max - min);
-
+    const minY = zone.surfaceY + radius;
+    const maxY = zone.floorY - radius;
+    let x: number;
     let y: number;
-    switch (type.layer) {
-      case 'float':
-        y = zone.surfaceY + radius;
-        break;
-      case 'mid': {
-        const top = zone.surfaceY + radius + MID_MARGIN;
-        const bottom = floorAt(zone, x) - radius - MID_MARGIN;
-        y = top + rng.next() * Math.max(0, bottom - top);
-        break;
+    let attempts = 0;
+    do {
+      x = min + rng.next() * (max - min);
+      y = minY + rng.next() * (maxY - minY);
+      attempts++;
+      if (attempts >= 1_000) {
+        throw new Error(`Không tìm được vị trí sinh rác ngoài vật cản trong khu "${zone.id}"`);
       }
-      case 'sink':
-        // Lúc đầu game rác chìm nằm sẵn dưới đáy; rác mới rơi từ mặt nước xuống.
-        y = initial ? floorAt(zone, x) - radius : zone.surfaceY + radius;
-        break;
+    } while (blockedBy(zone.obstacles ?? [], x, y, radius, radius));
+
+    const lane = laneFor(type);
+    let z = lane;
+    if (type.layer === 'sink') {
+      // Rác chìm đầu game nằm sẵn ở tầng Đáy; rác sinh sau bắt đầu từ tầng Mặt.
+      z = initial ? 0 : 2;
     }
-    this.add(type, x, y);
+    this.add(type, x, y, lane, z);
   }
 }

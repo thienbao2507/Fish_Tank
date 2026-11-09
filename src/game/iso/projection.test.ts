@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groundRow, project } from './projection';
+import { groundRow, project, sceneZFromCoreY, tierHeight } from './projection';
 
 const VIEW_W = 720;
 const VIEW_H = 360;
@@ -27,5 +27,24 @@ describe('groundRow', () => {
     const point = project(FOCUS.x, 0, row.z, FOCUS, VIEW_W, VIEW_H);
     expect(point.sy).toBeCloseTo(sy, 2);
     expect(point.scale).toBeCloseTo(row.scale, 5);
+  });
+});
+
+describe('quy đổi toạ độ World', () => {
+  it.each([
+    [0, 34],
+    [1, 68],
+    [2, 102],
+    [0.5, 51],
+  ])('tierHeight(%s) = %s', (z, expected) => {
+    expect(tierHeight(z)).toBe(expected);
+  });
+
+  it.each([
+    [0, 1024],
+    [512, 512],
+    [1024, 0],
+  ])('sceneZFromCoreY(%s) = %s', (coreY, expected) => {
+    expect(sceneZFromCoreY(coreY)).toBe(expected);
   });
 });

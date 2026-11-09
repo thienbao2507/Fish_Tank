@@ -3,9 +3,9 @@ import type { DropRules, FoodRules, ZoneDef } from '../content/schemas';
 import { createRng } from '../rng';
 import { DropField } from './drops';
 import { FoodField } from './food';
+import { blockedBy } from './obstacles';
 import { School } from './school';
-import { floorAt } from './terrain';
-import { testHillyZone, testRules, testSpecies } from './testFixtures';
+import { testRules, testSpecies } from './testFixtures';
 
 const zone = {
   id: 'z',
@@ -31,12 +31,14 @@ const dropRules: DropRules = {
   autoCollectRatio: 0.5,
 };
 const DT = 1 / 60;
+const FOOD_FALL_SECONDS = 1_000;
+const DROP_FALL_SECONDS = 0.8;
 
 function setup(seed = 1) {
   const rng = createRng(seed);
   const school = new School(zone, testRules, foodRules.nutrition, rng);
-  const food = new FoodField(zone, foodRules, rng);
-  const drops = new DropField(zone, dropRules);
+  const food = new FoodField(zone, foodRules, rng, FOOD_FALL_SECONDS);
+  const drops = new DropField(zone, dropRules, DROP_FALL_SECONDS);
   const run = (seconds: number, water = 100, timeScale = 1) => {
     const result = { becameSick: 0, startedLeaving: 0 };
     for (let t = 0; t < seconds - 1e-9; t += DT) {
@@ -134,6 +136,11 @@ describe('School', () => {
     expect(result.becameSick).toBe(1);
     expect(result.startedLeaving).toBe(1);
     expect(fish.leaving).toBe(true);
+    const y = fish.y;
+    const z = fish.z;
+    run(0.2);
+    expect(fish.y).toBe(y);
+    expect(fish.z).toBeGreaterThan(z);
     run(10);
     expect(school.fish).toHaveLength(0);
   });
@@ -167,21 +174,41 @@ describe('School', () => {
     expect(visited.size).toBeGreaterThan(1);
   });
 
-  it('cá và điểm đến không thể nằm dưới một gò cao', () => {
+  it('cá và điểm đến không đi vào vật cản', () => {
     const rng = createRng(8);
-    const school = new School(testHillyZone, testRules, foodRules.nutrition, rng);
-    const food = new FoodField(testHillyZone, foodRules, rng);
-    const drops = new DropField(testHillyZone, dropRules);
-    const fish = school.add(testSpecies, 300, 150);
+    const obstacleZone: ZoneDef = {
+      ...zone,
+      obstacles: [{ x: 300, y: 150, width: 40, height: 200 }],
+    };
+    const school = new School(obstacleZone, testRules, foodRules.nutrition, rng);
+    const food = new FoodField(obstacleZone, foodRules, rng, FOOD_FALL_SECONDS);
+    const drops = new DropField(obstacleZone, dropRules, DROP_FALL_SECONDS);
+    const fish = school.add(testSpecies, 220, 150, 0);
     fish.fullness = 100;
-    fish.y = testHillyZone.floorY;
-    fish.wanderX = 300;
-    fish.wanderY = testHillyZone.floorY;
+    fish.wanderX = 380;
+    fish.wanderY = 150;
     fish.wanderTimer = 10;
 
-    school.update(DT, DT, 100, food, drops);
-
-    expect(fish.y).toBeLessThanOrEqual(floorAt(testHillyZone, fish.x) - fish.species.radius - 2);
-    expect(fish.vy).toBeLessThanOrEqual(0);
+    for (let i = 0; i < 600; i++) {
+      school.update(DT, DT, 100, food, drops);
+      expect(
+        blockedBy(
+          obstacleZone.obstacles ?? [],
+          fish.x,
+          fish.y,
+          fish.species.radius,
+          fish.species.radius,
+        ),
+      ).toBe(false);
+      expect(
+        blockedBy(
+          obstacleZone.obstacles ?? [],
+          fish.wanderX,
+          fish.wanderY,
+          fish.species.radius,
+          fish.species.radius,
+        ),
+      ).toBe(false);
+    }
   });
 });

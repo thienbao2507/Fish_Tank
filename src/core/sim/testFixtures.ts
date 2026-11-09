@@ -17,6 +17,7 @@ export const testRules: FishRules = {
   senseFoodRadius: 140,
   eatRadius: 6,
   jumpSpeed: 120,
+  leaveRiseSeconds: 0.8,
 };
 
 export const testSpecies: FishSpeciesDef = {

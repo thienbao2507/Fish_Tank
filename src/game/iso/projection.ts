@@ -4,6 +4,18 @@ export const PITCH = (33 * Math.PI) / 180;
 export const DISTANCE = 600;
 /** Tiêu cự bằng khoảng cách để điểm nhìn có tỉ lệ 1. */
 export const FOCAL = 600;
+/** Độ dài trục y của World, dùng để đổi sang chiều sâu của cảnh chéo. */
+export const WORLD_DEPTH = 1024;
+
+/** Đổi y trên mặt phẳng của core sang trục chiều sâu của cảnh chéo. */
+export function sceneZFromCoreY(coreY: number): number {
+  return WORLD_DEPTH - coreY;
+}
+
+/** Độ cao hiển thị của một tầng nước: 0 Đáy, 1 Giữa, 2 Mặt. */
+export function tierHeight(z: number): number {
+  return 34 + z * 34;
+}
 
 export interface GroundPoint {
   readonly x: number;

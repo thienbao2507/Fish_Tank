@@ -7,9 +7,9 @@ type Handler<T> = (payload: T) => void;
 export interface GameEvents {
   /** Thông báo ngắn cho người chơi (HUD hiển thị). */
   toast: { key: StringKey; params?: TranslateParams };
-  /** Đã đổi rác ở trạm; (x, y) là vị trí trong thế giới để hiện số xu bay lên. */
+  /** Đã đổi rác ở trạm; (x, y) là vị trí trên mặt phẳng, z là tầng nước hiện tại. */
   'station:sold': { coins: number; x: number; y: number; z: number };
-  /** Nhặt (hoặc tự cộng) xu/ngọc cá sinh ra. */
+  /** Nhặt (hoặc tự cộng) xu/ngọc cá sinh ra; z là tầng nước hiện tại. */
   'drop:collected': {
     currency: Currency;
     amount: number;
@@ -18,7 +18,7 @@ export interface GameEvents {
     z: number;
     auto: boolean;
   };
-  /** Cá vừa được chữa khỏi. */
+  /** Cá vừa được chữa khỏi; z là tầng nước hiện tại. */
   'fish:healed': { x: number; y: number; z: number };
   /** Cá bắt đầu nhảy khỏi bể. */
   'fish:left': { speciesId: string; x: number; y: number };

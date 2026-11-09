@@ -110,7 +110,7 @@ export const balanceSchema = z.strictObject({
     changePerMinute: positive,
   }),
   fish: z.strictObject({
-    /** Thời gian trượt hết một làn sâu (giây). */
+    /** Thời gian chuyển hết một tầng nước (giây). */
     laneSwitchSeconds: positive,
     startFullness: percent,
     /** No dưới mức này → đói (Buồn). */
@@ -135,6 +135,16 @@ export const balanceSchema = z.strictObject({
     eatRadius: positive,
     /** Tốc độ cá nhảy lên khỏi mặt nước khi bỏ đi (px/giây). */
     jumpSpeed: positive,
+    /** Thời gian cá bỏ đi tăng một đơn vị độ cao z (giây). */
+    leaveRiseSeconds: positive,
+  }),
+  lanes: z.strictObject({
+    /** Thời gian rác chìm rơi qua mỗi tầng nước (giây). */
+    trashFallSeconds: positive,
+    /** Thời gian thức ăn rơi qua mỗi tầng nước (giây). */
+    foodFallSeconds: positive,
+    /** Thời gian xu/ngọc rơi qua mỗi tầng nước (giây). */
+    dropFallSeconds: positive,
   }),
   food: z.strictObject({
     price: nonNegativeInt,
@@ -174,7 +184,7 @@ export const balanceSchema = z.strictObject({
     maxSpeed: positive,
     acceleration: positive,
     deceleration: positive,
-    /** Thời gian trượt hết một làn sâu (giây). */
+    /** Thời gian chuyển hết một tầng nước (giây). */
     laneSwitchSeconds: positive,
     batteryCapacity: positive,
     cargoCapacity: positiveInt,
@@ -220,14 +230,21 @@ export const trashSchema = z.strictObject({
 
 const point = z.strictObject({ x: z.number(), y: z.number() });
 const rect = z.strictObject({ x: z.number(), y: z.number(), width: positive, height: positive });
+const obstacle = z.strictObject({
+  /** Tâm vật cản trên mặt phẳng. */
+  x: z.number(),
+  y: z.number(),
+  width: positive,
+  height: positive,
+});
 
 export const zoneSchema = z.strictObject({
   id,
   width: positiveInt,
   height: positiveInt,
-  /** Mặt nước (y). Phía trên là không khí. */
+  /** Biên trên của mặt phẳng di chuyển. */
   surfaceY: z.number().min(0),
-  /** Mặt cát (y). Phía dưới là đáy cát. */
+  /** Biên dưới của mặt phẳng di chuyển. */
   floorY: positive,
   /** Các điểm [x, độ nhô] mô tả mặt đáy; độ nhô tính bằng px lên trên floorY. */
   terrain: z.array(z.tuple([z.number(), z.number().min(0).max(36)])).optional(),
@@ -235,6 +252,7 @@ export const zoneSchema = z.strictObject({
   wallWidth: z.number().min(0),
   station: rect,
   robotSpawn: point,
+  obstacles: z.array(obstacle).optional(),
   trash: z.strictObject({
     initialCount: nonNegativeInt,
     maxCount: positiveInt,

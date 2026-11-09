@@ -115,4 +115,10 @@ export const TextureKeys = {
   roomTank: 'room.tank',
   roomBed: 'room.bed',
   roomHero: 'room.hero',
+  roomNightstand: 'room.nightstand',
+  roomLightPc: 'room.light.pc',
+  roomLightTank: 'room.light.tank',
+  roomLightLamp: 'room.light.lamp',
+  roomBookcase: 'room.bookcase',
+  roomPlant: 'room.plant',
 } as const;

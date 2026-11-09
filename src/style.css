@@ -30,9 +30,9 @@ body {
   padding: 24px;
   background: #0b3d63;
   color: #fff;
-  /* VT323 nạp trong main.ts; 32px = gấp đôi cỡ thiết kế 16px nên nét pixel đều. */
+  /* Font nạp trong main.ts; 32px = gấp đôi cỡ thiết kế 16px nên nét pixel đều. */
   font:
-    32px/1.2 'VT323',
+    32px/1.2 'SVN-Determination Sans',
     monospace;
   text-align: center;
 }

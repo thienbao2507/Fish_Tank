@@ -95,7 +95,6 @@ export const PALETTES: Readonly<Record<PaletteName, readonly PaletteEntry[]>> = 
   rocks: [
     coral(TextureKeys.isoRockA, 0.7, 1.2),
     coral(TextureKeys.isoRockB, 0.7, 1.3),
-    coral(TextureKeys.isoRockC, 0.6, 0.9),
     coral(TextureKeys.decoUrchin, 0.8, 1.1),
     coral(TextureKeys.decoPillarCoral),
   ],
@@ -146,6 +145,9 @@ export const REEFS: readonly ReefCluster[] = [
 export const HEROES: readonly HeroProp[] = [
   // Đền đứng cuối lối cát, đủ gần để nằm trọn trong khung hình ngay lúc xuất phát.
   { key: TextureKeys.isoTemple, x: 512, z: 665, scale: 0.82 },
+  // Hai khối đá lớn trùng với vật cản trong zones.json (z = 1024 − y).
+  { key: TextureKeys.isoRockC, x: 735, z: 560, scale: 0.8 },
+  { key: TextureKeys.isoRockC, x: 300, z: 195, scale: 0.8 },
   { key: TextureKeys.decoCoralPink, x: 405, z: 640, scale: 1.6 },
   { key: TextureKeys.decoCoralOrange, x: 620, z: 632, scale: 1.6 },
   { key: TextureKeys.decoSeaFan, x: 250, z: 500, scale: 1.6 },

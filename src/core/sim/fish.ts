@@ -7,9 +7,9 @@ export type Mood = 'happy' | 'sad' | 'sick';
 export class Fish implements MotionState {
   x: number;
   y: number;
-  /** Làn sâu đích: 0 Gần, 1 Giữa, 2 Xa. */
+  /** Tầng nước đích: 0 Đáy, 1 Giữa, 2 Mặt. */
   lane: number;
-  /** Vị trí sâu liên tục khi đang trượt giữa các làn. */
+  /** Vị trí liên tục khi đang chuyển giữa các tầng nước. */
   z: number;
   vx = 0;
   vy = 0;

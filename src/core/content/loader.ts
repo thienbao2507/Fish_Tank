@@ -1,5 +1,6 @@
 import type { ZodType } from 'zod';
 import type { Strings } from '../i18n';
+import { blockedBy } from '../sim/obstacles';
 import { floorAt } from '../sim/terrain';
 import {
   artSchema,
@@ -107,6 +108,17 @@ function crossCheck(content: Content, issues: string[]): void {
     });
 
     const { station, robotSpawn } = zone;
+    const obstacles = zone.obstacles ?? [];
+    obstacles.forEach((obstacle, obstacleIndex) => {
+      if (
+        obstacle.x - obstacle.width / 2 < 0 ||
+        obstacle.x + obstacle.width / 2 > zone.width ||
+        obstacle.y - obstacle.height / 2 < zone.surfaceY ||
+        obstacle.y + obstacle.height / 2 > zone.floorY
+      ) {
+        issues.push(`${at}.obstacles.${obstacleIndex}: vật cản nằm ngoài khu`);
+      }
+    });
     if (
       station.x < 0 ||
       station.y < 0 ||
@@ -114,6 +126,17 @@ function crossCheck(content: Content, issues: string[]): void {
       station.y + station.height > zone.height
     ) {
       issues.push(`${at}.station: trạm nằm ngoài khu`);
+    }
+    if (
+      blockedBy(
+        obstacles,
+        station.x + station.width / 2,
+        station.y + station.height / 2,
+        station.width / 2,
+        station.height / 2,
+      )
+    ) {
+      issues.push(`${at}.station: trạm nằm trong vật cản`);
     }
     if (terrainValid) {
       const stationXs = [
@@ -135,6 +158,9 @@ function crossCheck(content: Content, issues: string[]): void {
         robotSpawn.y > floorAt(zone, robotSpawn.x) - content.balance.robot.halfHeight)
     ) {
       issues.push(`${at}.robotSpawn: điểm xuất phát phải nằm trong nước`);
+    }
+    if (blockedBy(obstacles, robotSpawn.x, robotSpawn.y, 0, 0)) {
+      issues.push(`${at}.robotSpawn: điểm xuất phát nằm trong vật cản`);
     }
     if (zone.trash.initialCount > zone.trash.maxCount) {
       issues.push(`${at}.trash: initialCount không được lớn hơn maxCount`);

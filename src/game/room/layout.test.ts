@@ -28,6 +28,10 @@ describe('moveInRoom', () => {
     expect(moveInRoom(start, facing, 5)[axis]).toBeCloseTo(edge);
   });
 
+  it('dừng đúng mép chân đế khi đi vào tủ đầu giường', () => {
+    expect(moveInRoom({ gx: 1.5, gy: 4.6 }, 'NW', 5).gx).toBeCloseTo(0.95);
+  });
+
   it.each([
     [{ gx: 4, gy: 4 }, 'SE' as const, 'gx' as const, 7.75],
     [{ gx: 4, gy: 4 }, 'NW' as const, 'gx' as const, 0.25],
@@ -48,6 +52,21 @@ describe('heroDepth', () => {
     { gx: 3.2, gy: 4 },
   ])('lớn hơn depth giường khi đứng trước giường tại $gx, $gy', (pos) => {
     expect(heroDepth(pos, ROOM_PROPS)).toBeGreaterThan(30);
+  });
+
+  it('nhỏ hơn depth tủ đầu giường khi đứng sau tủ', () => {
+    expect(heroDepth({ gx: 0.4, gy: 3.8 }, ROOM_PROPS)).toBeLessThan(22);
+  });
+
+  it('nằm giữa depth tủ đầu giường và giường khi đứng trước tủ nhưng sau giường', () => {
+    const depth = heroDepth({ gx: 1.5, gy: 4.6 }, ROOM_PROPS);
+
+    expect(depth).toBeGreaterThan(22);
+    expect(depth).toBeLessThan(30);
+  });
+
+  it('nhỏ hơn depth hồ khi đứng giữa bàn và hồ', () => {
+    expect(heroDepth({ gx: 3.25, gy: 0.5 }, ROOM_PROPS)).toBeLessThan(16);
   });
 });
 

@@ -43,7 +43,13 @@
     "leaveAfterSeconds": 90,
     "senseFoodRadius": 140,
     "eatRadius": 6,
-    "jumpSpeed": 120
+    "jumpSpeed": 120,
+    "leaveRiseSeconds": 0.8
+  },
+  "lanes": {
+    "trashFallSeconds": 2.5,
+    "foodFallSeconds": 2,
+    "dropFallSeconds": 0.8
   },
   "food": {
     "price": 5,
