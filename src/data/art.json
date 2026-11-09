@@ -1,138 +1,344 @@
 {
   "textures": {
     "bg.water": {
-      "kind": "verticalGradient",
-      "width": 8,
-      "height": 472,
-      "from": "#4fb3dd",
-      "to": "#0d4a73",
-      "steps": 16
+      "kind": "image",
+      "file": "art/gen/water.png"
     },
     "env.air": {
-      "kind": "shapes",
-      "width": 8,
-      "height": 8,
-      "parts": [{ "shape": "rect", "x": 0, "y": 0, "w": 8, "h": 8, "color": "#cdeaf5" }]
+      "kind": "image",
+      "file": "art/gen/air.png"
+    },
+    "env.room": {
+      "kind": "image",
+      "file": "art/gen/room.png"
+    },
+    "env.backGlass": {
+      "kind": "image",
+      "file": "art/gen/back-glass.png"
     },
     "env.surface": {
-      "kind": "shapes",
-      "width": 16,
-      "height": 4,
-      "parts": [
-        { "shape": "rect", "x": 0, "y": 1, "w": 16, "h": 2, "color": "#9ad6f0" },
-        { "shape": "rect", "x": 0, "y": 3, "w": 16, "h": 1, "color": "#5fbbe2" },
-        { "shape": "rect", "x": 1, "y": 0, "w": 5, "h": 1, "color": "#f2fbff" },
-        { "shape": "rect", "x": 9, "y": 0, "w": 3, "h": 1, "color": "#f2fbff" }
-      ]
+      "kind": "image",
+      "file": "art/gen/surface.png"
     },
     "env.sand": {
-      "kind": "shapes",
-      "width": 16,
-      "height": 16,
-      "parts": [
-        { "shape": "rect", "x": 0, "y": 0, "w": 16, "h": 16, "color": "#d9b77a" },
-        { "shape": "rect", "x": 0, "y": 0, "w": 16, "h": 1, "color": "#ead09a" },
-        { "shape": "rect", "x": 3, "y": 4, "w": 1, "h": 1, "color": "#c49a5a" },
-        { "shape": "rect", "x": 10, "y": 2, "w": 1, "h": 1, "color": "#c49a5a" },
-        { "shape": "rect", "x": 7, "y": 9, "w": 2, "h": 1, "color": "#c49a5a" },
-        { "shape": "rect", "x": 13, "y": 12, "w": 1, "h": 1, "color": "#c49a5a" },
-        { "shape": "rect", "x": 1, "y": 13, "w": 1, "h": 1, "color": "#c49a5a" }
-      ]
+      "kind": "image",
+      "file": "art/gen/sand.png"
     },
     "env.wall": {
-      "kind": "shapes",
-      "width": 8,
-      "height": 8,
-      "parts": [{ "shape": "rect", "x": 0, "y": 0, "w": 8, "h": 8, "color": "#1d3a52" }]
+      "kind": "image",
+      "file": "art/gen/wall.png"
+    },
+    "env.frameTop": {
+      "kind": "image",
+      "file": "art/gen/frame-top.png"
+    },
+    "env.distant": {
+      "kind": "image",
+      "file": "art/gen/distant.png"
+    },
+    "env.surfaceGlow": {
+      "kind": "image",
+      "file": "art/gen/surface-glow.png"
+    },
+    "env.ruins": {
+      "kind": "image",
+      "file": "art/gen/ruins.png"
+    },
+    "env.rocks": {
+      "kind": "image",
+      "file": "art/gen/rocks.png"
+    },
+    "fx.sunray": {
+      "kind": "image",
+      "file": "art/gen/sunray.png"
+    },
+    "fx.bubble": {
+      "kind": "image",
+      "file": "art/gen/bubble.png"
+    },
+    "fx.caustics.a": {
+      "kind": "image",
+      "file": "art/gen/caustics-a.png"
+    },
+    "fx.caustics.b": {
+      "kind": "image",
+      "file": "art/gen/caustics-b.png"
+    },
+    "fx.glow": {
+      "kind": "image",
+      "file": "art/gen/glow.png"
+    },
+    "fx.speck": {
+      "kind": "image",
+      "file": "art/gen/speck.png"
+    },
+    "fx.school": {
+      "kind": "image",
+      "file": "art/gen/school.png"
+    },
+    "fx.headlight": {
+      "kind": "image",
+      "file": "art/gen/headlight.png"
+    },
+    "fx.glassStreak": {
+      "kind": "image",
+      "file": "art/gen/glass-streak.png"
+    },
+    "fx.glassBubble": {
+      "kind": "image",
+      "file": "art/gen/glass-bubble.png"
+    },
+    "fx.glassMoss": {
+      "kind": "image",
+      "file": "art/gen/glass-moss.png"
+    },
+    "fx.shadow": {
+      "kind": "image",
+      "file": "art/gen/shadow.png"
+    },
+    "fx.vignette": {
+      "kind": "image",
+      "file": "art/gen/vignette.png"
+    },
+    "deco.kelp": {
+      "kind": "image",
+      "file": "art/gen/deco-kelp.png"
+    },
+    "deco.weed": {
+      "kind": "image",
+      "file": "art/gen/deco-weed.png"
+    },
+    "deco.coral": {
+      "kind": "image",
+      "file": "art/gen/deco-coral.png"
+    },
+    "deco.tube": {
+      "kind": "image",
+      "file": "art/gen/deco-tube.png"
+    },
+    "deco.grass": {
+      "kind": "image",
+      "file": "art/gen/deco-grass.png"
+    },
+    "deco.stones": {
+      "kind": "image",
+      "file": "art/gen/deco-stones.png"
+    },
+    "deco.jelly": {
+      "kind": "image",
+      "file": "art/gen/deco-jelly.png"
+    },
+    "deco.glowCoral": {
+      "kind": "image",
+      "file": "art/gen/deco-glowcoral.png"
+    },
+    "deco.anemone": {
+      "kind": "image",
+      "file": "art/gen/deco-anemone.png"
+    },
+    "deco.lamp": {
+      "kind": "image",
+      "file": "art/gen/deco-lamp.png"
+    },
+    "deco.kelpTallA": {
+      "kind": "image",
+      "file": "art/gen/deco-kelptall-a.png"
+    },
+    "deco.kelpTallB": {
+      "kind": "image",
+      "file": "art/gen/deco-kelptall-b.png"
+    },
+    "deco.goldKelpA": {
+      "kind": "image",
+      "file": "art/gen/deco-goldkelp-a.png"
+    },
+    "deco.goldKelpB": {
+      "kind": "image",
+      "file": "art/gen/deco-goldkelp-b.png"
+    },
+    "deco.coralPurple": {
+      "kind": "image",
+      "file": "art/gen/deco-coral-purple.png"
+    },
+    "deco.coralPink": {
+      "kind": "image",
+      "file": "art/gen/deco-coral-pink.png"
+    },
+    "deco.coralOrange": {
+      "kind": "image",
+      "file": "art/gen/deco-coral-orange.png"
+    },
+    "deco.brainCoral": {
+      "kind": "image",
+      "file": "art/gen/deco-braincoral.png"
+    },
+    "deco.pinkBall": {
+      "kind": "image",
+      "file": "art/gen/deco-pinkball.png"
+    },
+    "deco.seaGrass": {
+      "kind": "image",
+      "file": "art/gen/deco-seagrass.png"
+    },
+    "deco.tubeSponge": {
+      "kind": "image",
+      "file": "art/gen/deco-tubesponge.png"
+    },
+    "deco.tableCoral": {
+      "kind": "image",
+      "file": "art/gen/deco-tablecoral.png"
+    },
+    "deco.seaFan": {
+      "kind": "image",
+      "file": "art/gen/deco-seafan.png"
+    },
+    "deco.seaWhip": {
+      "kind": "image",
+      "file": "art/gen/deco-seawhip.png"
+    },
+    "deco.pillarCoral": {
+      "kind": "image",
+      "file": "art/gen/deco-pillarcoral.png"
+    },
+    "deco.mushroomCoral": {
+      "kind": "image",
+      "file": "art/gen/deco-mushroomcoral.png"
+    },
+    "deco.bubbleCoral": {
+      "kind": "image",
+      "file": "art/gen/deco-bubblecoral.png"
+    },
+    "deco.starPolyps": {
+      "kind": "image",
+      "file": "art/gen/deco-starpolyps.png"
+    },
+    "deco.zoanthids": {
+      "kind": "image",
+      "file": "art/gen/deco-zoanthids.png"
+    },
+    "deco.elkhorn": {
+      "kind": "image",
+      "file": "art/gen/deco-elkhorn.png"
+    },
+    "deco.encrustBlue": {
+      "kind": "image",
+      "file": "art/gen/deco-encrustblue.png"
+    },
+    "deco.barrelSponge": {
+      "kind": "image",
+      "file": "art/gen/deco-barrelsponge.png"
+    },
+    "deco.vaseSponge": {
+      "kind": "image",
+      "file": "art/gen/deco-vasesponge.png"
+    },
+    "deco.giantClam": {
+      "kind": "image",
+      "file": "art/gen/deco-giantclam.png"
+    },
+    "deco.starfish": {
+      "kind": "image",
+      "file": "art/gen/deco-starfish.png"
+    },
+    "deco.urchin": {
+      "kind": "image",
+      "file": "art/gen/deco-urchin.png"
+    },
+    "deco.featherDuster": {
+      "kind": "image",
+      "file": "art/gen/deco-featherduster.png"
+    },
+    "deco.christmasTree": {
+      "kind": "image",
+      "file": "art/gen/deco-christmastree.png"
+    },
+    "deco.caulerpa": {
+      "kind": "image",
+      "file": "art/gen/deco-caulerpa.png"
+    },
+    "deco.seaLettuce": {
+      "kind": "image",
+      "file": "art/gen/deco-sealettuce.png"
+    },
+    "env.terrain": {
+      "kind": "image",
+      "file": "art/gen/terrain.png"
+    },
+    "env.reefRocks": {
+      "kind": "image",
+      "file": "art/gen/reef-rocks.png"
+    },
+    "fg.floor": {
+      "kind": "image",
+      "file": "art/gen/fg-floor.png"
+    },
+    "fg.kelp": {
+      "kind": "image",
+      "file": "art/gen/fg-kelp.png"
+    },
+    "fx.haze": {
+      "kind": "image",
+      "file": "art/gen/haze.png"
+    },
+    "fx.plankton": {
+      "kind": "image",
+      "file": "art/gen/plankton.png"
     },
     "station": {
-      "kind": "shapes",
-      "width": 48,
-      "height": 40,
-      "parts": [
-        { "shape": "rect", "x": 0, "y": 32, "w": 48, "h": 8, "color": "#5c6b7a" },
-        { "shape": "rect", "x": 4, "y": 10, "w": 40, "h": 22, "color": "#8d99ae" },
-        { "shape": "rect", "x": 2, "y": 6, "w": 44, "h": 4, "color": "#3d4a57" },
-        { "shape": "rect", "x": 15, "y": 16, "w": 18, "h": 16, "color": "#1b2a41" },
-        { "shape": "rect", "x": 6, "y": 13, "w": 7, "h": 2, "color": "#f2c94c" },
-        { "shape": "rect", "x": 35, "y": 13, "w": 7, "h": 2, "color": "#f2c94c" },
-        { "shape": "rect", "x": 22, "y": 1, "w": 4, "h": 5, "color": "#6fe08a" }
-      ]
+      "kind": "image",
+      "file": "art/gen/station.png"
     },
     "robot": {
-      "kind": "shapes",
-      "width": 32,
-      "height": 20,
-      "parts": [
-        { "shape": "rect", "x": 2, "y": 2, "w": 22, "h": 15, "color": "#f2c94c" },
-        { "shape": "rect", "x": 0, "y": 4, "w": 2, "h": 11, "color": "#f2c94c" },
-        { "shape": "rect", "x": 24, "y": 4, "w": 2, "h": 11, "color": "#f2c94c" },
-        { "shape": "rect", "x": 4, "y": 4, "w": 8, "h": 2, "color": "#f8e08e" },
-        { "shape": "rect", "x": 16, "y": 5, "w": 6, "h": 6, "color": "#ffffff" },
-        { "shape": "rect", "x": 19, "y": 7, "w": 3, "h": 3, "color": "#1b2a41" },
-        { "shape": "rect", "x": 26, "y": 7, "w": 4, "h": 6, "color": "#8d99ae" },
-        { "shape": "rect", "x": 30, "y": 6, "w": 2, "h": 8, "color": "#6b7785" },
-        { "shape": "rect", "x": 6, "y": 17, "w": 12, "h": 3, "color": "#d4a72c" }
-      ]
+      "kind": "spritesheet",
+      "file": "art/gen/submarine.png",
+      "frameWidth": 56,
+      "frameHeight": 48
     },
     "trash.bottle": {
-      "kind": "shapes",
-      "width": 12,
-      "height": 6,
-      "parts": [
-        { "shape": "rect", "x": 0, "y": 1, "w": 9, "h": 4, "color": "#8fd4b4" },
-        { "shape": "rect", "x": 9, "y": 2, "w": 1, "h": 2, "color": "#8fd4b4" },
-        { "shape": "rect", "x": 10, "y": 1, "w": 2, "h": 4, "color": "#e04f5f" },
-        { "shape": "rect", "x": 1, "y": 1, "w": 6, "h": 1, "color": "#d8f3e6" }
-      ]
+      "kind": "image",
+      "file": "art/gen/trash-bottle.png"
     },
     "trash.bag": {
-      "kind": "shapes",
-      "width": 10,
-      "height": 11,
-      "parts": [
-        { "shape": "rect", "x": 1, "y": 0, "w": 2, "h": 3, "color": "#dfe7ee" },
-        { "shape": "rect", "x": 7, "y": 0, "w": 2, "h": 3, "color": "#dfe7ee" },
-        { "shape": "rect", "x": 0, "y": 2, "w": 10, "h": 9, "color": "#dfe7ee", "alpha": 0.9 },
-        { "shape": "rect", "x": 2, "y": 5, "w": 6, "h": 1, "color": "#b9c6d1" },
-        { "shape": "rect", "x": 3, "y": 8, "w": 4, "h": 1, "color": "#b9c6d1" }
-      ]
+      "kind": "image",
+      "file": "art/gen/trash-bag.png"
     },
     "trash.can": {
-      "kind": "shapes",
-      "width": 6,
-      "height": 9,
-      "parts": [
-        { "shape": "rect", "x": 0, "y": 1, "w": 6, "h": 7, "color": "#d64545" },
-        { "shape": "rect", "x": 0, "y": 0, "w": 6, "h": 1, "color": "#c9d1d9" },
-        { "shape": "rect", "x": 0, "y": 8, "w": 6, "h": 1, "color": "#c9d1d9" },
-        { "shape": "rect", "x": 1, "y": 3, "w": 4, "h": 2, "color": "#f2f2f2" }
-      ]
+      "kind": "image",
+      "file": "art/gen/trash-can.png"
     },
     "trash.tire": {
-      "kind": "shapes",
-      "width": 16,
-      "height": 16,
-      "parts": [
-        { "shape": "rect", "x": 4, "y": 0, "w": 8, "h": 2, "color": "#2b2b2b" },
-        { "shape": "rect", "x": 2, "y": 2, "w": 12, "h": 2, "color": "#2b2b2b" },
-        { "shape": "rect", "x": 0, "y": 4, "w": 4, "h": 8, "color": "#2b2b2b" },
-        { "shape": "rect", "x": 12, "y": 4, "w": 4, "h": 8, "color": "#2b2b2b" },
-        { "shape": "rect", "x": 2, "y": 12, "w": 12, "h": 2, "color": "#2b2b2b" },
-        { "shape": "rect", "x": 4, "y": 14, "w": 8, "h": 2, "color": "#2b2b2b" },
-        { "shape": "rect", "x": 5, "y": 1, "w": 6, "h": 1, "color": "#4a4a4a" },
-        { "shape": "rect", "x": 1, "y": 6, "w": 1, "h": 4, "color": "#4a4a4a" },
-        { "shape": "rect", "x": 14, "y": 6, "w": 1, "h": 4, "color": "#4a4a4a" }
-      ]
+      "kind": "image",
+      "file": "art/gen/trash-tire.png"
     },
     "ui.button": {
       "kind": "shapes",
       "width": 48,
       "height": 48,
       "parts": [
-        { "shape": "rect", "x": 0, "y": 0, "w": 48, "h": 48, "color": "#0b1d2e" },
-        { "shape": "rect", "x": 2, "y": 2, "w": 44, "h": 44, "color": "#1b2a41" },
-        { "shape": "rect", "x": 2, "y": 2, "w": 44, "h": 2, "color": "#2c4260" }
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 0,
+          "w": 48,
+          "h": 48,
+          "color": "#0b1d2e"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 2,
+          "w": 44,
+          "h": 44,
+          "color": "#1b2a41"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 2,
+          "w": 44,
+          "h": 2,
+          "color": "#2c4260"
+        }
       ]
     },
     "ui.button.on": {
@@ -140,9 +346,30 @@
       "width": 48,
       "height": 48,
       "parts": [
-        { "shape": "rect", "x": 0, "y": 0, "w": 48, "h": 48, "color": "#0b1d2e" },
-        { "shape": "rect", "x": 2, "y": 2, "w": 44, "h": 44, "color": "#3fa7d6" },
-        { "shape": "rect", "x": 2, "y": 2, "w": 44, "h": 2, "color": "#8fd3f0" }
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 0,
+          "w": 48,
+          "h": 48,
+          "color": "#0b1d2e"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 2,
+          "w": 44,
+          "h": 44,
+          "color": "#3fa7d6"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 2,
+          "w": 44,
+          "h": 2,
+          "color": "#8fd3f0"
+        }
       ]
     },
     "icon.vacuum": {
@@ -150,11 +377,46 @@
       "width": 20,
       "height": 20,
       "parts": [
-        { "shape": "rect", "x": 3, "y": 1, "w": 4, "h": 12, "color": "#d9e2ec" },
-        { "shape": "rect", "x": 1, "y": 13, "w": 12, "h": 4, "color": "#f2c94c" },
-        { "shape": "rect", "x": 15, "y": 12, "w": 3, "h": 1, "color": "#ffffff" },
-        { "shape": "rect", "x": 15, "y": 15, "w": 4, "h": 1, "color": "#ffffff" },
-        { "shape": "rect", "x": 15, "y": 18, "w": 3, "h": 1, "color": "#ffffff" }
+        {
+          "shape": "rect",
+          "x": 3,
+          "y": 1,
+          "w": 4,
+          "h": 12,
+          "color": "#d9e2ec"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 13,
+          "w": 12,
+          "h": 4,
+          "color": "#f2c94c"
+        },
+        {
+          "shape": "rect",
+          "x": 15,
+          "y": 12,
+          "w": 3,
+          "h": 1,
+          "color": "#ffffff"
+        },
+        {
+          "shape": "rect",
+          "x": 15,
+          "y": 15,
+          "w": 4,
+          "h": 1,
+          "color": "#ffffff"
+        },
+        {
+          "shape": "rect",
+          "x": 15,
+          "y": 18,
+          "w": 3,
+          "h": 1,
+          "color": "#ffffff"
+        }
       ]
     },
     "icon.coin": {
@@ -162,11 +424,46 @@
       "width": 8,
       "height": 8,
       "parts": [
-        { "shape": "rect", "x": 2, "y": 0, "w": 4, "h": 8, "color": "#f2c94c" },
-        { "shape": "rect", "x": 0, "y": 2, "w": 8, "h": 4, "color": "#f2c94c" },
-        { "shape": "rect", "x": 1, "y": 1, "w": 6, "h": 6, "color": "#f2c94c" },
-        { "shape": "rect", "x": 5, "y": 5, "w": 2, "h": 2, "color": "#c99a1e" },
-        { "shape": "rect", "x": 2, "y": 2, "w": 2, "h": 2, "color": "#fff3b0" }
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 0,
+          "w": 4,
+          "h": 8,
+          "color": "#f2c94c"
+        },
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 2,
+          "w": 8,
+          "h": 4,
+          "color": "#f2c94c"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 1,
+          "w": 6,
+          "h": 6,
+          "color": "#f2c94c"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 5,
+          "w": 2,
+          "h": 2,
+          "color": "#c99a1e"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 2,
+          "w": 2,
+          "h": 2,
+          "color": "#fff3b0"
+        }
       ]
     },
     "icon.pearl": {
@@ -174,11 +471,352 @@
       "width": 8,
       "height": 8,
       "parts": [
-        { "shape": "rect", "x": 2, "y": 0, "w": 4, "h": 8, "color": "#ece8ff" },
-        { "shape": "rect", "x": 0, "y": 2, "w": 8, "h": 4, "color": "#ece8ff" },
-        { "shape": "rect", "x": 1, "y": 1, "w": 6, "h": 6, "color": "#ece8ff" },
-        { "shape": "rect", "x": 5, "y": 5, "w": 2, "h": 2, "color": "#bdb5e3" },
-        { "shape": "rect", "x": 2, "y": 2, "w": 2, "h": 2, "color": "#ffffff" }
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 0,
+          "w": 4,
+          "h": 8,
+          "color": "#ece8ff"
+        },
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 2,
+          "w": 8,
+          "h": 4,
+          "color": "#ece8ff"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 1,
+          "w": 6,
+          "h": 6,
+          "color": "#ece8ff"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 5,
+          "w": 2,
+          "h": 2,
+          "color": "#bdb5e3"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 2,
+          "w": 2,
+          "h": 2,
+          "color": "#ffffff"
+        }
+      ]
+    },
+    "fish.guppy": {
+      "kind": "image",
+      "file": "art/gen/fish-guppy.png"
+    },
+    "fish.neon": {
+      "kind": "image",
+      "file": "art/gen/fish-neon.png"
+    },
+    "fish.angel": {
+      "kind": "image",
+      "file": "art/gen/fish-angel.png"
+    },
+    "food.pellet": {
+      "kind": "image",
+      "file": "art/gen/food-pellet.png"
+    },
+    "drop.coin": {
+      "kind": "image",
+      "file": "art/gen/drop-coin.png"
+    },
+    "drop.pearl": {
+      "kind": "image",
+      "file": "art/gen/drop-pearl.png"
+    },
+    "icon.alert": {
+      "kind": "shapes",
+      "width": 5,
+      "height": 9,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 0,
+          "w": 5,
+          "h": 9,
+          "color": "#ffffff"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 1,
+          "w": 3,
+          "h": 4,
+          "color": "#e04f5f"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 6,
+          "w": 3,
+          "h": 2,
+          "color": "#e04f5f"
+        }
+      ]
+    },
+    "icon.water": {
+      "kind": "shapes",
+      "width": 6,
+      "height": 8,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 0,
+          "w": 2,
+          "h": 2,
+          "color": "#4fb3dd"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 2,
+          "w": 4,
+          "h": 2,
+          "color": "#4fb3dd"
+        },
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 4,
+          "w": 6,
+          "h": 3,
+          "color": "#4fb3dd"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 7,
+          "w": 4,
+          "h": 1,
+          "color": "#4fb3dd"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 4,
+          "w": 1,
+          "h": 2,
+          "color": "#bfefff"
+        }
+      ]
+    },
+    "icon.food": {
+      "kind": "shapes",
+      "width": 20,
+      "height": 20,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 6,
+          "w": 10,
+          "h": 10,
+          "color": "#c97b3f"
+        },
+        {
+          "shape": "rect",
+          "x": 4,
+          "y": 3,
+          "w": 12,
+          "h": 3,
+          "color": "#8a5a2b"
+        },
+        {
+          "shape": "rect",
+          "x": 7,
+          "y": 9,
+          "w": 6,
+          "h": 3,
+          "color": "#f2c94c"
+        },
+        {
+          "shape": "rect",
+          "x": 3,
+          "y": 17,
+          "w": 2,
+          "h": 2,
+          "color": "#a0522d"
+        },
+        {
+          "shape": "rect",
+          "x": 9,
+          "y": 18,
+          "w": 2,
+          "h": 2,
+          "color": "#a0522d"
+        },
+        {
+          "shape": "rect",
+          "x": 15,
+          "y": 17,
+          "w": 2,
+          "h": 2,
+          "color": "#a0522d"
+        }
+      ]
+    },
+    "icon.medicine": {
+      "kind": "shapes",
+      "width": 20,
+      "height": 20,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 7,
+          "y": 1,
+          "w": 6,
+          "h": 3,
+          "color": "#9aa5b1"
+        },
+        {
+          "shape": "rect",
+          "x": 4,
+          "y": 4,
+          "w": 12,
+          "h": 15,
+          "color": "#ffffff"
+        },
+        {
+          "shape": "rect",
+          "x": 9,
+          "y": 7,
+          "w": 2,
+          "h": 9,
+          "color": "#e04f5f"
+        },
+        {
+          "shape": "rect",
+          "x": 6,
+          "y": 10,
+          "w": 8,
+          "h": 3,
+          "color": "#e04f5f"
+        }
+      ]
+    },
+    "ui.laneIn": {
+      "kind": "shapes",
+      "width": 12,
+      "height": 8,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 1,
+          "w": 2,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 4,
+          "y": 2,
+          "w": 4,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 3,
+          "y": 3,
+          "w": 6,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 4,
+          "w": 8,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 5,
+          "w": 10,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 6,
+          "w": 12,
+          "h": 1,
+          "color": "#e6f1ff"
+        }
+      ]
+    },
+    "ui.laneOut": {
+      "kind": "shapes",
+      "width": 12,
+      "height": 8,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 5,
+          "w": 2,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 4,
+          "y": 4,
+          "w": 4,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 3,
+          "y": 3,
+          "w": 6,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 2,
+          "w": 8,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 1,
+          "y": 1,
+          "w": 10,
+          "h": 1,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 1,
+          "color": "#e6f1ff"
+        }
       ]
     },
     "icon.cargo": {
@@ -186,10 +824,99 @@
       "width": 10,
       "height": 8,
       "parts": [
-        { "shape": "rect", "x": 0, "y": 1, "w": 10, "h": 7, "color": "#b08a5a" },
-        { "shape": "rect", "x": 0, "y": 0, "w": 10, "h": 2, "color": "#8a6a42" },
-        { "shape": "rect", "x": 4, "y": 0, "w": 2, "h": 8, "color": "#6b4f2e" }
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 1,
+          "w": 10,
+          "h": 7,
+          "color": "#b08a5a"
+        },
+        {
+          "shape": "rect",
+          "x": 0,
+          "y": 0,
+          "w": 10,
+          "h": 2,
+          "color": "#8a6a42"
+        },
+        {
+          "shape": "rect",
+          "x": 4,
+          "y": 0,
+          "w": 2,
+          "h": 8,
+          "color": "#6b4f2e"
+        }
       ]
+    },
+    "iso.ground": {
+      "kind": "image",
+      "file": "art/gen/iso-ground.png"
+    },
+    "iso.rockA": {
+      "kind": "image",
+      "file": "art/gen/iso-rock-a.png"
+    },
+    "iso.rockB": {
+      "kind": "image",
+      "file": "art/gen/iso-rock-b.png"
+    },
+    "iso.rockC": {
+      "kind": "image",
+      "file": "art/gen/iso-rock-c.png"
+    },
+    "iso.caustics": {
+      "kind": "image",
+      "file": "art/gen/iso-caustics.png"
+    },
+    "iso.cliffA": {
+      "kind": "image",
+      "file": "art/gen/iso-cliff-a.png"
+    },
+    "iso.cliffB": {
+      "kind": "image",
+      "file": "art/gen/iso-cliff-b.png"
+    },
+    "iso.cliffC": {
+      "kind": "image",
+      "file": "art/gen/iso-cliff-c.png"
+    },
+    "iso.cave": {
+      "kind": "image",
+      "file": "art/gen/iso-cave.png"
+    },
+    "iso.ledge": {
+      "kind": "image",
+      "file": "art/gen/iso-ledge.png"
+    },
+    "iso.temple": {
+      "kind": "image",
+      "file": "art/gen/iso-temple.png"
+    },
+    "iso.backwall": {
+      "kind": "image",
+      "file": "art/gen/iso-backwall.png"
+    },
+    "iso.fgA": {
+      "kind": "image",
+      "file": "art/gen/iso-fg-a.png"
+    },
+    "iso.fgB": {
+      "kind": "image",
+      "file": "art/gen/iso-fg-b.png"
+    },
+    "iso.shadowLong": {
+      "kind": "image",
+      "file": "art/gen/iso-shadow-long.png"
+    },
+    "iso.contact": {
+      "kind": "image",
+      "file": "art/gen/iso-contact.png"
+    },
+    "iso.ray": {
+      "kind": "image",
+      "file": "art/gen/iso-ray.png"
     }
   }
 }

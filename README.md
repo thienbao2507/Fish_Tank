@@ -21,8 +21,12 @@ Mở http://localhost:5173. Thêm `?debug=1` (http://localhost:5173/?debug=1) đ
 |---|---|---|
 | Bơi | Chạm và kéo ở nửa trái màn hình (joystick hiện tại chỗ chạm) | `W A S D` hoặc phím mũi tên |
 | Bật/tắt máy hút | Nút **Hút** góc dưới phải | `Space` |
+| Thả thức ăn (5 xu) | Nút thức ăn, bên trái nút Hút | `F` |
+| Cho thuốc cá ốm ở gần (20 xu) | Nút thuốc, phía trên nút Hút (sáng khi có cá ốm trong tầm) | `R` |
 
-Bơi vào **Trạm** (góc trái dưới) để đổi rác trong khoang lấy xu và sạc pin.
+Bơi vào **Trạm** (góc trái dưới) để đổi rác trong khoang lấy xu và sạc pin. Bơi chạm vào xu/ngọc cá thả ra để nhặt.
+
+Cá vui (no, nước ≥ 60%) mới sinh xu. Rác và thức ăn thừa làm bẩn nước; cá ốm lâu sẽ nhảy khỏi bể (dấu **!** và số giây đếm ngược trên đầu cá, mũi tên đỏ ở mép màn hình khi cá ngoài khung hình). Với `?debug=1`, chọn tốc độ ×10/×100 để xem nhanh chuyện này.
 
 ## Chơi thử trên điện thoại
 

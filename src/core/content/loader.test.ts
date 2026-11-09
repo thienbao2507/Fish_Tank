@@ -28,10 +28,10 @@ describe('loadContent', () => {
 
   it('báo rõ file và trường khi sai kiểu', () => {
     const raw = rawCopy();
-    raw.art.textures.robot.parts[0].color = 'red';
+    raw.art.textures['ui.button'].parts[0].color = 'red';
     const error = errorOf(() => loadContent(raw));
     expect(error.issues).toHaveLength(1);
-    expect(error.issues[0]).toContain('art.json › textures.robot.parts.0.color');
+    expect(error.issues[0]).toContain('art.json › textures.ui.button.parts.0.color');
   });
 
   it('báo lỗi khi có trường lạ (gõ sai tên trường)', () => {
@@ -73,11 +73,80 @@ describe('loadContent', () => {
       expect(error.issues[0]).toContain('balance.json › startZone');
     });
 
+    it('loài cá dùng texture hoặc tên không tồn tại', () => {
+      const raw = rawCopy();
+      raw.fish.species[0].texture = 'missing.texture';
+      raw.fish.species[0].name = 'missing.name';
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('fish.json › species.0.texture'))).toBe(
+        true,
+      );
+      expect(error.issues.some((issue) => issue.includes('fish.json › species.0.name'))).toBe(true);
+    });
+
+    it('cá có sẵn thuộc loài không tồn tại', () => {
+      const raw = rawCopy();
+      raw.balance.startingFish = [{ species: 'shark', count: 1 }];
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues[0]).toContain('balance.json › startingFish.0.species');
+    });
+
     it('mặt nước phải nằm trên đáy', () => {
       const raw = rawCopy();
       raw.zones.zones[0].surfaceY = raw.zones.zones[0].floorY + 1;
       const error = errorOf(() => loadContent(raw));
       expect(error.issues.some((issue) => issue.includes('surfaceY < floorY'))).toBe(true);
+    });
+
+    it('các điểm terrain phải tăng dần và nằm trong chiều rộng khu', () => {
+      const raw = rawCopy();
+      raw.zones.zones[0].terrain[0][0] = -1;
+      raw.zones.zones[0].terrain[2][0] = raw.zones.zones[0].terrain[1][0];
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('terrain.0.0: x phải nằm trong'))).toBe(
+        true,
+      );
+      expect(error.issues.some((issue) => issue.includes('terrain.2.0: x phải tăng dần'))).toBe(
+        true,
+      );
+    });
+
+    it('đáy trong khoảng ngang của trạm phải phẳng ở floorY', () => {
+      const raw = rawCopy();
+      raw.zones.zones[0].terrain[0][1] = 1;
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('station: mặt đáy'))).toBe(true);
+    });
+
+    it('robotSpawn phải chừa đủ nửa chiều cao robot trên mặt đáy', () => {
+      const raw = rawCopy();
+      raw.zones.zones[0].robotSpawn.y = raw.zones.zones[0].floorY;
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('robotSpawn'))).toBe(true);
+    });
+  });
+
+  describe('texture spritesheet', () => {
+    it('chấp nhận spritesheet có kích thước frame hợp lệ', () => {
+      const raw = rawCopy();
+      raw.art.textures.robot = {
+        kind: 'spritesheet',
+        file: 'art/gen/submarine.png',
+        frameWidth: 56,
+        frameHeight: 48,
+      };
+      expect(() => loadContent(raw)).not.toThrow();
+    });
+
+    it('báo lỗi khi spritesheet thiếu frameWidth', () => {
+      const raw = rawCopy();
+      raw.art.textures.robot = {
+        kind: 'spritesheet',
+        file: 'art/gen/submarine.png',
+        frameHeight: 48,
+      };
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues[0]).toContain('art.json › textures.robot.frameWidth');
     });
   });
 });

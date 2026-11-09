@@ -1,3 +1,4 @@
+import type { Currency } from './economy/wallet';
 import type { StringKey, TranslateParams } from './i18n';
 
 type Handler<T> = (payload: T) => void;
@@ -7,7 +8,20 @@ export interface GameEvents {
   /** Thông báo ngắn cho người chơi (HUD hiển thị). */
   toast: { key: StringKey; params?: TranslateParams };
   /** Đã đổi rác ở trạm; (x, y) là vị trí trong thế giới để hiện số xu bay lên. */
-  'station:sold': { coins: number; x: number; y: number };
+  'station:sold': { coins: number; x: number; y: number; z: number };
+  /** Nhặt (hoặc tự cộng) xu/ngọc cá sinh ra. */
+  'drop:collected': {
+    currency: Currency;
+    amount: number;
+    x: number;
+    y: number;
+    z: number;
+    auto: boolean;
+  };
+  /** Cá vừa được chữa khỏi. */
+  'fish:healed': { x: number; y: number; z: number };
+  /** Cá bắt đầu nhảy khỏi bể. */
+  'fish:left': { speciesId: string; x: number; y: number };
 }
 
 /**

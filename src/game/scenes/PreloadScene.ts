@@ -21,6 +21,7 @@ export class PreloadScene extends Phaser.Scene {
   create(): void {
     createPlaceholderTextures(this, getContext(this).content.art);
     assertTexturesExist(this, Object.values(TextureKeys));
-    this.scene.start(SceneKeys.Game);
+    const isoMode = new URLSearchParams(window.location.search).get('iso') === '1';
+    this.scene.start(isoMode ? SceneKeys.IsoPrototype : SceneKeys.Game);
   }
 }

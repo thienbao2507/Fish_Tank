@@ -1,13 +1,16 @@
 import type { ZodType } from 'zod';
 import type { Strings } from '../i18n';
+import { floorAt } from '../sim/terrain';
 import {
   artSchema,
   balanceSchema,
+  fishSchema,
   stringsSchema,
   trashSchema,
   zonesSchema,
   type ArtManifest,
   type Balance,
+  type FishCatalog,
   type TrashCatalog,
   type ZoneDef,
 } from './schemas';
@@ -19,6 +22,7 @@ export interface RawContent {
   readonly balance: unknown;
   readonly zones: unknown;
   readonly trash: unknown;
+  readonly fish: unknown;
 }
 
 /** Dữ liệu đã kiểm tra, dùng trong toàn game. */
@@ -28,6 +32,7 @@ export interface Content {
   readonly balance: Balance;
   readonly zones: readonly ZoneDef[];
   readonly trash: TrashCatalog;
+  readonly fish: FishCatalog;
 }
 
 export class ContentError extends Error {
@@ -89,6 +94,18 @@ function crossCheck(content: Content, issues: string[]): void {
     if (!(zone.surfaceY < zone.floorY && zone.floorY <= zone.height)) {
       issues.push(`${at}: cần surfaceY < floorY ≤ height`);
     }
+    let terrainValid = true;
+    zone.terrain?.forEach(([x], terrainIndex) => {
+      if (x < 0 || x > zone.width) {
+        issues.push(`${at}.terrain.${terrainIndex}.0: x phải nằm trong [0, ${zone.width}]`);
+        terrainValid = false;
+      }
+      if (terrainIndex > 0 && x <= (zone.terrain?.[terrainIndex - 1]?.[0] ?? x)) {
+        issues.push(`${at}.terrain.${terrainIndex}.0: x phải tăng dần`);
+        terrainValid = false;
+      }
+    });
+
     const { station, robotSpawn } = zone;
     if (
       station.x < 0 ||
@@ -98,11 +115,24 @@ function crossCheck(content: Content, issues: string[]): void {
     ) {
       issues.push(`${at}.station: trạm nằm ngoài khu`);
     }
+    if (terrainValid) {
+      const stationXs = [
+        station.x,
+        ...(zone.terrain ?? [])
+          .map(([x]) => x)
+          .filter((x) => x > station.x && x < station.x + station.width),
+        station.x + station.width,
+      ];
+      if (stationXs.some((x) => floorAt(zone, x) !== zone.floorY)) {
+        issues.push(`${at}.station: mặt đáy trong khoảng x của trạm phải bằng floorY`);
+      }
+    }
     if (
       robotSpawn.x < 0 ||
       robotSpawn.x > zone.width ||
       robotSpawn.y < zone.surfaceY ||
-      robotSpawn.y > zone.floorY
+      (terrainValid &&
+        robotSpawn.y > floorAt(zone, robotSpawn.x) - content.balance.robot.halfHeight)
     ) {
       issues.push(`${at}.robotSpawn: điểm xuất phát phải nằm trong nước`);
     }
@@ -126,6 +156,30 @@ function crossCheck(content: Content, issues: string[]): void {
       `balance.json › startZone: không có khu "${content.balance.startZone}" trong zones.json`,
     );
   }
+
+  const speciesIds = new Set(content.fish.species.map((species) => species.id));
+  for (const duplicate of findDuplicates(content.fish.species.map((species) => species.id))) {
+    issues.push(`fish.json › species: id "${duplicate}" bị trùng`);
+  }
+  content.fish.species.forEach((species, index) => {
+    if (!textureKeys.has(species.texture)) {
+      issues.push(
+        `fish.json › species.${index}.texture: không có texture "${species.texture}" trong art.json`,
+      );
+    }
+    if (content.strings[species.name] === undefined) {
+      issues.push(
+        `fish.json › species.${index}.name: không có chuỗi "${species.name}" trong strings.vi.json`,
+      );
+    }
+  });
+  content.balance.startingFish.forEach((entry, index) => {
+    if (!speciesIds.has(entry.species)) {
+      issues.push(
+        `balance.json › startingFish.${index}.species: không có loài "${entry.species}" trong fish.json`,
+      );
+    }
+  });
 }
 
 /** Kiểm tra toàn bộ dữ liệu; gom lỗi của mọi file rồi ném một ContentError duy nhất. */
@@ -136,12 +190,13 @@ export function loadContent(raw: RawContent): Content {
   const balance = parseFile('balance.json', balanceSchema, raw.balance, issues);
   const zones = parseFile('zones.json', zonesSchema, raw.zones, issues);
   const trash = parseFile('trash.json', trashSchema, raw.trash, issues);
+  const fish = parseFile('fish.json', fishSchema, raw.fish, issues);
 
-  if (!strings || !art || !balance || !zones || !trash) {
+  if (!strings || !art || !balance || !zones || !trash || !fish) {
     throw new ContentError(issues);
   }
 
-  const content: Content = { strings, art, balance, zones: zones.zones, trash };
+  const content: Content = { strings, art, balance, zones: zones.zones, trash, fish };
   crossCheck(content, issues);
   if (issues.length > 0) {
     throw new ContentError(issues);

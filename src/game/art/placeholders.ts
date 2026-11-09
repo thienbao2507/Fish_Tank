@@ -10,6 +10,11 @@ export function queueImageTextures(load: Phaser.Loader.LoaderPlugin, art: ArtMan
   for (const [key, def] of Object.entries(art.textures)) {
     if (def.kind === 'image') {
       load.image(key, def.file);
+    } else if (def.kind === 'spritesheet') {
+      load.spritesheet(key, def.file, {
+        frameWidth: def.frameWidth,
+        frameHeight: def.frameHeight,
+      });
     }
   }
 }

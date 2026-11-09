@@ -3,6 +3,7 @@ import { GAME_HEIGHT } from '../config';
 import { setContext, type GameContext } from './context';
 import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
+import { IsoPrototypeScene } from './scenes/IsoPrototypeScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { UIScene } from './scenes/UIScene';
 import { viewWidthFor } from './viewport';
@@ -43,6 +44,6 @@ export function createGame(ctx: GameContext): Phaser.Game {
       postBoot: keepWidthMatchingScreen,
     },
     // Thứ tự trong mảng = thứ tự vẽ: UI nằm trên Game.
-    scene: [BootScene, PreloadScene, GameScene, UIScene],
+    scene: [BootScene, PreloadScene, GameScene, UIScene, IsoPrototypeScene],
   });
 }

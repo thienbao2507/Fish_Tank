@@ -118,27 +118,82 @@ Mục tiêu: vòng lặp tối thiểu "dọn rác → về trạm → đổi xu
 
 Demo P1: chơi trọn vòng dọn → đổi xu trên điện thoại.
 
+- [~] **P1-Art** Theo yêu cầu ngày 2026-11-04: thay robot placeholder bằng tàu ngầm pixel art theo ảnh mẫu (thân vàng, kính xanh, khung tím), PNG trong suốt 48×48; cập nhật vùng giới hạn di chuyển theo sprite.
+  Cập nhật theo phản hồi: kéo ngang thêm 15%, giữ chiều cao; vùng giới hạn 54×46. Lint hai file code thay đổi và 15 test loader/movement đạt; lần chạy check này bị chặn bởi lỗi TS2554 tại `UIScene.ts` đang được sửa đồng thời.
+  AC: tải PNG qua manifest, quay mặt theo hướng bơi, không vượt biên bể; `npm run check` và `npm run build` xanh.
+  *(Đã tích hợp asset và vùng giới hạn mới; `npm run check` đạt với 109 test, `npm run build` đạt; PNG trả HTTP 200 và có trong bản build. Chưa kiểm tra trực quan trong game do Browser không kết nối và lệnh Chrome bị chặn. Chi tiết asset và prompt: [submarine-art.md](submarine-art.md).)*
+
 ### P2 — Cá và nước
 Mục tiêu: cá sống trong bể, phản ứng với nước bẩn và việc chăm sóc.
 
-- [ ] **P2-01** Độ sạch nước theo khu (`core/sim/water`): giảm theo rác, thức ăn thừa (tảo thêm ở P4); tự hồi chậm khi sạch.
+- [x] **P2-01** Độ sạch nước theo khu (`core/sim/water`): giảm theo rác, thức ăn thừa (tảo thêm ở P4); tự hồi chậm khi sạch.
   AC: unit test công thức; hiển thị độ sạch trên HUD (tạm thời).
-- [ ] **P2-02** `fish.json`: 3 loài (giá, tốc độ đói, độ nhạy nước, xu/chu kỳ, tỉ lệ ngọc, thời gian lớn).
+- [x] **P2-02** `fish.json`: 3 loài (giá, tốc độ đói, độ nhạy nước, xu/chu kỳ, tỉ lệ ngọc, thời gian lớn).
   AC: loader validate đủ trường.
-- [ ] **P2-03** Cá bơi: đi lang thang trong khu, tránh biên, bơi tới thức ăn gần nhất.
+- [x] **P2-03** Cá bơi: đi lang thang trong khu, tránh biên, bơi tới thức ăn gần nhất.
   AC: cá không kẹt ở biên/góc; nhìn tự nhiên.
-- [ ] **P2-04** Máy trạng thái cá (`core/sim/fish`): No, Bệnh, Vui → Buồn → Ốm → cảnh báo + đếm ngược → nhảy khỏi bể; nước sạch thì hồi phục dần.
+- [x] **P2-04** Máy trạng thái cá (`core/sim/fish`): No, Bệnh, Vui → Buồn → Ốm → cảnh báo + đếm ngược → nhảy khỏi bể; nước sạch thì hồi phục dần.
   AC: unit test mọi chuyển trạng thái; cá nhảy ra có hiệu ứng và bị xóa khỏi save.
-- [ ] **P2-05** Nút Thức ăn: tốn xu, viên thức ăn chìm dần, cá ăn; thừa rơi xuống đáy → làm bẩn nước, tan sau một thời gian.
+- [x] **P2-05** Nút Thức ăn: tốn xu, viên thức ăn chìm dần, cá ăn; thừa rơi xuống đáy → làm bẩn nước, tan sau một thời gian.
   AC: cho ăn quá nhiều làm độ sạch giảm thấy rõ.
-- [ ] **P2-06** Nút Thuốc: tốn xu, chữa cá ốm gần robot nhất trong bán kính.
+- [x] **P2-06** Nút Thuốc: tốn xu, chữa cá ốm gần robot nhất trong bán kính.
   AC: không có cá ốm trong bán kính → nút mờ, không trừ xu.
-- [ ] **P2-07** Cá vui sinh xu (tỉ lệ nhỏ ra ngọc), rơi ra; robot chạm là nhặt; quá thời gian → tự cộng 50%.
+- [x] **P2-07** Cá vui sinh xu (tỉ lệ nhỏ ra ngọc), rơi ra; robot chạm là nhặt; quá thời gian → tự cộng 50%.
   AC: unit test tỉ lệ (RNG seed) và quy tắc 50%.
-- [ ] **P2-08** Cảnh báo: icon trên đầu cá; mũi tên ở mép màn hình khi cá ngoài tầm nhìn.
+  *(Ngọc không nhặt: 1 viên không chia đôi được nên tự cộng 50% giá trị quy ra xu = 500 xu. Chờ người dùng xác nhận.)*
+- [x] **P2-08** Cảnh báo: icon trên đầu cá; mũi tên ở mép màn hình khi cá ngoài tầm nhìn.
   AC: mũi tên chỉ đúng hướng, biến mất khi cá vào khung hình.
-- [ ] **P2-09** Trạng thái khởi đầu game mới (số liệu trong `balance.json`): vài cá loài rẻ ở khu 1, ít xu.
+- [x] **P2-09** Trạng thái khởi đầu game mới (số liệu trong `balance.json`): vài cá loài rẻ ở khu 1, ít xu.
   AC: game mới luôn chơi được ngay.
+- [x] **P2-Art** Theo yêu cầu ngày 2026-11-05/06: áp dụng hướng mỹ thuật spec 12.4 cho khu 1 (chi tiết ở spec 12.2 và 12.4).
+  - Nền nhiều lớp cuộn khác tốc độ, cây cỏ, tia nắng, vân sáng trên cát, mặt nước gợn, bong bóng, đàn cá hậu cảnh.
+  - Nước đục, nắng tắt dần và hạt lơ lửng tăng theo độ sạch nước.
+  - Đèn pha tàu ngầm; trạm kiểu xưởng ống đồng; viền tối 1px cho rác, xu, ngọc, thức ăn, cá.
+  - Asset là PNG do `scripts/art/generate.mjs` sinh ra (`npm run art`).
+  - Cập nhật 2026-11-06, chuyển sang HD-2D theo ảnh mẫu thứ ba:
+    - các lớp nền mờ dần theo độ xa và tô theo màu nước;
+    - màu ngả xanh dương–tím khi xuống sâu;
+    - bloom trên camera (tắt được ở panel debug);
+    - tiền cảnh tối, mờ;
+    - sứa, san hô, hải quỳ, "đèn biển", phù du phát quang.
+
+  AC: `npm run check` (199 test) và `npm run build` xanh. Đã soát bằng ảnh chụp Chrome headless trên PC (nhiều vị trí camera, nước sạch và bẩn, bloom bật/tắt).
+  *(Chưa xem trên điện thoại thật, chưa đo FPS trên máy Android.)*
+
+- [x] **P2-Art-2** Theo yêu cầu ngày 2026-11-06: hệ thống layer và góc nhìn 2.5D hộp bể phối cảnh (spec 12.5).
+  - Phòng ngoài, kính sau, sàn lùi xa, thành bên hội tụ về điểm tụ đi theo camera; lớp nền đặt theo độ sâu.
+  - Tia nắng, vân sáng mờ và mặt nước vẽ đè lên sinh vật; kính trước rõ dần khi tàu tới gần đầu khu.
+  - Bóng đổ cho tàu, cá, rác, xu/ngọc.
+  - Tilt-shift, vignette dạng filter camera, có công tắc debug.
+
+  AC: `npm run check` (213 test) và `npm run build` xanh; có test cho các hàm thuần (phối cảnh, bóng đổ, độ rõ kính trước). Đã soát bằng ảnh chụp Chrome headless. *(Chưa xem trên điện thoại, chưa đo FPS; tilt-shift lấy 100 mẫu mỗi pixel, có thể nặng với máy yếu.)*
+
+- [x] **P2-Art-3** Theo yêu cầu ngày 2026-11-06: layer cây cỏ và san hô.
+  - Rạn dày gấp 4 lần, khoảng 30 loài sinh vật đáy.
+  - Thêm lớp đá tảng gồ ghề.
+  - **Mặt đáy lồi lõm** (spec mục 8, đổi cả luật chơi): `src/core/sim/terrain.ts`, `zones.json › terrain`.
+  - Tàu ngầm navy viền vàng (Pixelbolt).
+
+  AC: `npm run check` (259 test) và `npm run build` xanh. Đã soát bằng ảnh chụp Chrome headless. *(Chưa xem trên điện thoại, chưa đo FPS: số sprite trang trí tăng nhiều.)*
+
+- [x] **P2-Depth** Theo yêu cầu ngày 2026-11-06: 3 làn sâu cho gameplay (spec 3.1, 12.5).
+  - Luật đổi làn, tương tác cùng làn, cá đổi làn theo thức ăn.
+  - Nút ▲▼ và phím Q/E; hiển thị phối cảnh theo làn; chỉ báo làn trên HUD.
+
+  AC: `npm run check` và `npm run build` xanh; có test cho luật làn.
+
+- [ ] **P2-Iso: task 2.5D** (ghi ngày 2026-11-06, chờ người dùng gõ `/ai-flow là task 2.5d`). Đổi góc nhìn sang **HD-2D nhìn chéo từ trên xuống** như ảnh mẫu người dùng gửi: camera chúc khoảng 40–50°, đáy bể là mặt đất chính, nhân vật di chuyển trái/phải và xa/gần trên mặt đó.
+  - **Bước 1, bản thử (làm trước, chưa đụng luật chơi thật):**
+    - một scene riêng dựng đáy bể nhìn chéo: nền cát/đá tilemap 3/4, vài khối san hô và đá đứng trên đất, xếp vẽ theo y;
+    - tàu bơi bằng joystick theo trái/phải và xa/gần; độ cao trong nước chỉ thể hiện bằng bóng đổ;
+    - giữ hậu kỳ HD-2D (bloom, tilt-shift, vignette) và vân sáng nước.
+  - **Bước 1 có thêm:** chụp ảnh và cho người dùng xem trên điện thoại.
+  - Tiến độ bước 1 (2026-11-09): bản thử mở bằng `?iso=1` đã có cao nguyên, vách, hang, đền làm điểm nhấn, bóng đổ có hướng, 3 tầng chiều sâu, bố cục tự đặt (`src/game/iso/scenePlan.ts`). Đã soát bằng ảnh chụp PC; chưa thử trên điện thoại, chờ người dùng duyệt.
+  - **Bước 2, chỉ làm khi người dùng duyệt bản thử:**
+    - sửa spec (mục 3, 8, 12.4, 12.5);
+    - viết lại di chuyển, va chạm, cá bơi cho mặt phẳng xa/gần, thay 3 làn;
+    - vẽ lại asset theo góc 3/4.
+  - Hiện trạng để so sánh: game đang nhìn ngang qua kính bể, trục dọc màn hình là độ cao trong nước, chiều sâu chỉ có 3 làn và parallax.
 
 Demo P2: bỏ bê thì cá buồn → ốm → bỏ đi; chăm tốt thì cá sinh xu.
 
@@ -200,7 +255,20 @@ Demo P6: cài APK lên máy Android, chơi trọn vòng.
 
 | Ý tưởng | Lý do | Ngày ghi |
 |---|---|---|
-| | | |
+| Màn tiêu đề khung kính bể kiểu diorama | Theo ảnh mẫu (spec 12.4) | 2026-11-05 |
+| Va chạm cứng với props, méo sóng toàn màn hình, trục sâu trong gameplay | Phần "chưa làm" của bộ luật layer (spec 12.5) | 2026-11-06 |
+| Vẽ props (lâu đài, tàu đắm, lũa) và animation cá/tàu bằng Pixelbolt | Pixelbolt 0.12.1 đã cài (spec 12.2) | 2026-11-06 |
+| Công tắc hiệu ứng (bloom) cho người chơi trong menu cài đặt | Hiện chỉ tắt được ở panel debug; cần khi máy yếu bị giật (đo ở P6-03) | 2026-11-06 |
+| Đèn điểm động chiếu sáng cảnh (đèn pha, đèn trạm, sứa) bằng Lighting của Phaser 4 | Bước tiếp theo của HD-2D; tốn hiệu năng và phải bật lighting cho từng đối tượng | 2026-11-06 |
+
+### Việc đang chờ người dùng quyết định
+| Việc | Hiện trạng | Ngày ghi |
+|---|---|---|
+| Ngọc trai không nhặt, tự cộng sau 25 giây được bao nhiêu? (spec 4.4 ghi "50% giá trị" nhưng 1 viên không chia đôi được) | Đang quy ra xu: 1 ngọc × 1000 × 50% = **500 xu** (`World.collectDrop`). Phương án khác: 50% khả năng được nguyên viên, hoặc ngọc không tự cộng | 2026-11-04 |
+| Tầm hút / tầm chữa bệnh sau khi đổi sang tàu ngầm lớn hơn (P1-Art) | Bán kính hút 36px chỉ vươn khỏi thân ~9–13px; tầm thuốc 48px. Chưa chỉnh, chờ người dùng chơi thử rồi quyết (`balance.json › robot.vacuum.radius`, `medicine.radius`) | 2026-11-05 |
+| P1-Art (tàu ngầm) do một phiên khác làm, đang `[~]` | Đã gộp vào commit P2 vì dùng chung `art.json`, `balance.json`, `spec.md`. Cần người dùng xác nhận P1-Art xong để đánh dấu `[x]` | 2026-11-05 |
+| Kiểm tra trên điện thoại thật cho P0-03, P1-02 | Còn `[~]`, đã đạt trên PC + cảm ứng giả lập | 2026-11-05 |
+| Duyệt hình ảnh P2-Art (HD-2D) trên điện thoại: màu, độ mờ các lớp, độ mạnh bloom, tiền cảnh, FPS | Đã soát bằng ảnh chụp trên PC. Chỉnh nhanh ở: đầu `Background.ts`, `env/bloom.ts`, `env/waterVisual.ts`; độ mờ/màu lớp nền ở `scripts/art/generate.mjs` | 2026-11-06 |
 
 ## 7. Ngoài phạm vi prototype
 Xem [spec.md mục 15](spec.md#15-ngoài-phạm-vi-prototype).

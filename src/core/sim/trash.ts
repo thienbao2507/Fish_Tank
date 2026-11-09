@@ -1,11 +1,15 @@
 import type { TrashCatalog, TrashTypeDef, ZoneDef } from '../content/schemas';
 import { pickWeighted, type Rng, type Weighted } from '../rng';
+import { LANE_COUNT } from './lanes';
+import { floorAt } from './terrain';
 
 export interface TrashItem {
   readonly id: number;
   readonly type: TrashTypeDef;
   x: number;
   y: number;
+  /** Làn sâu cố định của món rác. */
+  readonly lane: number;
   /** Vận tốc trôi ngang (rác nổi và lơ lửng); rác chìm = 0. */
   vx: number;
 }
@@ -64,6 +68,11 @@ export class TrashField {
     return this.list;
   }
 
+  /** Tổng mức ô nhiễm nước do rác còn trong khu. */
+  get pollution(): number {
+    return this.list.reduce((sum, item) => sum + item.type.pollution, 0);
+  }
+
   /** Rải rác lúc bắt đầu game mới; rác chìm nằm sẵn dưới đáy. */
   fillInitial(): void {
     for (let i = 0; i < this.zone.trash.initialCount; i++) {
@@ -72,8 +81,15 @@ export class TrashField {
   }
 
   /** Đặt một món rác tại vị trí cho trước (dùng cho test và các đợt rác tràn ở P4). */
-  add(type: TrashTypeDef, x: number, y: number): TrashItem {
-    const item: TrashItem = { id: this.nextId++, type, x, y, vx: this.randomDrift(type) };
+  add(type: TrashTypeDef, x: number, y: number, lane = this.rng.int(0, LANE_COUNT - 1)): TrashItem {
+    const item: TrashItem = {
+      id: this.nextId++,
+      type,
+      x,
+      y,
+      lane,
+      vx: this.randomDrift(type),
+    };
     this.list.push(item);
     return item;
   }
@@ -105,12 +121,14 @@ export class TrashField {
     params: PullParams,
     dt: number,
     collector: TrashCollector,
+    lane = 0,
   ): PullResult {
     const collected: TrashItem[] = [];
     let blocked = false;
 
     for (let i = this.list.length - 1; i >= 0; i--) {
       const item = this.list[i] as TrashItem;
+      if (item.lane !== lane) continue;
       const dx = x - item.x;
       const dy = y - item.y;
       const distance = Math.hypot(dx, dy);
@@ -132,6 +150,7 @@ export class TrashField {
       const step = Math.min(distance, params.pullSpeed * dt);
       item.x += (dx / distance) * step;
       item.y += (dy / distance) * step;
+      item.y = Math.min(item.y, floorAt(this.zone, item.x) - item.type.radius);
     }
 
     return { collected, blocked };
@@ -154,13 +173,17 @@ export class TrashField {
         this.drift(item, dt);
         break;
       case 'mid':
-        item.y = Math.min(zone.floorY - radius, Math.max(zone.surfaceY + radius, item.y));
         this.drift(item, dt);
+        item.y = Math.min(
+          floorAt(zone, item.x) - radius - MID_MARGIN,
+          Math.max(zone.surfaceY + radius, item.y),
+        );
         break;
       case 'sink':
-        item.y = Math.min(zone.floorY - radius, item.y + verticalStep);
+        item.y = Math.min(floorAt(zone, item.x) - radius, item.y + verticalStep);
         break;
     }
+    item.y = Math.min(item.y, floorAt(zone, item.x) - radius);
   }
 
   private drift(item: TrashItem, dt: number): void {
@@ -195,13 +218,13 @@ export class TrashField {
         break;
       case 'mid': {
         const top = zone.surfaceY + radius + MID_MARGIN;
-        const bottom = zone.floorY - radius - MID_MARGIN;
+        const bottom = floorAt(zone, x) - radius - MID_MARGIN;
         y = top + rng.next() * Math.max(0, bottom - top);
         break;
       }
       case 'sink':
         // Lúc đầu game rác chìm nằm sẵn dưới đáy; rác mới rơi từ mặt nước xuống.
-        y = initial ? zone.floorY - radius : zone.surfaceY + radius;
+        y = initial ? floorAt(zone, x) - radius : zone.surfaceY + radius;
         break;
     }
     this.add(type, x, y);
