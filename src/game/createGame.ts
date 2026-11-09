@@ -5,6 +5,7 @@ import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { IsoPrototypeScene } from './scenes/IsoPrototypeScene';
 import { PreloadScene } from './scenes/PreloadScene';
+import { RoomPrototypeScene } from './scenes/RoomPrototypeScene';
 import { UIScene } from './scenes/UIScene';
 import { viewWidthFor } from './viewport';
 
@@ -44,6 +45,6 @@ export function createGame(ctx: GameContext): Phaser.Game {
       postBoot: keepWidthMatchingScreen,
     },
     // Thứ tự trong mảng = thứ tự vẽ: UI nằm trên Game.
-    scene: [BootScene, PreloadScene, GameScene, UIScene, IsoPrototypeScene],
+    scene: [BootScene, PreloadScene, GameScene, UIScene, IsoPrototypeScene, RoomPrototypeScene],
   });
 }

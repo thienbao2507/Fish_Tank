@@ -108,4 +108,11 @@ export const TextureKeys = {
   iconCoin: 'icon.coin',
   iconPearl: 'icon.pearl',
   iconCargo: 'icon.cargo',
+  roomShell: 'room.shell',
+  roomWindow: 'room.window',
+  roomDoor: 'room.door',
+  roomDesk: 'room.desk',
+  roomTank: 'room.tank',
+  roomBed: 'room.bed',
+  roomHero: 'room.hero',
 } as const;

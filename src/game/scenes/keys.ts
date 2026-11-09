@@ -4,4 +4,5 @@ export const SceneKeys = {
   Game: 'Game',
   UI: 'UI',
   IsoPrototype: 'IsoPrototype',
+  Room: 'Room',
 } as const;

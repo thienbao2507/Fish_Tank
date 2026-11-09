@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Pixels, bayer, createRng, mixHex, ramp } from './lib.mjs';
+import { ROOM_ASSETS } from './room.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const OUT_DIR = path.join(ROOT, 'public/art/gen');
@@ -2779,6 +2780,7 @@ const ASSETS = {
   'drop-coin': dropCoin,
   'drop-pearl': dropPearl,
   'food-pellet': foodPellet,
+  ...ROOM_ASSETS,
 };
 
 const made = {};

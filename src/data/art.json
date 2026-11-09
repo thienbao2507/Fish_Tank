@@ -917,6 +917,36 @@
     "iso.ray": {
       "kind": "image",
       "file": "art/gen/iso-ray.png"
+    },
+    "room.shell": {
+      "kind": "image",
+      "file": "art/gen/room-shell.png"
+    },
+    "room.window": {
+      "kind": "image",
+      "file": "art/gen/room-window.png"
+    },
+    "room.door": {
+      "kind": "image",
+      "file": "art/gen/room-door.png"
+    },
+    "room.desk": {
+      "kind": "image",
+      "file": "art/gen/room-desk.png"
+    },
+    "room.tank": {
+      "kind": "image",
+      "file": "art/gen/room-tank.png"
+    },
+    "room.bed": {
+      "kind": "image",
+      "file": "art/gen/room-bed.png"
+    },
+    "room.hero": {
+      "kind": "spritesheet",
+      "file": "art/gen/room-hero.png",
+      "frameWidth": 24,
+      "frameHeight": 40
     }
   }
 }
