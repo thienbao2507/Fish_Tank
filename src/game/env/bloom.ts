@@ -16,9 +16,15 @@ const BLOOM_CONFIG = {
 };
 
 /** Bloom toàn màn hình cho camera chính (spec 12.4, HD-2D). Cần WebGL; với Canvas thì bỏ qua. */
-export function addCameraBloom(scene: Phaser.Scene): void {
+export function addCameraBloom(
+  scene: Phaser.Scene,
+  overrides?: { threshold?: number; blendAmount?: number },
+): void {
   if (scene.game.renderer.type !== Phaser.WEBGL) return;
-  const [bloom] = Phaser.Actions.AddEffectBloom(scene.cameras.main, BLOOM_CONFIG);
+  const [bloom] = Phaser.Actions.AddEffectBloom(scene.cameras.main, {
+    ...BLOOM_CONFIG,
+    ...overrides,
+  });
   if (!bloom) return;
 
   if (!scene.registry.has(BLOOM_KEY)) scene.registry.set(BLOOM_KEY, true);

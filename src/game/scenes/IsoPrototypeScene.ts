@@ -9,6 +9,7 @@ import { VirtualJoystick } from '../input/VirtualJoystick';
 import { composeReefs, SPAWN, type ReefProp } from '../iso/layout';
 import { FOCAL, groundRow, project, type GroundPoint } from '../iso/projection';
 import { CLEARINGS, HEROES, PALETTES, PLATEAUS, REEFS, type Plateau } from '../iso/scenePlan';
+import { applyRim, RIM_LIGHT, RIM_LIGHT_MIRRORED, type LightDirection } from '../iso/rimLight';
 import { shadowProfileOf, type ShadowProfile } from '../iso/shadowProfile';
 import { altitudeShadow, heightAt, sortZ } from '../iso/terrain';
 import { SceneKeys } from './keys';
@@ -93,6 +94,13 @@ const WASH_DEPTH = -300;
 const SURFACE_GLOW_DEPTH = -299;
 const FOREGROUND_DEPTH = 5000;
 const ROBOT_ANIMATION = 'iso.robot.swim';
+/** Tàu lật trái dùng bộ ảnh có viền vẽ ngược, để sau khi lật viền vẫn ở phía nguồn sáng. */
+const ROBOT_ANIMATION_MIRRORED = 'iso.robot.swim.mirrored';
+const ROBOT_FRAME_WIDTH = 56;
+const ISO_BLOOM_THRESHOLD = 0.6;
+/** Vật khối (vách, đá, đền, tàu) viền đậm; vật nhiều cạnh nhỏ (san hô nhánh, cỏ) viền nhẹ để khỏi lốm đốm. */
+const RIM_STRENGTH_SOLID = 1;
+const RIM_STRENGTH_DETAILED = 0.4;
 const HEADLIGHT_OFFSET = 24;
 const BUBBLE_COUNT = 14;
 const BUBBLE_MAX_HEIGHT = 180;
@@ -138,18 +146,18 @@ const CAUSTIC_PEAK_ROW = 0.62;
 const CAUSTIC_SPREAD = 0.55;
 const CAUSTIC_MAX_ALPHA = 0.9;
 const CAUSTIC_MIN_ALPHA = 0.08;
-/** Chùm tia toả hình quạt từ phía trên giữa màn hình. */
+/** Chùm tia cùng nghiêng từ trên trái (khớp `RIM_LIGHT` và bóng đổ), xoè nhẹ cho đỡ đều. */
 const RAY_FAN = [
-  { angle: -40, width: 0.5, alpha: 0.3 },
-  { angle: -31, width: 0.28, alpha: 0.42 },
-  { angle: -22, width: 0.62, alpha: 0.4 },
-  { angle: -13, width: 0.3, alpha: 0.55 },
-  { angle: -5, width: 0.7, alpha: 0.5 },
-  { angle: 4, width: 0.3, alpha: 0.6 },
-  { angle: 12, width: 0.6, alpha: 0.46 },
-  { angle: 21, width: 0.26, alpha: 0.46 },
-  { angle: 30, width: 0.5, alpha: 0.34 },
-  { angle: 39, width: 0.3, alpha: 0.26 },
+  { angle: -31, width: 0.5, alpha: 0.3 },
+  { angle: -29, width: 0.28, alpha: 0.42 },
+  { angle: -27, width: 0.62, alpha: 0.4 },
+  { angle: -25, width: 0.3, alpha: 0.55 },
+  { angle: -23, width: 0.7, alpha: 0.5 },
+  { angle: -21, width: 0.3, alpha: 0.6 },
+  { angle: -19, width: 0.6, alpha: 0.46 },
+  { angle: -17, width: 0.26, alpha: 0.46 },
+  { angle: -15, width: 0.5, alpha: 0.34 },
+  { angle: -13, width: 0.3, alpha: 0.26 },
 ] as const;
 
 const LIGHT_POOL_POINTS = [
@@ -189,6 +197,8 @@ export class IsoPrototypeScene extends Phaser.Scene {
   private shadow!: Phaser.GameObjects.Image;
   private headlight!: Phaser.GameObjects.Image;
   private facing = 1;
+  /** Tổng thời gian tạo ảnh có viền lúc nạp (ms), để đo chi phí. */
+  private rimMilliseconds = 0;
 
   constructor() {
     super(SceneKeys.IsoPrototype);
@@ -212,7 +222,8 @@ export class IsoPrototypeScene extends Phaser.Scene {
     });
     this.setupKeyboard();
 
-    addCameraBloom(this);
+    // Hạ ngưỡng để viền đón sáng mạnh nhất loang sáng trên nền tối của cảnh này.
+    addCameraBloom(this, { threshold: ISO_BLOOM_THRESHOLD });
     addCameraPostFx(this, {
       tiltRadius: 0.34,
       vignetteRadius: 0.92,
@@ -228,12 +239,13 @@ export class IsoPrototypeScene extends Phaser.Scene {
     this.scale.on(Phaser.Scale.Events.RESIZE, onResize);
 
     const debugWindow = window as typeof window & {
-      fishtankIso?: { player: IsoPlayer; readonly fps: number };
+      fishtankIso?: { player: IsoPlayer; readonly fps: number; readonly rimMs: () => number };
     };
     const game = this.game;
     if (isDebugMode()) {
       debugWindow.fishtankIso = {
         player: this.player,
+        rimMs: () => this.rimMilliseconds,
         get fps() {
           return game.loop.actualFps;
         },
@@ -325,7 +337,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
   private createPlateaus(): void {
     this.plateauViews = PLATEAUS.map((plateau) => ({
       plateau,
-      sprite: this.add.image(0, 0, plateau.key).setOrigin(0.5, 1),
+      sprite: this.add.image(0, 0, this.litTexture(plateau.key)).setOrigin(0.5, 1),
       shadow: this.add.image(0, 0, TextureKeys.isoShadowLong).setOrigin(0.5).setAlpha(0.4),
       contact: this.add.image(0, 0, TextureKeys.isoContact).setAlpha(0.9),
     }));
@@ -338,7 +350,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
     ];
 
     this.propViews = props.map((prop) => {
-      const sprite = this.add.image(0, 0, prop.key).setOrigin(0.5, 1);
+      const sprite = this.add.image(0, 0, this.litTexture(prop.key)).setOrigin(0.5, 1);
       const worldHeight = sprite.height * prop.scale;
       const profile = shadowProfileOf(prop.key);
       return {
@@ -485,20 +497,57 @@ export class IsoPrototypeScene extends Phaser.Scene {
   }
 
   private createPlayer(): void {
-    if (!this.anims.exists(ROBOT_ANIMATION)) {
-      this.anims.create({
-        key: ROBOT_ANIMATION,
-        frames: this.anims.generateFrameNumbers(TextureKeys.robot, { start: 0, end: 3 }),
-        frameRate: 1000 / 90,
-        repeat: -1,
-      });
-    }
+    this.createRobotAnimation(ROBOT_ANIMATION, RIM_LIGHT);
+    this.createRobotAnimation(ROBOT_ANIMATION_MIRRORED, RIM_LIGHT_MIRRORED);
     this.altitude = heightAt(PLATEAUS, this.player.x, this.player.z);
     this.shadow = this.add.image(0, 0, TextureKeys.isoShadowLong).setOrigin(0.5).setAlpha(0.5);
-    this.robot = this.add.sprite(0, 0, TextureKeys.robot).play(ROBOT_ANIMATION);
+    this.robot = this.add
+      .sprite(0, 0, this.litTexture(TextureKeys.robot, RIM_LIGHT, ROBOT_FRAME_WIDTH))
+      .play(ROBOT_ANIMATION);
     this.headlight = this.add
       .image(0, 0, TextureKeys.headlight)
       .setBlendMode(Phaser.BlendModes.ADD);
+  }
+
+  private createRobotAnimation(key: string, light: LightDirection): void {
+    if (this.anims.exists(key)) return;
+    const texture = this.litTexture(TextureKeys.robot, light, ROBOT_FRAME_WIDTH);
+    this.anims.create({
+      key,
+      frames: this.anims.generateFrameNumbers(texture, { start: 0, end: 3 }),
+      frameRate: 1000 / 90,
+      repeat: -1,
+    });
+  }
+
+  /**
+   * Bản sao của ảnh gốc có vẽ viền bắt sáng, tạo một lần cho mỗi ảnh nên không tốn gì lúc chơi.
+   * `frameWidth` dùng cho sprite sheet, để mỗi khung được tính viền riêng.
+   */
+  private litTexture(key: string, light = RIM_LIGHT, frameWidth?: number): string {
+    const litKey = `${key}.lit${light.x < 0 ? '' : '.mirrored'}`;
+    if (this.textures.exists(litKey)) return litKey;
+
+    const startedAt = performance.now();
+    const source = this.textures.get(key).getSourceImage() as HTMLImageElement;
+    const { width, height } = source;
+    const texture = this.textures.createCanvas(litKey, width, height);
+    if (!texture) throw new Error(`Không tạo được texture "${litKey}"`);
+    const context = texture.getContext();
+    context.drawImage(source, 0, 0);
+    const image = context.getImageData(0, 0, width, height);
+    const { cast } = shadowProfileOf(key);
+    const strength = cast === 'oval' ? RIM_STRENGTH_SOLID : RIM_STRENGTH_DETAILED;
+    applyRim(image.data, width, height, light, frameWidth ?? width, strength);
+    context.putImageData(image, 0, 0);
+    texture.refresh();
+    if (frameWidth !== undefined) {
+      for (let i = 0; i * frameWidth < width; i++) {
+        texture.add(i, 0, i * frameWidth, 0, frameWidth, height);
+      }
+    }
+    this.rimMilliseconds += performance.now() - startedAt;
+    return litKey;
   }
 
   private setupKeyboard(): void {
@@ -741,6 +790,8 @@ export class IsoPrototypeScene extends Phaser.Scene {
       )
       .setAlpha(style.alpha)
       .setDepth(this.shadowDepthAt(shadowX, shadowZ, viewW, viewH) + 0.03);
+    const animation = this.facing < 0 ? ROBOT_ANIMATION_MIRRORED : ROBOT_ANIMATION;
+    if (this.robot.anims.currentAnim?.key !== animation) this.robot.play(animation);
     this.robot
       .setPosition(body.sx, body.sy)
       .setScale(body.scale)
@@ -760,7 +811,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
     this.rays.forEach((image, i) => {
       const ray = RAY_FAN[i] as (typeof RAY_FAN)[number];
       image
-        .setPosition(viewW / 2 - ray.angle * 3, -viewH * 0.2)
+        .setPosition(viewW * (-0.28 + (i / (RAY_FAN.length - 1)) * 1.12), -viewH * 0.2)
         .setScale(ray.width, (viewH * 1.25) / image.height);
     });
     this.topGlow?.setPosition(viewW / 2, -viewH * 0.06).setScale(5.5, 1.7);
