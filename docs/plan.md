@@ -118,10 +118,11 @@ Mục tiêu: vòng lặp tối thiểu "dọn rác → về trạm → đổi xu
 
 Demo P1: chơi trọn vòng dọn → đổi xu trên điện thoại.
 
-- [~] **P1-Art** Theo yêu cầu ngày 2026-11-04: thay robot placeholder bằng tàu ngầm pixel art theo ảnh mẫu (thân vàng, kính xanh, khung tím), PNG trong suốt 48×48; cập nhật vùng giới hạn di chuyển theo sprite.
+- [x] **P1-Art** Theo yêu cầu ngày 2026-11-04: thay robot placeholder bằng tàu ngầm pixel art theo ảnh mẫu (thân vàng, kính xanh, khung tím), PNG trong suốt 48×48; cập nhật vùng giới hạn di chuyển theo sprite.
   Cập nhật theo phản hồi: kéo ngang thêm 15%, giữ chiều cao; vùng giới hạn 54×46. Lint hai file code thay đổi và 15 test loader/movement đạt; lần chạy check này bị chặn bởi lỗi TS2554 tại `UIScene.ts` đang được sửa đồng thời.
   AC: tải PNG qua manifest, quay mặt theo hướng bơi, không vượt biên bể; `npm run check` và `npm run build` xanh.
   *(Đã tích hợp asset và vùng giới hạn mới; `npm run check` đạt với 109 test, `npm run build` đạt; PNG trả HTTP 200 và có trong bản build. Chưa kiểm tra trực quan trong game do Browser không kết nối và lệnh Chrome bị chặn. Chi tiết asset và prompt: [submarine-art.md](submarine-art.md).)*
+  *(Cập nhật 2026-11-09: ảnh vàng/tím ở trên đã được thay bằng tàu navy viền vàng 56×48 có chân vịt quay (spec 12.2, `scripts/art/pixelbolt/`). Đã kiểm tra trực quan trong game bằng ảnh chụp; vùng giới hạn 54×46 giữ nguyên.)*
 
 ### P2 — Cá và nước
 Mục tiêu: cá sống trong bể, phản ứng với nước bẩn và việc chăm sóc.
@@ -182,14 +183,14 @@ Mục tiêu: cá sống trong bể, phản ứng với nước bẩn và việc 
 
   AC: `npm run check` và `npm run build` xanh; có test cho luật làn.
 
-- [ ] **P2-Iso: task 2.5D** (ghi ngày 2026-11-06, chờ người dùng gõ `/ai-flow là task 2.5d`). Đổi góc nhìn sang **HD-2D nhìn chéo từ trên xuống** như ảnh mẫu người dùng gửi: camera chúc khoảng 40–50°, đáy bể là mặt đất chính, nhân vật di chuyển trái/phải và xa/gần trên mặt đó.
+- [~] **P2-Iso: task 2.5D** (ghi ngày 2026-11-06). Đổi góc nhìn sang **HD-2D nhìn chéo từ trên xuống** như ảnh mẫu người dùng gửi: camera chúc khoảng 33° (dự kiến ban đầu 40–50°, đã hạ để thấy rõ chiều cao địa hình), đáy bể là mặt đất chính, nhân vật di chuyển trái/phải và xa/gần trên mặt đó.
   - **Bước 1, bản thử (làm trước, chưa đụng luật chơi thật):**
     - một scene riêng dựng đáy bể nhìn chéo: nền cát/đá tilemap 3/4, vài khối san hô và đá đứng trên đất, xếp vẽ theo y;
     - tàu bơi bằng joystick theo trái/phải và xa/gần; độ cao trong nước chỉ thể hiện bằng bóng đổ;
     - giữ hậu kỳ HD-2D (bloom, tilt-shift, vignette) và vân sáng nước.
   - **Bước 1 có thêm:** chụp ảnh và cho người dùng xem trên điện thoại.
-  - Tiến độ bước 1 (2026-11-09): bản thử mở bằng `?iso=1` đã có cao nguyên, vách, hang, đền làm điểm nhấn, bóng đổ có hướng, 3 tầng chiều sâu, bố cục tự đặt (`src/game/iso/scenePlan.ts`). Đã soát bằng ảnh chụp PC; chưa thử trên điện thoại, chờ người dùng duyệt.
-  - **Bước 2, chỉ làm khi người dùng duyệt bản thử:**
+  - Tiến độ bước 1 (2026-11-09): bản thử mở bằng `?iso=1` đã có cao nguyên, vách, hang, đền làm điểm nhấn, bóng đổ có hướng, 3 tầng chiều sâu, bố cục tự đặt (`src/game/iso/scenePlan.ts`). Sau đó thêm: bóng tiếp xúc và bóng đổ theo loại vật, tông màu tối, vân sáng dạng sóng, chùm tia nắng. Người dùng xem ảnh chụp và ưng, đã commit `31ee53e` (2026-11-09). Chưa thử joystick, chưa xem trên điện thoại, chưa đo FPS trên máy thật.
+  - **Bước 2 (chưa làm), chỉ làm khi người dùng yêu cầu chuyển hẳn sang góc này:**
     - sửa spec (mục 3, 8, 12.4, 12.5);
     - viết lại di chuyển, va chạm, cá bơi cho mặt phẳng xa/gần, thay 3 làn;
     - vẽ lại asset theo góc 3/4.
@@ -266,7 +267,6 @@ Demo P6: cài APK lên máy Android, chơi trọn vòng.
 |---|---|---|
 | Ngọc trai không nhặt, tự cộng sau 25 giây được bao nhiêu? (spec 4.4 ghi "50% giá trị" nhưng 1 viên không chia đôi được) | Đang quy ra xu: 1 ngọc × 1000 × 50% = **500 xu** (`World.collectDrop`). Phương án khác: 50% khả năng được nguyên viên, hoặc ngọc không tự cộng | 2026-11-04 |
 | Tầm hút / tầm chữa bệnh sau khi đổi sang tàu ngầm lớn hơn (P1-Art) | Bán kính hút 36px chỉ vươn khỏi thân ~9–13px; tầm thuốc 48px. Chưa chỉnh, chờ người dùng chơi thử rồi quyết (`balance.json › robot.vacuum.radius`, `medicine.radius`) | 2026-11-05 |
-| P1-Art (tàu ngầm) do một phiên khác làm, đang `[~]` | Đã gộp vào commit P2 vì dùng chung `art.json`, `balance.json`, `spec.md`. Cần người dùng xác nhận P1-Art xong để đánh dấu `[x]` | 2026-11-05 |
 | Kiểm tra trên điện thoại thật cho P0-03, P1-02 | Còn `[~]`, đã đạt trên PC + cảm ứng giả lập | 2026-11-05 |
 | Duyệt hình ảnh P2-Art (HD-2D) trên điện thoại: màu, độ mờ các lớp, độ mạnh bloom, tiền cảnh, FPS | Đã soát bằng ảnh chụp trên PC. Chỉnh nhanh ở: đầu `Background.ts`, `env/bloom.ts`, `env/waterVisual.ts`; độ mờ/màu lớp nền ở `scripts/art/generate.mjs` | 2026-11-06 |
 
