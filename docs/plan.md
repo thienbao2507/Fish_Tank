@@ -207,13 +207,14 @@ Mục tiêu: nhân vật người đi lại trong phòng isometric, có ngày/đ
 - [~] **PR-01b** Nâng cấp đồ họa căn phòng (yêu cầu ngày 2026-11-09, spec 17.5). Làm từng bước, xem ảnh rồi mới làm tiếp; không đổi gameplay, góc nhìn, kích thước phòng.
   - [~] Bước 1: góc PC (3 màn hình, case kính quạt RGB, bàn phím, tai nghe, LED).
   - [~] Bước 2: ba lớp ánh sáng, tủ đầu giường và đèn ngủ, chỉnh bloom riêng cho phòng.
-  - [ ] Bước 3: hồ cá nhiều lớp cảnh.
-  - [ ] Bước 4: bóng tiếp xúc, ambient occlusion, viền đồng bộ, chất liệu.
-  - [ ] Bước 5: kệ sách góc trong, chậu cây (có va chạm), mô hình, tranh.
-  - [ ] Bước 6: soát tỉ lệ, hạ cửa còn khoảng 66px, ảnh trước/sau, đo FPS.
+  - [~] Bước 3: hồ cá nhiều lớp cảnh.
+  - [~] Bước 4: bóng tiếp xúc, ambient occlusion, viền đồng bộ, chất liệu.
+  - [~] Bước 5: kệ sách góc trong, chậu cây (có va chạm), mô hình, tranh.
+  - [~] Bước 6: soát tỉ lệ, hạ cửa còn khoảng 66px, ảnh trước/sau, đo FPS. Đã hạ cửa và có ảnh ghép trước/sau; chưa xem trong game thật, chưa đo FPS, chờ người dùng duyệt.
+  - [~] Bước 7: vòng góp ý 6 mục (góc PC to hơn và nới chân đế bàn đến gy 2, hồ cá dựng lớp theo chiều sâu, vệt phản chiếu trên sàn, giường, tỉ lệ nhân vật và thú bông, thảm và đồ phẳng giữa phòng). Đã xem trong game thật, chờ người dùng duyệt.
 - [ ] **PR-02** Đồng hồ ngày/đêm (`src/core/time/`, số trong `balance.json`, đọc `ctx.clock.now()`): cửa sổ đổi trời, nắng ban mai, ánh sáng phòng theo giờ.
   AC: unit test đồng hồ; tua debug thấy trời đổi đủ sáng/trưa/chiều/tối.
-- [ ] **PR-03** Chuyển cảnh phòng ↔ bể (`UIScene` tách HUD phòng/bể, nút hành động theo ngữ cảnh, nút về phòng, mở game vào phòng) và hàm tính vắng mặt trong `src/core/`: cá chỉ sinh xu có trần, không đói, không ốm, không bỏ đi.
+- [~] **PR-03** (làm trước PR-02 theo yêu cầu ngày 2026-11-09) Chuyển cảnh phòng ↔ bể (`UIScene` tách HUD phòng/bể, nút hành động theo ngữ cảnh, nút về phòng, mở game vào phòng) và hàm tính vắng mặt trong `src/core/`: cá chỉ sinh xu có trần, không đói, không ốm, không bỏ đi.
   AC: unit test luật vắng mặt; ở phòng một lúc rồi vào bể thì nhận đúng xu tích luỹ, cá không đổi trạng thái.
 - [ ] **PR-04** Giường: từ tối mới ngủ được, nhảy tới 6h sáng, cộng xu qua hàm vắng mặt của PR-03. Phần tua bộ đếm nối ở P3-01.
   AC: unit test (ban ngày không ngủ được; thời lượng bỏ qua đúng theo giờ lúc ngủ).
@@ -223,11 +224,11 @@ Demo PR: đi trong phòng, ngắm trời đổi qua cửa sổ, vào bể rồi 
 ### P3 — Kinh tế và shop
 Mục tiêu: có đủ vòng chi tiêu và nâng cấp qua PC trong phòng, có thời gian chờ và tua bằng ngọc.
 
-- [ ] **P3-01** Hệ thống bộ đếm (`core/time/timers`): lưu bằng mốc thời gian (bắt đầu + thời lượng), tự hoàn tất khi offline; giá tua bằng ngọc theo thời gian còn lại. Tua được theo một khoảng thời gian để giường (PR-04) dùng.
+- [~] **P3-01** (làm phần bộ đếm ngày 2026-11-09; giá tua bằng ngọc để P3-07) Hệ thống bộ đếm (`core/time/timers`): lưu bằng mốc thời gian (bắt đầu + thời lượng), tự hoàn tất khi offline; giá tua bằng ngọc theo thời gian còn lại. Tua được theo một khoảng thời gian để giường (PR-04) dùng.
   AC: unit test (kể cả trường hợp đóng game rồi mở lại sau thời lượng, và ngủ tua bộ đếm).
-- [ ] **P3-02** Trang "web đặt hàng" (DOM overlay), mở ở PC trong phòng; các tab Robot / Thiết bị / Cá / Vật phẩm / Đổi ngọc. Trả xu lúc đặt, mỗi món một thời gian giao trong dữ liệu.
+- [~] **P3-02** (bản cơ bản làm ngày 2026-11-09: desktop retro, icon Peeshop, chỉ bán 3 loài cá, trừ xu và ghi đơn "Đang giao"; chưa có thời gian giao và các tab khác) Trang "web đặt hàng" (DOM overlay), mở ở PC trong phòng; các tab Robot / Thiết bị / Cá / Vật phẩm / Đổi ngọc. Trả xu lúc đặt, mỗi món một thời gian giao trong dữ liệu.
   AC: mở/đóng được trên điện thoại; game tạm dừng khi trang mở; unit test đơn hàng (đủ xu mới đặt được, bộ đếm giao đúng thời lượng).
-- [ ] **P3-02b** Cửa phòng và Kho: hàng tới thì cửa sáng + thông báo; mở cửa lấy hết hàng đã tới vào Kho; nút Kho trên HUD bể mở được ở mọi chỗ.
+- [~] **P3-02b** Cửa phòng và Kho: hàng tới thì cửa sáng + thông báo; mở cửa lấy hết hàng đã tới vào Kho; nút Kho trên HUD bể mở được ở mọi chỗ.
   AC: unit test inventory; đặt hàng → chờ/ngủ → mở cửa → thấy hàng trong Kho.
 - [ ] **P3-03** Nâng cấp Lv1–5 trong `upgrades.json` (giá, thời gian giao, hiệu ứng): khoang chứa, tốc độ bơi, máy hút. Đặt mua linh kiện trên PC, lắp từ Kho có hiệu lực ngay.
   AC: unit test áp dụng hiệu ứng theo cấp; hiệu ứng thấy được trong game.
@@ -235,7 +236,7 @@ Mục tiêu: có đủ vòng chi tiêu và nâng cấp qua PC trong phòng, có 
   AC: đổi pin thì dung lượng đổi; rời trạm giữa chừng giữ phần đã sạc.
 - [ ] **P3-05** Thiết bị đặt vào vị trí có sẵn: máy lọc, máy cho ăn tự động, trạm sạc phụ, san hô; Lv1–5. Đặt mua trên PC, chọn vị trí trống từ Kho, lắp xong ngay (thời gian giao thay thời gian lắp).
   AC: mỗi thiết bị có tác động đo được (lọc → nước bẩn chậm hơn; san hô → cá vui hơn…).
-- [ ] **P3-06** Mua cá: đặt trên PC, thả cá con từ Kho tại chỗ robot, thời gian làm quen/lớn rồi mới sinh xu.
+- [~] **P3-06** Mua cá: đặt trên PC, thả cá con từ Kho tại chỗ robot, thời gian làm quen/lớn rồi mới sinh xu.
   AC: không thả được khi khu đã đủ sức chứa.
 - [ ] **P3-07** Đổi ngọc → xu (1:1000) và tua thời gian bằng ngọc.
   AC: unit test; không có đường đổi xu → ngọc.

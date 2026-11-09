@@ -26,6 +26,13 @@ const SICK_SPEED = 0.5;
 /** Cá vượt quá tầng Mặt chừng này thì biến mất. */
 const GONE_ABOVE_SURFACE = 2.6;
 
+export interface SchoolAddOptions {
+  readonly juvenile?: boolean;
+  readonly x?: number;
+  readonly y?: number;
+  readonly lane?: number;
+}
+
 /** Đàn cá trong một khu: bơi, ăn, nhu cầu, sinh xu, bỏ đi. */
 export class School {
   private readonly list: Fish[] = [];
@@ -42,8 +49,20 @@ export class School {
     return this.list;
   }
 
-  /** Thả một con cá; không cho vị trí thì đặt ngẫu nhiên trong nước. */
-  add(species: FishSpeciesDef, x?: number, y?: number, lane?: number): Fish {
+  /** Thả một con cá; hỗ trợ API vị trí cũ và options để tạo cá con. */
+  add(species: FishSpeciesDef, options?: SchoolAddOptions): Fish;
+  add(species: FishSpeciesDef, x?: number, y?: number, lane?: number): Fish;
+  add(
+    species: FishSpeciesDef,
+    optionsOrX?: SchoolAddOptions | number,
+    oldY?: number,
+    oldLane?: number,
+  ): Fish {
+    const options: SchoolAddOptions =
+      typeof optionsOrX === 'object'
+        ? optionsOrX
+        : { x: optionsOrX, y: oldY, lane: oldLane };
+    const { x, y, lane, juvenile = false } = options;
     const bounds = this.bounds(species);
     let fishX = x ?? bounds.minX + this.rng.next() * (bounds.maxX - bounds.minX);
     let fishY = Math.min(
@@ -66,6 +85,7 @@ export class School {
       fishY,
       this.rules.startFullness,
       lane ?? this.rng.int(0, LANE_COUNT - 1),
+      juvenile ? 0 : species.growSeconds,
     );
     this.list.push(fish);
     return fish;
@@ -113,6 +133,12 @@ export class School {
         continue;
       }
 
+      const ageBefore = fish.ageSeconds;
+      fish.ageSeconds += needsDt;
+      const grownDt =
+        ageBefore >= fish.species.growSeconds
+          ? needsDt
+          : Math.max(0, fish.ageSeconds - fish.species.growSeconds);
       const wasSick = isSick(fish.health, this.rules);
       const mustLeave = stepNeeds(fish, water, this.rules, needsDt);
       if (!wasSick && isSick(fish.health, this.rules)) becameSick.push(fish);
@@ -125,7 +151,7 @@ export class School {
       }
 
       this.swim(fish, dt, food);
-      this.produce(fish, water, needsDt, drops);
+      this.produce(fish, water, grownDt, drops);
     }
 
     return { becameSick, startedLeaving };
@@ -205,7 +231,7 @@ export class School {
 
   /** Cá Vui sinh xu theo chu kỳ; mỗi lần có xác suất nhỏ ra ngọc trai. */
   private produce(fish: Fish, water: number, needsDt: number, drops: DropField): void {
-    if (this.moodOf(fish, water) !== 'happy') return;
+    if (!fish.isGrown || this.moodOf(fish, water) !== 'happy') return;
     const { species } = fish;
     fish.coinTimer += needsDt;
     while (fish.coinTimer >= species.coinIntervalSeconds) {

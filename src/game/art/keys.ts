@@ -102,6 +102,11 @@ export const TextureKeys = {
   iconVacuum: 'icon.vacuum',
   iconFood: 'icon.food',
   iconMedicine: 'icon.medicine',
+  iconTank: 'icon.tank',
+  iconPc: 'icon.pc',
+  iconRoom: 'icon.room',
+  iconDoor: 'icon.door',
+  iconInventory: 'icon.inventory',
   laneIn: 'ui.laneIn',
   laneOut: 'ui.laneOut',
   iconWater: 'icon.water',
@@ -121,4 +126,5 @@ export const TextureKeys = {
   roomLightLamp: 'room.light.lamp',
   roomBookcase: 'room.bookcase',
   roomPlant: 'room.plant',
+  roomDoorGlow: 'room.door.glow',
 } as const;

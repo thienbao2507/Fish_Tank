@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DropRules, FoodRules, ZoneDef } from '../content/schemas';
 import { createRng } from '../rng';
 import { DropField } from './drops';
+import { fishGrowthScale } from './fish';
 import { FoodField } from './food';
 import { blockedBy } from './obstacles';
 import { School } from './school';
@@ -120,6 +121,30 @@ describe('School', () => {
     expect(sad.drops.items).toHaveLength(0);
   });
 
+  it('cá con chưa đủ tuổi không tăng coinTimer và không sinh xu', () => {
+    const { school, drops, run } = setup();
+    const fish = school.add(testSpecies, { juvenile: true });
+    fish.fullness = 100;
+
+    run(1.1, 100, testSpecies.coinIntervalSeconds);
+
+    expect(fish.isGrown).toBe(false);
+    expect(fish.coinTimer).toBe(0);
+    expect(drops.items).toHaveLength(0);
+  });
+
+  it('cá con đủ tuổi rồi mới sinh xu', () => {
+    const { school, food, drops, run } = setup();
+    const fish = school.add(testSpecies, { juvenile: true });
+    fish.fullness = 100;
+    school.update(0, testSpecies.growSeconds, 100, food, drops);
+
+    expect(fish.isGrown).toBe(true);
+    expect(drops.items).toHaveLength(0);
+    run(1.1, 100, testSpecies.coinIntervalSeconds);
+    expect(drops.items.map((drop) => drop.kind)).toEqual(['coin']);
+  });
+
   it('pearlChance quyết định ra ngọc', () => {
     const { school, drops, run } = setup();
     school.add({ ...testSpecies, pearlChance: 1 }).fullness = 100;
@@ -210,5 +235,14 @@ describe('School', () => {
         ),
       ).toBe(false);
     }
+  });
+});
+
+describe('fishGrowthScale', () => {
+  it('bằng 0.6 lúc mới thả, 0.8 giữa kỳ và 1 khi đủ tuổi', () => {
+    expect(fishGrowthScale(0, 120)).toBe(0.6);
+    expect(fishGrowthScale(60, 120)).toBe(0.8);
+    expect(fishGrowthScale(120, 120)).toBe(1);
+    expect(fishGrowthScale(240, 120)).toBe(1);
   });
 });

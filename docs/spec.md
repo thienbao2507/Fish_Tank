@@ -140,6 +140,7 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 - Bộ đếm theo **giờ thực**, vẫn chạy khi tắt game: sạc pin, giao hàng, cá làm quen / lớn, mở khu.
 - Offline **chỉ có lợi**: cá sinh xu (có trần), không đói, không ốm, không bỏ đi.
 - **Khi nhân vật ở phòng**, bể tính theo đúng luật offline; quay lại bể thì nhận phần xu tích luỹ. Ngủ, ở phòng và offline dùng chung một luật tính.
+- **Luật tính vắng mặt** (2026-11-09): chỉ cá đang vui mới sinh xu, theo `coinValue / coinIntervalSeconds` của loài, không ra ngọc. Thời gian tính tối đa `balance.json › absence.maxSeconds` (tạm 3600 giây). Trạng thái cá và nước giữ nguyên trong lúc vắng.
 - **Đồng hồ ngày/đêm** riêng của game: 1 ngày game ≈ 24 phút thực (số trong `balance.json`), chạy theo giờ thực nên vẫn trôi khi tắt game. Chia sáng / trưa / chiều / tối.
 - **Ngủ** (mục 17): từ tối mới ngủ được, nhảy tới 6h sáng hôm sau. Khoảng bị bỏ qua (tối đa khoảng 10 phút thực) tua luôn các bộ đếm và cộng xu cá như offline. Bộ đếm dài vẫn cần ngọc để tua.
 - Rủi ro người chơi chỉnh giờ máy: chấp nhận ở prototype; xử lý khi có monetization.
@@ -311,7 +312,7 @@ Cảnh "ngôi nhà" của nhân vật người. Mở game vào thẳng căn phò
 | Khu | Chức năng |
 |---|---|
 | Giường | Ngủ để tua thời gian (mục 9) |
-| PC | "Lên web đặt hàng": mua mọi thứ (cá, phụ kiện, thiết bị bể, pin, bộ sạc, sạc dự phòng, linh kiện nâng cấp robot) |
+| PC | Đứng gần hiện nút "Dùng máy tính", mở màn hình desktop phong cách retro (kiểu XP, tự vẽ, không dùng logo, tên hay ảnh nền của Windows). Icon **Peeshop** là trang "lên web đặt hàng": mua mọi thứ (cá, phụ kiện, thiết bị bể, pin, bộ sạc, sạc dự phòng, linh kiện nâng cấp robot). Bản đầu (2026-11-09) chỉ bán 3 loài cá |
 | Cửa phòng | Nơi nhận hàng. Tính năng khác của cửa để sau |
 | Hồ cá | Đi vào cảnh bể; trong bể có nút quay về phòng |
 | Cửa sổ | Xem trời theo giờ trong ngày, nắng ban mai chiếu vào phòng. Tính năng khác để sau |
@@ -320,14 +321,14 @@ Cảnh "ngôi nhà" của nhân vật người. Mở game vào thẳng căn phò
 - Dùng joystick như trong bể. Đứng gần đồ vật thì hiện một nút hành động theo ngữ cảnh ("Ngủ", "Đặt hàng"...).
 
 ### 17.3 Đặt hàng và giao hàng
-- Trả xu lúc đặt. Mỗi món có thời gian giao riêng, khai báo trong dữ liệu: đồ rẻ khoảng 1 phút thực, đồ đắt khoảng 10 phút.
+- Trả xu lúc đặt. Mỗi món có thời gian giao riêng, khai báo trong dữ liệu: đồ rẻ khoảng 1 phút thực, đồ đắt khoảng 10 phút. Cá (2026-11-09, `fish.json › deliverySeconds`): cá bảy màu 60 giây, neon 180 giây, thần tiên 600 giây.
 - Thời gian giao là bộ đếm giờ thực: vẫn chạy khi tắt game, ngủ tua được, ngọc tua được.
 - Hàng tới thì cửa sáng lên và có thông báo. Mở cửa là lấy hết hàng đã tới vào Kho.
 - Thức ăn và thuốc không qua giao hàng: vẫn bấm nút trừ xu ngay trong bể.
 
 ### 17.4 Kho (inventory)
 - Mở bằng nút Kho trên HUD bể, ở đâu trong bể cũng được. Prototype không giới hạn số ô.
-- Cá: thả tại chỗ robot (không thả được khi khu đã đủ sức chứa).
+- Cá: thả tại chỗ robot (không thả được khi khu đã đủ sức chứa; khu 1 chứa 20 con, `zones.json › fishCapacity`). Cá thả từ Kho là cá con: nhỏ hơn, lớn dần theo thời gian ở trong bể, chưa sinh xu (kể cả xu lúc vắng) tới khi đủ `growSeconds`. Cá khởi đầu là cá lớn.
 - Thiết bị: chọn một vị trí trống có sẵn trong khu.
 - Sạc dự phòng: dùng ngay.
 - Linh kiện robot: bấm lắp, có hiệu lực ngay.

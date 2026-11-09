@@ -25,6 +25,7 @@ export class ActionButton {
   private readonly iconOnly: boolean;
   private on = false;
   private enabled = true;
+  private visible = true;
 
   constructor(
     scene: Phaser.Scene,
@@ -60,5 +61,21 @@ export class ActionButton {
     this.background.setAlpha(alpha);
     this.icon.setAlpha(alpha);
     this.label.setAlpha(alpha);
+  }
+
+  setVisible(visible: boolean): void {
+    if (visible === this.visible) return;
+    this.visible = visible;
+    this.background.setVisible(visible);
+    this.icon.setVisible(visible);
+    this.label.setVisible(visible);
+    if (visible) this.background.setInteractive();
+    else this.background.disableInteractive();
+  }
+
+  setDepth(depth: number): void {
+    this.background.setDepth(depth);
+    this.icon.setDepth(depth);
+    this.label.setDepth(depth);
   }
 }

@@ -51,6 +51,34 @@ describe('loadContent', () => {
     expect(error.message).toContain('Dữ liệu game không hợp lệ');
   });
 
+  it('deliverySeconds phải có và là số dương', () => {
+    const missing = rawCopy();
+    delete missing.fish.species[0].deliverySeconds;
+    expect(errorOf(() => loadContent(missing)).issues[0]).toContain(
+      'fish.json › species.0.deliverySeconds',
+    );
+
+    const nonPositive = rawCopy();
+    nonPositive.fish.species[0].deliverySeconds = 0;
+    expect(errorOf(() => loadContent(nonPositive)).issues[0]).toContain(
+      'fish.json › species.0.deliverySeconds',
+    );
+  });
+
+  it('fishCapacity phải có và là số nguyên dương', () => {
+    const missing = rawCopy();
+    delete missing.zones.zones[0].fishCapacity;
+    expect(errorOf(() => loadContent(missing)).issues[0]).toContain(
+      'zones.json › zones.0.fishCapacity',
+    );
+
+    const invalid = rawCopy();
+    invalid.zones.zones[0].fishCapacity = 1.5;
+    expect(errorOf(() => loadContent(invalid)).issues[0]).toContain(
+      'zones.json › zones.0.fishCapacity',
+    );
+  });
+
   describe('kiểm tra chéo giữa các file', () => {
     it('khu tham chiếu loại rác không tồn tại', () => {
       const raw = rawCopy();

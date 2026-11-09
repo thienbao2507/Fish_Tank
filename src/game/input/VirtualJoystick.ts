@@ -54,6 +54,16 @@ export class VirtualJoystick {
     return this.current;
   }
 
+  reset(): void {
+    this.pointerId = null;
+    this.current = STILL;
+    this.graphics.clear();
+  }
+
+  setDepth(depth: number): void {
+    this.graphics.setDepth(depth);
+  }
+
   private onDown(pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]): void {
     if (this.pointerId !== null || over.length > 0) return;
     if (pointer.x > this.scene.scale.width / 2 || pointer.y < this.options.topInset) return;
@@ -69,9 +79,7 @@ export class VirtualJoystick {
 
   private onUp(pointer: Phaser.Input.Pointer): void {
     if (pointer.id !== this.pointerId) return;
-    this.pointerId = null;
-    this.current = STILL;
-    this.graphics.clear();
+    this.reset();
   }
 
   private track(pointer: Phaser.Input.Pointer): void {

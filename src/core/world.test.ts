@@ -238,6 +238,129 @@ describe('World', () => {
   });
 });
 
+describe('World.orderFish', () => {
+  it('đủ xu thì trừ đúng giá, thêm đúng loài và cấp id tăng dần', () => {
+    const { world, content } = setup({ startingCoins: 1_000 });
+    const guppy = content.fish.species.find((species) => species.id === 'guppy');
+    const neon = content.fish.species.find((species) => species.id === 'neon');
+    if (!guppy || !neon) throw new Error('Thiếu dữ liệu cá kiểm thử');
+
+    expect(world.orderFish(guppy.id, 1_000)).toBe(true);
+    expect(world.orderFish(neon.id, 1_000)).toBe(true);
+    expect(world.wallet.get('coins')).toBe(1_000 - guppy.price - neon.price);
+    expect(world.orders).toEqual([
+      {
+        id: 1,
+        speciesId: guppy.id,
+        timer: { startedAt: 1_000, durationMs: guppy.deliverySeconds * 1_000 },
+        notified: false,
+      },
+      {
+        id: 2,
+        speciesId: neon.id,
+        timer: { startedAt: 1_000, durationMs: neon.deliverySeconds * 1_000 },
+        notified: false,
+      },
+    ]);
+  });
+
+  it('không đủ xu thì không đổi ví hay đơn và phát toast', () => {
+    const { world, content, toasts } = setup({ startingCoins: 0 });
+    const species = content.fish.species[0];
+    if (!species) throw new Error('Thiếu dữ liệu cá kiểm thử');
+    const coins = world.wallet.get('coins');
+
+    expect(world.orderFish(species.id, 1_000)).toBe(false);
+    expect(world.wallet.get('coins')).toBe(coins);
+    expect(world.orders).toEqual([]);
+    expect(toasts).toContain('toast.notEnoughCoins');
+  });
+
+  it('loài không tồn tại thì trả false và không đổi ví hay đơn', () => {
+    const { world } = setup({ startingCoins: 1_000 });
+    const coins = world.wallet.get('coins');
+
+    expect(world.orderFish('missing-species', 1_000)).toBe(false);
+    expect(world.wallet.get('coins')).toBe(coins);
+    expect(world.orders).toEqual([]);
+  });
+});
+
+describe('World — giao hàng và Kho', () => {
+  it('đơn chưa tới thì collectDeliveries trả 0 và giữ nguyên đơn', () => {
+    const { world, content } = setup({ startingCoins: 1_000 });
+    const species = content.fish.species[0];
+    if (!species) throw new Error('Thiếu dữ liệu cá kiểm thử');
+    world.orderFish(species.id, 1_000);
+
+    expect(world.collectDeliveries(1_000 + species.deliverySeconds * 1_000 - 1)).toBe(0);
+    expect(world.orders).toHaveLength(1);
+    expect(world.inventory).toEqual([]);
+  });
+
+  it('mỗi đơn tới nơi chỉ phát thông báo một lần', () => {
+    const { world, content, toasts } = setup({ startingCoins: 1_000 });
+    const species = content.fish.species[0];
+    if (!species) throw new Error('Thiếu dữ liệu cá kiểm thử');
+    const arrivedAt = 1_000 + species.deliverySeconds * 1_000;
+    world.orderFish(species.id, 1_000);
+
+    world.checkDeliveries(arrivedAt - 1);
+    world.checkDeliveries(arrivedAt);
+    world.checkDeliveries(arrivedAt + 60_000);
+
+    expect(toasts.filter((key) => key === 'toast.deliveryArrived')).toHaveLength(1);
+  });
+
+  it('nhận hàng vào Kho đúng số lượng và xoá các đơn đã tới', () => {
+    const { world, content, toasts } = setup({ startingCoins: 1_000 });
+    const species = content.fish.species[0];
+    if (!species) throw new Error('Thiếu dữ liệu cá kiểm thử');
+    world.orderFish(species.id, 1_000);
+    world.orderFish(species.id, 2_000);
+
+    expect(world.collectDeliveries(2_000 + species.deliverySeconds * 1_000)).toBe(2);
+    expect(world.inventory).toEqual([{ speciesId: species.id, count: 2 }]);
+    expect(world.orders).toEqual([]);
+    expect(toasts.filter((key) => key === 'toast.collected')).toHaveLength(1);
+  });
+
+  it('thả cá trừ Kho, thêm cá con tại robot; loài không có trong Kho trả false', () => {
+    const { world, content } = setup({ startingCoins: 1_000, startingFish: [] });
+    const species = content.fish.species[0];
+    if (!species) throw new Error('Thiếu dữ liệu cá kiểm thử');
+    world.orderFish(species.id, 1_000);
+    world.collectDeliveries(1_000 + species.deliverySeconds * 1_000);
+    const beforeFish = world.fish.length;
+
+    expect(world.releaseFish(species.id)).toBe(true);
+    expect(world.inventory).toEqual([]);
+    expect(world.fish).toHaveLength(beforeFish + 1);
+    expect(world.fish.at(-1)).toMatchObject({
+      x: world.robot.x,
+      y: world.robot.y,
+      ageSeconds: 0,
+    });
+    expect(world.releaseFish(species.id)).toBe(false);
+    expect(world.releaseFish('missing-species')).toBe(false);
+  });
+
+  it('khu đủ 20 cá thì không thả thêm, có toast và Kho giữ nguyên', () => {
+    const { world, content, toasts } = setup({ startingCoins: 100_000, startingFish: [] });
+    const species = content.fish.species[0];
+    if (!species) throw new Error('Thiếu dữ liệu cá kiểm thử');
+    for (let i = 0; i < 21; i++) world.orderFish(species.id, 0);
+    world.collectDeliveries(species.deliverySeconds * 1_000);
+    for (let i = 0; i < 20; i++) expect(world.releaseFish(species.id)).toBe(true);
+    const inventoryBefore = world.inventory;
+
+    expect(world.fish.filter((fish) => !fish.leaving)).toHaveLength(20);
+    expect(world.releaseFish(species.id)).toBe(false);
+    expect(toasts).toContain('toast.zoneFull');
+    expect(world.inventory).toEqual(inventoryBefore);
+  });
+});
+
 describe('World — cá và nước (P2)', () => {
   it('game mới có sẵn cá theo balance.json', () => {
     const { world, content } = setup();
@@ -392,6 +515,35 @@ describe('World — cá và nước (P2)', () => {
       expect(world.wallet.get('pearls')).toBe(0);
       expect(collected.every((event) => event.auto)).toBe(true);
       expect(world.drops.items).toHaveLength(0);
+    });
+  });
+
+  describe('xu khi rời bể', () => {
+    it('cộng đúng xu, phát toast và không đổi trạng thái cá hay nước', () => {
+      const { world, toasts } = setup();
+      const beforeCoins = world.wallet.get('coins');
+      const beforeFish = world.fish.map(({ fullness, health }) => ({ fullness, health }));
+      const beforeWater = world.water;
+
+      world.leaveTank(1_000);
+      expect(world.returnToTank(21_000)).toBe(12);
+
+      expect(world.wallet.get('coins')).toBe(beforeCoins + 12);
+      expect(toasts).toContain('toast.absenceCoins');
+      expect(world.fish.map(({ fullness, health }) => ({ fullness, health }))).toEqual(beforeFish);
+      expect(world.water).toBe(beforeWater);
+    });
+
+    it('gọi returnToTank lần hai trả 0', () => {
+      const { world } = setup();
+      world.leaveTank(1_000);
+      expect(world.returnToTank(21_000)).toBe(12);
+      expect(world.returnToTank(41_000)).toBe(0);
+    });
+
+    it('chưa leaveTank thì returnToTank trả 0', () => {
+      const { world } = setup();
+      expect(world.returnToTank(21_000)).toBe(0);
     });
   });
 });

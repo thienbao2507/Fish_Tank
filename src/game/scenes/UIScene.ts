@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT } from '../../config';
 import { t } from '../../core/i18n';
 import { keysToDirection, type Direction } from '../../core/input';
+import { InventoryWindow } from '../../ui/inventory';
 import { TextureKeys } from '../art/keys';
 import { getContext, type GameContext } from '../context';
 import { ActionButton } from '../hud/ActionButton';
@@ -11,6 +12,7 @@ import { SickFishArrows } from '../hud/SickFishArrows';
 import type { IsoPrototypeScene } from './IsoPrototypeScene';
 import { Toasts } from '../hud/Toasts';
 import { VirtualJoystick } from '../input/VirtualJoystick';
+import { enterRoom } from '../sceneFlow';
 import { SceneKeys } from './keys';
 
 interface MoveKeys {
@@ -44,10 +46,13 @@ export class UIScene extends Phaser.Scene {
   private medicineButton!: ActionButton;
   private laneInButton!: ActionButton;
   private laneOutButton!: ActionButton;
+  private backToRoomButton!: ActionButton;
+  private inventoryButton!: ActionButton;
   private toasts!: Toasts;
   private joystick!: VirtualJoystick;
   private arrows!: SickFishArrows;
   private moveKeys?: MoveKeys;
+  private inventoryWindow?: InventoryWindow;
 
   constructor() {
     super(SceneKeys.UI);
@@ -71,6 +76,12 @@ export class UIScene extends Phaser.Scene {
       },
       laneOut: (): void => {
         world.changeLane(-1);
+      },
+      backToRoom: (): void => {
+        enterRoom(this);
+      },
+      inventory: (): void => {
+        this.openInventory();
       },
     };
 
@@ -102,6 +113,18 @@ export class UIScene extends Phaser.Scene {
       onPress: actions.laneOut,
       size: LANE_BUTTON_SIZE,
     });
+    this.backToRoomButton = new ActionButton(this, {
+      icon: TextureKeys.iconRoom,
+      label: t('ui.backToRoom'),
+      onPress: actions.backToRoom,
+      size: LANE_BUTTON_SIZE,
+    });
+    this.inventoryButton = new ActionButton(this, {
+      icon: TextureKeys.iconInventory,
+      label: t('ui.inventory'),
+      onPress: actions.inventory,
+      size: LANE_BUTTON_SIZE,
+    });
     this.toasts = new Toasts(this);
     const gameScene = this.scene.get(SceneKeys.Game) as IsoPrototypeScene;
     this.arrows = new SickFishArrows(this, world, (fish) => gameScene.toScreen(fish));
@@ -114,19 +137,36 @@ export class UIScene extends Phaser.Scene {
     });
     this.setupKeyboard(actions);
 
-    const offToast = bus.on('toast', ({ key, params }) => this.toasts.show(t(key, params)));
+    const offToast = bus.on('toast', ({ key, params }) => {
+      if (!this.scene.isSleeping(SceneKeys.UI) && !this.scene.isPaused(SceneKeys.UI)) {
+        this.toasts.show(t(key, params));
+      }
+    });
     const onResize = (gameSize: Phaser.Structs.Size): void => this.layout(gameSize.width);
+    const onWake = (): void => {
+      this.joystick.reset();
+      this.input.keyboard?.resetKeys();
+      this.ctx.input.moveX = 0;
+      this.ctx.input.moveY = 0;
+      this.ctx.world.returnToTank(this.ctx.clock.now());
+    };
     this.scale.on(Phaser.Scale.Events.RESIZE, onResize);
+    this.events.on(Phaser.Scenes.Events.WAKE, onWake);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.inventoryWindow?.destroy();
+      this.inventoryWindow = undefined;
       offToast();
       this.scale.off(Phaser.Scale.Events.RESIZE, onResize);
+      this.events.off(Phaser.Scenes.Events.WAKE, onWake);
     });
 
     this.layout(this.scale.width);
+    world.returnToTank(this.ctx.clock.now());
   }
 
   override update(): void {
     const { world, content, input } = this.ctx;
+    world.checkDeliveries(this.ctx.clock.now());
     const direction = this.joystick.isActive ? this.joystick.direction : this.keyboardDirection();
     input.moveX = direction.x;
     input.moveY = direction.y;
@@ -157,6 +197,14 @@ export class UIScene extends Phaser.Scene {
     const laneInY = laneOutY - LANE_BUTTON_SIZE - LANE_BUTTON_GAP;
     this.laneInButton.setPosition(laneX, laneInY);
     this.laneOutButton.setPosition(laneX, laneOutY);
+    this.backToRoomButton.setPosition(
+      HUD_MARGIN + LANE_BUTTON_SIZE / 2,
+      HUD_TOP_RESERVED + LANE_BUTTON_SIZE / 2,
+    );
+    this.inventoryButton.setPosition(
+      HUD_MARGIN + LANE_BUTTON_SIZE / 2,
+      HUD_TOP_RESERVED + LANE_BUTTON_SIZE * 1.5 + LANE_BUTTON_GAP,
+    );
     this.hud.layout(width);
     this.hud.layoutLaneIndicator(laneX + LANE_BUTTON_SIZE / 2 + 7, (laneInY + laneOutY) / 2);
     this.toasts.layout(width);
@@ -184,6 +232,30 @@ export class UIScene extends Phaser.Scene {
     key(KeyCodes.R).on('down', actions.medicine);
     key(KeyCodes.Q).on('down', actions.laneIn);
     key(KeyCodes.E).on('down', actions.laneOut);
+  }
+
+  private openInventory(): void {
+    if (this.inventoryWindow) return;
+    const inventory = new InventoryWindow({
+      world: this.ctx.world,
+      content: this.ctx.content,
+      onClose: () => {
+        if (this.inventoryWindow !== inventory) return;
+        this.inventoryWindow = undefined;
+        this.scene.resume(SceneKeys.Game);
+        this.scene.resume(SceneKeys.UI);
+        this.joystick.reset();
+        this.input.keyboard?.resetKeys();
+        this.ctx.input.moveX = 0;
+        this.ctx.input.moveY = 0;
+      },
+    });
+    this.inventoryWindow = inventory;
+    inventory.open();
+    this.ctx.input.moveX = 0;
+    this.ctx.input.moveY = 0;
+    this.scene.pause(SceneKeys.Game);
+    this.scene.pause(SceneKeys.UI);
   }
 
   private keyboardDirection(): Direction {

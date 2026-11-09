@@ -6,6 +6,9 @@
   "economy": {
     "pearlValueInCoins": 1000
   },
+  "absence": {
+    "maxSeconds": 3600
+  },
   "robot": {
     "displayScaleX": 1,
     "halfWidth": 27,

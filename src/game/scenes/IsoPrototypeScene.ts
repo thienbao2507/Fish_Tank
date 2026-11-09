@@ -3,7 +3,7 @@ import { isDebugMode } from '../../config';
 import { t } from '../../core/i18n';
 import { createRng } from '../../core/rng';
 import type { Drop } from '../../core/sim/drops';
-import type { Fish } from '../../core/sim/fish';
+import { fishGrowthScale, type Fish } from '../../core/sim/fish';
 import type { FoodPellet } from '../../core/sim/food';
 import type { TrashItem } from '../../core/sim/trash';
 import { TextureKeys } from '../art/keys';
@@ -978,6 +978,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
     view.countdown.setVisible(p !== undefined && sick);
     if (!p) return;
 
+    view.sprite.setScale(p.scale * fishGrowthScale(fish.ageSeconds, fish.species.growSeconds));
     view.sprite.setFlipX(fish.facingX < 0).setAlpha(this.tierAlpha(fish.z));
     if (sick) view.sprite.setTint(SICK_TINT);
     else this.applyLight(view.sprite, p.zc, 1);

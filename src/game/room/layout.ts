@@ -14,6 +14,8 @@ export const ROOM_LIGHTS = [
   { key: 'roomLightLamp', alpha: 1 },
 ] as const;
 
+export const ROOM_DOOR_GLOW = { x: 449, y: 128 } as const;
+
 export const HERO_START = { gx: 4.5, gy: 4.5 } as const;
 export const HERO_SPEED = 2.6;
 export const HERO_RADIUS = 0.25;
@@ -56,6 +58,12 @@ export interface RoomProp {
   readonly height: number;
   readonly depth: number;
   readonly footprint?: RoomFootprint;
+}
+
+export interface RoomInteraction {
+  readonly id: string;
+  readonly footprint: RoomFootprint;
+  readonly reach: number;
 }
 
 export const ROOM_PROPS: readonly RoomProp[] = [
@@ -116,6 +124,43 @@ export const ROOM_PROPS: readonly RoomProp[] = [
     depth: 36,
   },
 ];
+
+export const ROOM_INTERACTIONS: readonly RoomInteraction[] = [
+  {
+    id: 'pc',
+    footprint: { gx0: 0.5, gy0: 0, gx1: 3, gy1: 2 },
+    reach: 0.6,
+  },
+  {
+    id: 'tank',
+    footprint: { gx0: 3.5, gy0: 0, gx1: 6.2, gy1: 1.1 },
+    reach: 0.6,
+  },
+  {
+    id: 'door',
+    footprint: { gx0: 6.7, gy0: 0, gx1: 7.7, gy1: 0.02 },
+    reach: 0.7,
+  },
+];
+
+export function nearestInteraction(
+  pos: RoomPosition,
+  list: readonly RoomInteraction[],
+): RoomInteraction | null {
+  let nearest: RoomInteraction | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (const interaction of list) {
+    const { footprint } = interaction;
+    const dx = Math.max(footprint.gx0 - pos.gx, 0, pos.gx - footprint.gx1);
+    const dy = Math.max(footprint.gy0 - pos.gy, 0, pos.gy - footprint.gy1);
+    const distance = Math.hypot(dx, dy);
+    if (distance <= interaction.reach && distance < nearestDistance) {
+      nearest = interaction;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
 
 export function projectRoom(
   gx: number,

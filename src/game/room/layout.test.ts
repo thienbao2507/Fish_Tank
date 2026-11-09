@@ -8,6 +8,7 @@ import {
   ROOM_PROPS,
   type RoomFacing,
 } from './layout';
+import { nearestInteraction, ROOM_INTERACTIONS } from './layout';
 
 describe('projectRoom', () => {
   it.each([
@@ -159,5 +160,23 @@ describe('moveInRoomByDirection', () => {
     const end = moveInRoomByDirection({ gx: 7.75, gy: 5 }, { x: 1, y: 0 }, 0.5);
     expect(end.gx).toBe(7.75);
     expect(end.gy).toBeLessThan(5);
+  });
+});
+
+describe('nearestInteraction', () => {
+  it('đứng cạnh bàn PC trả tương tác pc', () => {
+    expect(nearestInteraction({ gx: 2, gy: 2.5 }, ROOM_INTERACTIONS)?.id).toBe('pc');
+  });
+
+  it('đứng cạnh hồ trả tương tác tank', () => {
+    expect(nearestInteraction({ gx: 4.5, gy: 1.5 }, ROOM_INTERACTIONS)?.id).toBe('tank');
+  });
+
+  it('đứng trước cửa trả tương tác door', () => {
+    expect(nearestInteraction({ gx: 7, gy: 0.5 }, ROOM_INTERACTIONS)?.id).toBe('door');
+  });
+
+  it('đứng giữa phòng trả null', () => {
+    expect(nearestInteraction({ gx: 4.5, gy: 4.5 }, ROOM_INTERACTIONS)).toBeNull();
   });
 });

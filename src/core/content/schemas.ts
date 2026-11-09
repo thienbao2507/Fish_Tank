@@ -105,6 +105,10 @@ export const balanceSchema = z.strictObject({
     /** Tỉ giá 1 ngọc trai = ? xu (spec 6.2). */
     pearlValueInCoins: positiveInt,
   }),
+  absence: z.strictObject({
+    /** Thời gian tối đa được tính xu khi rời bể (giây). */
+    maxSeconds: positive,
+  }),
   water: z.strictObject({
     /** Độ sạch tiến về mức mục tiêu với tốc độ này (% mỗi phút game). */
     changePerMinute: positive,
@@ -242,6 +246,8 @@ export const zoneSchema = z.strictObject({
   id,
   width: positiveInt,
   height: positiveInt,
+  /** Số cá tối đa trong khu. */
+  fishCapacity: positiveInt,
   /** Biên trên của mặt phẳng di chuyển. */
   surfaceY: z.number().min(0),
   /** Biên dưới của mặt phẳng di chuyển. */
@@ -275,6 +281,8 @@ export const fishSpeciesSchema = z.strictObject({
   texture: id,
   /** Giá mua (xu) — dùng ở P3. */
   price: nonNegativeInt,
+  /** Thời gian giao từ Peeshop tới cửa (giây). */
+  deliverySeconds: positive,
   radius: positive,
   /** Tốc độ bơi (px/giây). */
   speed: positive,
@@ -302,7 +310,14 @@ export type Balance = z.infer<typeof balanceSchema>;
 export type TrashLayer = z.infer<typeof trashLayerSchema>;
 export type TrashTypeDef = z.infer<typeof trashTypeSchema>;
 export type TrashCatalog = z.infer<typeof trashSchema>;
-export type ZoneDef = z.infer<typeof zoneSchema>;
+type ParsedZoneDef = z.infer<typeof zoneSchema>;
+/**
+ * Loader luôn trả fishCapacity; để optional ở type công khai nhằm giữ tương thích các fixture
+ * tối giản cũ vốn chỉ cần một phần hình học của khu.
+ */
+export type ZoneDef = Omit<ParsedZoneDef, 'fishCapacity'> & {
+  readonly fishCapacity?: ParsedZoneDef['fishCapacity'];
+};
 export type FishSpeciesDef = z.infer<typeof fishSpeciesSchema>;
 export type FishCatalog = z.infer<typeof fishSchema>;
 export type FishRules = Balance['fish'];

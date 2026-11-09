@@ -25,6 +25,7 @@ export const testSpecies: FishSpeciesDef = {
   name: 'fish.guppy',
   texture: 'fish.guppy',
   price: 30,
+  deliverySeconds: 60,
   radius: 5,
   speed: 30,
   hungerPerMinute: 10,
@@ -50,6 +51,7 @@ export const testHillyZone: ZoneDef = {
     [600, 0],
   ],
   wallWidth: 6,
+  fishCapacity: 20,
   station: { x: 10, y: 240, width: 40, height: 40 },
   robotSpawn: { x: 30, y: 250 },
   trash: {

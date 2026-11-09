@@ -462,6 +462,19 @@ export function roomDoor() {
   return s.p;
 }
 
+/** Lớp cộng sáng của cửa khi có hàng tới: viền cửa sáng và phần trong chấm nhẹ. */
+export function roomDoorGlow() {
+  const s = new Stage(449, 128, 30, 92);
+  const gx0 = 6.7;
+  const gx1 = 7.7;
+  const top = 66;
+  s.faceY(0, gx0, gx1, 0, top, (gx, z, x, y) => {
+    if (Math.min(gx - gx0, gx1 - gx) < 0.07 || z >= top - 3) return '#ffd591';
+    return bayer(x, y) > 0.75 ? '#8a5c24' : null;
+  });
+  return s.p;
+}
+
 const RGB = ['#ff5ccf', '#b86bff', '#58a6ff', '#62f0e6'];
 
 /** Một quạt RGB trên mặt kính của case; (px, pz) là toạ độ trên mặt, (cx, cz) là tâm quạt. */
@@ -1342,4 +1355,5 @@ export const ROOM_ASSETS = {
   'room-light-lamp': roomLightLamp,
   'room-bookcase': roomBookcase,
   'room-plant': roomPlant,
+  'room-door-glow': roomDoorGlow,
 };

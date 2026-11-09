@@ -709,6 +709,233 @@
         }
       ]
     },
+    "icon.tank": {
+      "kind": "shapes",
+      "width": 20,
+      "height": 20,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 3,
+          "w": 16,
+          "h": 2,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 3,
+          "y": 5,
+          "w": 14,
+          "h": 9,
+          "color": "#5bc0eb"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 7,
+          "w": 3,
+          "h": 2,
+          "color": "#bfefff"
+        },
+        {
+          "shape": "rect",
+          "x": 4,
+          "y": 14,
+          "w": 12,
+          "h": 3,
+          "color": "#36516e"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 17,
+          "w": 2,
+          "h": 2,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 13,
+          "y": 17,
+          "w": 2,
+          "h": 2,
+          "color": "#e6f1ff"
+        }
+      ]
+    },
+    "icon.pc": {
+      "kind": "shapes",
+      "width": 20,
+      "height": 20,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 2,
+          "w": 16,
+          "h": 12,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 4,
+          "y": 4,
+          "w": 12,
+          "h": 8,
+          "color": "#2475a8"
+        },
+        {
+          "shape": "rect",
+          "x": 8,
+          "y": 14,
+          "w": 4,
+          "h": 3,
+          "color": "#9aa5b1"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 17,
+          "w": 10,
+          "h": 2,
+          "color": "#e6f1ff"
+        }
+      ]
+    },
+    "icon.room": {
+      "kind": "shapes",
+      "width": 20,
+      "height": 20,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 8,
+          "y": 2,
+          "w": 4,
+          "h": 2,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 6,
+          "y": 4,
+          "w": 8,
+          "h": 2,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 4,
+          "y": 6,
+          "w": 12,
+          "h": 3,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 9,
+          "w": 10,
+          "h": 9,
+          "color": "#5bc0eb"
+        },
+        {
+          "shape": "rect",
+          "x": 8,
+          "y": 12,
+          "w": 4,
+          "h": 6,
+          "color": "#36516e"
+        }
+      ]
+    },
+    "icon.door": {
+      "kind": "shapes",
+      "width": 20,
+      "height": 20,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 4,
+          "y": 2,
+          "w": 12,
+          "h": 16,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 6,
+          "y": 4,
+          "w": 8,
+          "h": 14,
+          "color": "#2475a8"
+        },
+        {
+          "shape": "rect",
+          "x": 11,
+          "y": 10,
+          "w": 2,
+          "h": 2,
+          "color": "#ffd05d"
+        },
+        {
+          "shape": "rect",
+          "x": 3,
+          "y": 18,
+          "w": 14,
+          "h": 2,
+          "color": "#9aa5b1"
+        }
+      ]
+    },
+    "icon.inventory": {
+      "kind": "shapes",
+      "width": 20,
+      "height": 20,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 3,
+          "y": 4,
+          "w": 14,
+          "h": 14,
+          "color": "#e6f1ff"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 6,
+          "w": 10,
+          "h": 10,
+          "color": "#c47b2a"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 9,
+          "w": 10,
+          "h": 2,
+          "color": "#ffd05d"
+        },
+        {
+          "shape": "rect",
+          "x": 9,
+          "y": 6,
+          "w": 2,
+          "h": 10,
+          "color": "#ffd05d"
+        },
+        {
+          "shape": "rect",
+          "x": 7,
+          "y": 2,
+          "w": 6,
+          "h": 2,
+          "color": "#9aa5b1"
+        }
+      ]
+    },
     "ui.laneIn": {
       "kind": "shapes",
       "width": 12,
@@ -971,6 +1198,10 @@
     "room.plant": {
       "kind": "image",
       "file": "art/gen/room-plant.png"
+    },
+    "room.door.glow": {
+      "kind": "image",
+      "file": "art/gen/room-door-glow.png"
     }
   }
 }

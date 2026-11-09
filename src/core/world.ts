@@ -5,21 +5,29 @@ import type { EventBus, GameEvents } from './events';
 import { t, type StringKey } from './i18n';
 import type { PlayerInput } from './input';
 import type { Rng } from './rng';
+import { absenceCoins } from './sim/absence';
 import { DropField, type Drop } from './sim/drops';
 import type { Fish, Mood } from './sim/fish';
 import { FoodField } from './sim/food';
 import { LANE_COUNT, nearestLane, stepLane } from './sim/lanes';
 import { stepMotion, type Bounds } from './sim/movement';
 import { resolveMove } from './sim/obstacles';
+import { FishOrders, type FishOrder } from './sim/orders';
 import { Robot } from './sim/robot';
 import { School } from './sim/school';
 import { TrashField } from './sim/trash';
 import { stepCleanliness, waterTarget } from './sim/water';
+import { createTimer, isDone } from './time/timers';
 
 export interface WorldDeps {
   readonly content: Content;
   readonly rng: Rng;
   readonly bus: EventBus<GameEvents>;
+}
+
+export interface InventoryEntry {
+  readonly speciesId: string;
+  readonly count: number;
 }
 
 class WorldRobot extends Robot {
@@ -44,9 +52,13 @@ export class World {
   private readonly balance: Balance;
   private readonly bus: EventBus<GameEvents>;
   private readonly trashTypes: ReadonlyMap<string, TrashTypeDef>;
+  private readonly speciesById: ReadonlyMap<string, FishSpeciesDef>;
+  private readonly fishOrders = new FishOrders();
+  private readonly inventoryCounts = new Map<string, number>();
   private readonly robotBounds: Bounds;
   private docked = false;
   private cargoFullWarned = false;
+  private leftTankAt?: number;
   /** Độ sạch nước của khu, 0–100%. */
   private cleanliness: number;
 
@@ -73,9 +85,9 @@ export class World {
     this.drops = new DropField(zone, balance.drops, balance.lanes.dropFallSeconds);
     this.school = new School(zone, balance.fish, balance.food.nutrition, rng);
 
-    const speciesById = new Map(content.fish.species.map((species) => [species.id, species]));
+    this.speciesById = new Map(content.fish.species.map((species) => [species.id, species]));
     for (const { species, count } of balance.startingFish) {
-      const def = speciesById.get(species) as FishSpeciesDef;
+      const def = this.speciesById.get(species) as FishSpeciesDef;
       for (let i = 0; i < count; i++) this.school.add(def);
     }
     // Game mới bắt đầu với nước ở trạng thái cân bằng theo lượng rác ban đầu.
@@ -114,8 +126,111 @@ export class World {
     return this.school.fish;
   }
 
+  get orders(): readonly FishOrder[] {
+    return this.fishOrders.orders;
+  }
+
+  get inventory(): readonly InventoryEntry[] {
+    return [...this.inventoryCounts]
+      .filter(([, count]) => count > 0)
+      .map(([speciesId, count]) => ({ speciesId, count }));
+  }
+
+  /** Mua một con cá để giao; chỉ tạo đơn sau khi đã trừ đủ giá. */
+  orderFish(speciesId: string, now: number): boolean {
+    const species = this.speciesById.get(speciesId);
+    if (!species) return false;
+    if (!this.wallet.spend('coins', species.price)) {
+      this.bus.emit('toast', { key: 'toast.notEnoughCoins' });
+      return false;
+    }
+    this.fishOrders.add(speciesId, createTimer(now, species.deliverySeconds));
+    return true;
+  }
+
+  /** Báo đúng một lần cho mỗi đơn vừa tới cửa. */
+  checkDeliveries(now: number): void {
+    for (const order of this.orders) {
+      if (order.notified || !isDone(order.timer, now)) continue;
+      order.notified = true;
+      const species = this.speciesById.get(order.speciesId);
+      if (species) {
+        this.bus.emit('toast', {
+          key: 'toast.deliveryArrived',
+          params: { name: t(species.name as StringKey) },
+        });
+      }
+    }
+  }
+
+  hasArrivedDeliveries(now: number): boolean {
+    return this.orders.some((order) => isDone(order.timer, now));
+  }
+
+  /** Chuyển mọi đơn đã tới cửa vào Kho và trả số món vừa nhận. */
+  collectDeliveries(now: number): number {
+    const arrived = this.orders.filter((order) => isDone(order.timer, now));
+    for (const order of arrived) {
+      this.inventoryCounts.set(
+        order.speciesId,
+        (this.inventoryCounts.get(order.speciesId) ?? 0) + 1,
+      );
+      this.fishOrders.remove(order.id);
+    }
+    if (arrived.length > 0) {
+      this.bus.emit('toast', { key: 'toast.collected', params: { count: arrived.length } });
+    }
+    return arrived.length;
+  }
+
+  /** Thả một cá con từ Kho tại vị trí robot nếu khu vẫn còn chỗ. */
+  releaseFish(speciesId: string): boolean {
+    const count = this.inventoryCounts.get(speciesId) ?? 0;
+    const species = this.speciesById.get(speciesId);
+    if (count <= 0 || !species) return false;
+    if (
+      this.fish.filter((fish) => !fish.leaving).length >=
+      (this.zone.fishCapacity as number)
+    ) {
+      this.bus.emit('toast', { key: 'toast.zoneFull' });
+      return false;
+    }
+    this.inventoryCounts.set(speciesId, count - 1);
+    this.school.add(species, {
+      juvenile: true,
+      x: this.robot.x,
+      y: this.robot.y,
+      lane: nearestLane(this.robot.z),
+    });
+    return true;
+  }
+
   moodOf(fish: Fish): Mood {
     return this.school.moodOf(fish, this.cleanliness);
+  }
+
+  /** Ghi thời điểm bắt đầu rời bể; gọi lặp lại không làm mất mốc ban đầu. */
+  leaveTank(now: number): void {
+    this.leftTankAt ??= now;
+  }
+
+  /** Cộng xu vắng mặt một lần khi quay lại bể, không mô phỏng các nhu cầu dài hạn. */
+  returnToTank(now: number): number {
+    const leftAt = this.leftTankAt;
+    if (leftAt === undefined) return 0;
+    this.leftTankAt = undefined;
+    const coins = absenceCoins(
+      this.fish,
+      (now - leftAt) / 1_000,
+      this.balance.absence.maxSeconds,
+      this.cleanliness,
+      this.balance.fish,
+    );
+    if (coins > 0) {
+      this.wallet.add('coins', coins);
+      this.bus.emit('toast', { key: 'toast.absenceCoins', params: { coins } });
+    }
+    return coins;
   }
 
   /** Có cá ốm trong tầm chữa quanh robot không (nút Thuốc sáng/mờ theo đây). */

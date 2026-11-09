@@ -22,6 +22,8 @@ export class Fish implements MotionState {
   sickSeconds = 0;
   /** Tích luỹ giây game để sinh xu. */
   coinTimer = 0;
+  /** Tuổi theo giây game; cá đủ growSeconds mới sinh tài nguyên. */
+  ageSeconds: number;
   /** Đang nhảy khỏi bể (không cứu được nữa). */
   leaving = false;
   wanderX: number;
@@ -35,6 +37,7 @@ export class Fish implements MotionState {
     y: number,
     fullness: number,
     lane = 0,
+    ageSeconds = species.growSeconds,
   ) {
     this.x = x;
     this.y = y;
@@ -43,7 +46,19 @@ export class Fish implements MotionState {
     this.wanderX = x;
     this.wanderY = y;
     this.fullness = fullness;
+    this.ageSeconds = ageSeconds;
   }
+
+  get isGrown(): boolean {
+    return this.ageSeconds >= this.species.growSeconds;
+  }
+}
+
+/** Tỉ lệ vẽ cá tăng tuyến tính từ 0.6 lúc mới thả tới 1 khi trưởng thành. */
+export function fishGrowthScale(ageSeconds: number, growSeconds: number): number {
+  if (growSeconds <= 0) return 1;
+  const progress = Math.min(1, Math.max(0, ageSeconds / growSeconds));
+  return 0.6 + progress * 0.4;
 }
 
 export function isSick(health: number, rules: FishRules): boolean {
