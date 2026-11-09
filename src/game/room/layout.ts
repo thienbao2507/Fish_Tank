@@ -72,11 +72,11 @@ export const ROOM_PROPS: readonly RoomProp[] = [
   },
   {
     key: 'roomDesk',
-    x: 218,
-    y: 24,
-    width: 120,
-    height: 148,
-    footprint: { gx0: 0.5, gy0: 0, gx1: 3, gy1: 1.5 },
+    x: 200,
+    y: 14,
+    width: 140,
+    height: 172,
+    footprint: { gx0: 0.5, gy0: 0, gx1: 3, gy1: 2 },
     depth: 10,
   },
   {
@@ -198,14 +198,43 @@ export function moveInRoom(pos: RoomPosition, facing: RoomFacing, distance: numb
   }
 }
 
+const D = Math.SQRT1_2;
+/** Bước trên lưới cho 8 hướng màn hình, xếp theo góc 45° từ hướng phải, chiều kim đồng hồ. */
+const GRID_STEPS: readonly (readonly [number, number])[] = [
+  [D, -D],
+  [1, 0],
+  [D, D],
+  [0, 1],
+  [-D, D],
+  [-1, 0],
+  [-D, -D],
+  [0, -1],
+];
+
+/** Đi theo hướng cần điều khiển (làm tròn về 8 hướng); gặp vật cản thì trượt theo trục còn lại. */
+export function moveInRoomByDirection(
+  pos: RoomPosition,
+  dir: ScreenDirection,
+  distance: number,
+): RoomPosition {
+  const step = Math.max(0, distance);
+  const octant = Math.round(Math.atan2(dir.y, dir.x) / (Math.PI / 4));
+  const [stepGx, stepGy] = GRID_STEPS[(octant + 8) % 8] as readonly [number, number];
+  return moveGy(moveGx(pos, stepGx * step), stepGy * step);
+}
+
 export function heroDepth(pos: RoomPosition, props: readonly RoomProp[]): number {
   let depth = 5;
   for (const prop of props) {
     const footprint = prop.footprint;
-    const frontEdge = footprint
-      ? Math.min(footprint.gx1 + footprint.gy0, footprint.gx0 + footprint.gy1)
-      : Number.POSITIVE_INFINITY;
-    if (pos.gx + pos.gy >= frontEdge) {
+    if (!footprint) continue;
+    const outsideRightEdge = pos.gx > footprint.gx1 && pos.gy < footprint.gy0;
+    const outsideLeftEdge = pos.gx < footprint.gx0 && pos.gy > footprint.gy1;
+    if (
+      (pos.gx >= footprint.gx1 || pos.gy >= footprint.gy1) &&
+      !outsideRightEdge &&
+      !outsideLeftEdge
+    ) {
       depth = Math.max(depth, prop.depth + 5);
     }
   }

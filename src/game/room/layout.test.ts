@@ -3,6 +3,7 @@ import {
   facingFromDirection,
   heroDepth,
   moveInRoom,
+  moveInRoomByDirection,
   projectRoom,
   ROOM_PROPS,
   type RoomFacing,
@@ -21,7 +22,7 @@ describe('projectRoom', () => {
 
 describe('moveInRoom', () => {
   it.each([
-    ['bàn', { gx: 2, gy: 3 }, 'NE' as const, 'gy' as const, 1.75],
+    ['bàn', { gx: 2, gy: 3 }, 'NE' as const, 'gy' as const, 2.25],
     ['hồ', { gx: 4, gy: 3 }, 'NE' as const, 'gy' as const, 1.35],
     ['giường', { gx: 2, gy: 3 }, 'SW' as const, 'gy' as const, 4.75],
   ])('dừng đúng mép chân đế mở rộng của %s', (_label, start, facing, axis, edge) => {
@@ -30,6 +31,14 @@ describe('moveInRoom', () => {
 
   it('dừng đúng mép chân đế khi đi vào tủ đầu giường', () => {
     expect(moveInRoom({ gx: 1.5, gy: 4.6 }, 'NW', 5).gx).toBeCloseTo(0.95);
+  });
+
+  it('không đi vào chân đế kệ sách khi đi NW', () => {
+    expect(moveInRoom({ gx: 2, gy: 1 }, 'NW', 5).gx).toBeCloseTo(0.73);
+  });
+
+  it('không đi vào chân đế chậu cây khi đi NW', () => {
+    expect(moveInRoom({ gx: 1.5, gy: 7.7 }, 'NW', 5).gx).toBeCloseTo(0.8);
   });
 
   it.each([
@@ -43,6 +52,10 @@ describe('moveInRoom', () => {
 });
 
 describe('heroDepth', () => {
+  it('nhỏ hơn depth giường khi đứng sát mép sau giường', () => {
+    expect(heroDepth({ gx: 3, gy: 4.75 }, ROOM_PROPS)).toBeLessThan(30);
+  });
+
   it('nhỏ hơn depth giường khi đứng sau giường', () => {
     expect(heroDepth({ gx: 2, gy: 4 }, ROOM_PROPS)).toBeLessThan(30);
   });
@@ -68,6 +81,18 @@ describe('heroDepth', () => {
   it('nhỏ hơn depth hồ khi đứng giữa bàn và hồ', () => {
     expect(heroDepth({ gx: 3.25, gy: 0.5 }, ROOM_PROPS)).toBeLessThan(16);
   });
+
+  it('nhỏ hơn depth chậu cây khi đứng ngay trước giường và sau chậu cây', () => {
+    expect(heroDepth({ gx: 3.5, gy: 7.3 }, ROOM_PROPS)).toBeLessThan(36);
+  });
+
+  it('lớn hơn depth chậu cây khi đứng trước chậu cây', () => {
+    expect(heroDepth({ gx: 0.8, gy: 7.9 }, ROOM_PROPS)).toBeGreaterThan(36);
+  });
+
+  it('nhỏ hơn depth bàn khi đứng trước kệ sách', () => {
+    expect(heroDepth({ gx: 0.3, gy: 1.7 }, ROOM_PROPS)).toBeLessThan(10);
+  });
 });
 
 describe('facingFromDirection', () => {
@@ -90,5 +115,49 @@ describe('facingFromDirection', () => {
 
   it('trả null khi vector quá nhỏ', () => {
     expect(facingFromDirection({ x: 0.1, y: 0.1 }, 'SE')).toBeNull();
+  });
+});
+
+describe('moveInRoomByDirection', () => {
+  const start = { gx: 4.5, gy: 5.5 };
+  const screenStep = (x: number, y: number): { dx: number; dy: number } => {
+    const end = moveInRoomByDirection(start, { x, y }, 0.5);
+    const from = projectRoom(start.gx, start.gy, 0, 0);
+    const to = projectRoom(end.gx, end.gy, 0, 0);
+    return { dx: to.sx - from.sx, dy: to.sy - from.sy };
+  };
+
+  it.each([
+    [1, 0, 1, 0],
+    [-1, 0, -1, 0],
+    [0, 1, 0, 1],
+    [0, -1, 0, -1],
+    [1, 1, 1, 1],
+    [1, -1, 1, -1],
+    [-1, 1, -1, 1],
+    [-1, -1, -1, -1],
+  ])('cần (%s, %s) đi đúng chiều trên màn hình', (x, y, signX, signY) => {
+    const { dx, dy } = screenStep(x, y);
+    expect(Math.sign(Math.round(dx * 1000))).toBe(signX);
+    expect(Math.sign(Math.round(dy * 1000))).toBe(signY);
+  });
+
+  it('làm tròn cần lệch nhẹ về hướng gần nhất', () => {
+    expect(screenStep(1, 0.3).dy).toBeCloseTo(0);
+  });
+
+  it.each([
+    [1, 0],
+    [1, 1],
+    [0, -1],
+  ])('cùng tốc độ trên lưới ở hướng (%s, %s)', (x, y) => {
+    const end = moveInRoomByDirection(start, { x, y }, 0.5);
+    expect(Math.hypot(end.gx - start.gx, end.gy - start.gy)).toBeCloseTo(0.5);
+  });
+
+  it('chạm tường thì trượt dọc tường', () => {
+    const end = moveInRoomByDirection({ gx: 7.75, gy: 5 }, { x: 1, y: 0 }, 0.5);
+    expect(end.gx).toBe(7.75);
+    expect(end.gy).toBeLessThan(5);
   });
 });

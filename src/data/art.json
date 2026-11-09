@@ -946,7 +946,7 @@
       "kind": "spritesheet",
       "file": "art/gen/room-hero.png",
       "frameWidth": 24,
-      "frameHeight": 40
+      "frameHeight": 44
     },
     "room.nightstand": {
       "kind": "image",

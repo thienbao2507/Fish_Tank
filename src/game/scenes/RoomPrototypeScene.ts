@@ -8,7 +8,7 @@ import {
   HERO_SPEED,
   HERO_START,
   heroDepth,
-  moveInRoom,
+  moveInRoomByDirection,
   projectRoom,
   ROOM_LIGHT_DEPTH,
   ROOM_LIGHTS,
@@ -65,7 +65,7 @@ export class RoomPrototypeScene extends Phaser.Scene {
     }));
 
     this.createHeroAnimations();
-    this.hero = this.add.sprite(0, 0, TextureKeys.roomHero, 0).setOrigin(12 / 24, 38 / 40);
+    this.hero = this.add.sprite(0, 0, TextureKeys.roomHero, 0).setOrigin(12 / 24, 42 / 44);
     this.lightLayers = ROOM_LIGHTS.map(({ key, alpha }) =>
       this.add
         .image(0, 0, TextureKeys[key])
@@ -104,7 +104,7 @@ export class RoomPrototypeScene extends Phaser.Scene {
     this.facing = nextFacing;
     const previous = this.position;
     const seconds = Math.min(Math.max(delta, 0) / 1000, MAX_FRAME_SECONDS);
-    this.position = moveInRoom(previous, this.facing, HERO_SPEED * seconds);
+    this.position = moveInRoomByDirection(previous, direction, HERO_SPEED * seconds);
     const moved = this.position.gx !== previous.gx || this.position.gy !== previous.gy;
     this.updateHero(moved);
   }

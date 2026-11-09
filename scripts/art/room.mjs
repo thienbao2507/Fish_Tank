@@ -180,11 +180,19 @@ function rugColor(gx, gy, x, y) {
   if (edge < 0.08) return C.rugEdge;
   if (edge < 0.16) return C.rugDeep;
   if (edge < 0.22) return C.rugLine;
+  if (edge < 0.42) {
+    const motif = Math.sin((gx + gy) * 9) > 0.55;
+    return motif ? '#3b6f86' : C.rugDeep;
+  }
+  if (edge < 0.47) return C.rugLine;
   const flow = Math.sin(gx * 2.6 + Math.sin(gy * 1.9) * 1.4);
   if (Math.abs(flow - 0.55) < 0.07) return C.rugLine;
+  if (Math.abs(flow + 0.35) < 0.04) return '#3b6f86';
   const star = Math.sin(gx * 17.3) * Math.sin(gy * 13.1);
   if (star > 0.985) return C.rugLine;
-  return ramp([C.rugDeep, C.rugMid], flow * 0.5 + 0.5, x, y);
+  // Giữa thảm sáng hơn mép, có sợi vải theo dither.
+  const lift = Math.min(1, edge / 1.3);
+  return ramp([C.rugDeep, C.rugMid, '#366079'], (flow * 0.5 + 0.5) * 0.7 + lift * 0.3, x, y);
 }
 
 function wallColor(lit) {
@@ -267,6 +275,37 @@ export function roomShell() {
     const edge = Math.min(gx - 6.6, 7.8 - gx, gy - 0.2, 1.1 - gy);
     return edge < 0.08 ? C.trimMid : Math.floor(gx * 8) % 2 === 0 ? C.linenShade : '#8c8078';
   });
+  // Tua thảm hai đầu.
+  for (let gy = 3; gy < 6.45; gy += 0.1) {
+    for (const [gx, end] of [[2.9, 2.78], [6.3, 6.42]]) {
+      s.p.line(Math.round(s.sx(gx, gy)), Math.round(s.sy(gx, gy)), Math.round(s.sx(end, gy)), Math.round(s.sy(end, gy)), C.linen);
+    }
+  }
+  // Đồ nằm sát sàn, nhân vật đi qua được: gối ngồi, dép, sổ tay.
+  contactShadow(s, 4.25, 3.75, 5, 4.5, 0.16, 0.45);
+  s.box(4.25, 3.75, 5, 4.5, 0, 3, {
+    top: (gx, gy, x, y) => {
+      if (Math.hypot(gx - 4.625, gy - 4.125) < 0.08) return '#e8c078';
+      if (Math.min(gx - 4.25, 5 - gx, gy - 3.75, 4.5 - gy) < 0.06) return '#e8c078';
+      return bayer(x, y) > 0.7 ? '#94503a' : '#b5634a';
+    },
+    left: '#7a4030',
+    right: '#5c3024',
+  });
+  for (const [gy0, gy1] of [[5.55, 5.72], [5.82, 5.99]]) {
+    contactShadow(s, 3.45, gy0, 3.85, gy1, 0.08, 0.4);
+    s.box(3.45, gy0, 3.85, gy1, 0, 2, {
+      top: (gx) => (gx > 3.68 ? '#6c5a9a' : C.linen),
+      left: C.linenShade,
+      right: '#8d8079',
+    });
+  }
+  contactShadow(s, 5.3, 5.3, 5.75, 5.65, 0.08, 0.4);
+  s.box(5.3, 5.3, 5.75, 5.65, 0, 2, {
+    top: (gx, gy) => (Math.abs(gx - 5.525) < 0.03 ? '#7d352f' : Math.floor(gy * 20) % 3 === 0 ? '#b8ae9f' : '#f3ecdd'),
+    left: '#7d352f',
+    right: '#5c2823',
+  });
   s.faceY(ROOM, 0, ROOM, -8, 0, C.slab);
   s.faceX(ROOM, 0, ROOM, -8, 0, '#211617');
 
@@ -277,9 +316,9 @@ export function roomShell() {
   // Bóng tiếp xúc và tối góc phòng.
   for (const [x0, y0, x1, y1, spread, strength] of [
     [0.5, 0.08, 1.1, 0.74],
-    [2.3, 0.08, 2.95, 0.85],
-    [1.12, 0, 3, 0.9, 0.16, 0.5],
-    [1.72, 1.02, 2.26, 1.38, 0.2, 0.4],
+    [2.3, 0.08, 2.95, 1.18],
+    [1.12, 0, 3, 1.25, 0.16, 0.5],
+    [2.1, 1.42, 2.7, 1.98, 0.24, 0.5],
     [3.5, 0, 6.2, 1.1, 0.5],
     [0, 5, 3.2, 7.2, 0.5],
     [0, 4.25, 0.7, 4.95, 0.34],
@@ -288,7 +327,7 @@ export function roomShell() {
   ]) {
     contactShadow(s, x0, y0, x1, y1, spread, strength);
   }
-  wallShade(s, 'right', 0.5, 3, 62);
+  wallShade(s, 'right', 0.5, 3, 80);
   wallShade(s, 'right', 3.5, 6.2, 72);
   wallShade(s, 'left', 5, 7.2, 44);
   wallShade(s, 'left', 4.25, 4.95, 28);
@@ -459,24 +498,28 @@ function codeRows(rng, count) {
 }
 
 export function roomDesk() {
-  const s = new Stage(218, 24, 120, 148);
+  const s = new Stage(200, 14, 140, 172);
   const rng = createRng(4109);
+  const TOP = 26;
   const wood = {
-    top: (gx, gy, x, y) => (bayer(x, y) > 0.8 ? C.woodMid : C.woodLight),
+    top: (gx, gy, x, y) => {
+      if (Math.sin(gy * 26 + gx * 1.5) > 0.93) return C.woodMid;
+      return bayer(x, y) > 0.82 ? C.woodMid : C.woodLight;
+    },
     left: C.woodMid,
     right: C.woodDark,
     edge: C.woodHigh,
   };
 
   // Case kính: mặt trái thấy linh kiện và hai quạt RGB.
-  s.box(0.5, 0.08, 1.1, 0.74, 0, 48, {
+  s.box(0.5, 0.08, 1.1, 0.74, 0, 56, {
     top: (gx, gy) => (Math.floor(gx * 14) + Math.floor(gy * 14)) % 2 === 0 ? C.metal : C.black,
     left: (gx, z) => {
       const px = (gx - 0.5) * 30;
-      if (px < 1 || px > 17 || z < 2 || z > 46) return C.metalLight;
-      const fan = fanPixel(px, z, 9, 12) ?? fanPixel(px, z, 9, 35);
+      if (px < 1 || px > 17 || z < 2 || z > 54) return C.metalLight;
+      const fan = fanPixel(px, z, 9, 14) ?? fanPixel(px, z, 9, 42);
       if (fan) return fan;
-      if (z > 21 && z < 26) return z > 24 ? C.neon : C.metal;
+      if (z > 25 && z < 31) return z > 28 ? C.neon : C.metal;
       return '#10131c';
     },
     right: (gy, z) => (Math.floor(z / 3) % 2 === 0 ? C.black : C.metal),
@@ -484,92 +527,102 @@ export function roomDesk() {
   });
 
   // Tủ ngăn kéo, chân bàn, mặt bàn, LED dưới bàn.
-  s.box(2.3, 0.08, 2.95, 0.85, 0, 20, {
+  s.box(2.3, 0.08, 2.95, 1.18, 0, 22, {
     top: C.woodLight,
-    left: (gx, z) => (Math.abs(z - 7) < 0.8 || Math.abs(z - 14) < 0.8 ? C.woodDark : C.woodMid),
+    left: (gx, z) => {
+      if (Math.abs(z - 7.5) < 0.8 || Math.abs(z - 15) < 0.8) return C.woodDark;
+      if (Math.abs(gx - 2.62) < 0.06 && (Math.abs(z - 3.5) < 1 || Math.abs(z - 11) < 1 || Math.abs(z - 18.5) < 1)) return C.gold;
+      return C.woodMid;
+    },
     right: C.woodDark,
   });
-  s.box(1.16, 0.72, 1.26, 0.85, 0, 20, { top: C.woodDark, left: C.metal, right: C.black });
-  s.box(1.12, 0, 3, 0.9, 20, 24, wood);
-  s.faceY(0.9, 1.12, 3, 18, 20, (gx) =>
+  s.box(1.16, 1.04, 1.26, 1.18, 0, 22, { top: C.woodDark, left: C.metal, right: C.black });
+  s.box(1.12, 0, 3, 1.25, 22, TOP, wood);
+  s.faceY(1.25, 1.12, 3, 20, 22, (gx) =>
     RGB[Math.min(RGB.length - 1, Math.floor(((gx - 1.12) / 1.88) * RGB.length))],
   );
 
-  // Cây nhỏ góc sau bàn.
-  s.box(1.17, 0.08, 1.33, 0.24, 24, 31, { top: C.woodDark, left: '#a8603f', right: '#7d452f' });
-  for (let i = 0; i < 18; i++) {
-    const x = Math.round(s.sx(1.25, 0.16)) + rng.int(-5, 5);
-    const y = Math.round(s.sy(1.25, 0.16, 32)) - rng.int(0, 11);
-    s.p.rect(x, y, 2, 2, rng.pick([C.leaf, C.leafLight, C.leafDark]));
-  }
-
-  // Cột và màn hình phụ phía trên: bảng số liệu bể cá.
-  s.box(1.66, 0.2, 1.74, 0.28, 24, 66, { top: C.metal, left: C.metalLight, right: C.metal });
-  s.faceY(0.4, 1.35, 2.1, 64, 84, (gx, z, x, y) => {
-    const edge = Math.min(gx - 1.35, 2.1 - gx, (z - 64) / 20, (84 - z) / 20);
+  // Màn hình phụ trên cao: bảng số liệu bể cá.
+  s.box(1.7, 0.2, 1.78, 0.28, TOP, 80, { top: C.metal, left: C.metalLight, right: C.metal });
+  s.faceY(0.4, 1.32, 2.2, 78, 100, (gx, z, x, y) => {
+    const edge = Math.min(gx - 1.32, 2.2 - gx, (z - 78) / 22, (100 - z) / 22);
     if (edge < 0.04) return C.black;
-    const curve = 73 + Math.sin(gx * 13) * 3 + Math.sin(gx * 31) * 1.5;
-    if (Math.abs(z - curve) < 0.8) return C.neon;
+    const u = (gx - 1.32) / 0.88;
+    if (u < 0.4) {
+      const bar = Math.floor(u * 15);
+      const high = 82 + ((bar * 37) % 11);
+      if (bar % 2 === 0 && z < high) return bar % 4 === 0 ? C.neon : '#58a6ff';
+      return '#10233f';
+    }
+    const curve = 89 + Math.sin(gx * 13) * 4 + Math.sin(gx * 31) * 2;
+    if (Math.abs(z - curve) < 0.9) return C.neon;
     if (z < curve) return bayer(x, y) > 0.55 ? '#16405c' : '#10233f';
     return Math.floor(z) % 6 === 0 ? '#1b3355' : '#10233f';
   });
 
   // Màn hình chính: trình soạn code.
-  s.box(1.66, 0.3, 1.76, 0.4, 24, 34, { top: C.metal, left: C.metalLight, right: C.black });
-  const main = codeRows(rng, 8);
-  s.faceY(0.42, 1.18, 2.24, 33, 62, (gx, z) => {
-    const edge = Math.min(gx - 1.18, 2.24 - gx, (z - 33) / 29, (62 - z) / 29);
-    if (edge < 0.04) return C.black;
-    const u = (gx - 1.18) / 1.06;
-    if (z > 58.5) return Math.floor(u * 12) % 4 === 0 ? '#2b3350' : '#1a2036';
-    if (u < 0.1) return '#141a2e';
-    const row = main[Math.floor((58 - z) / 3)];
-    if ((58 - z) % 3 < 1.5 && row) {
+  s.box(1.5, 0.44, 1.96, 0.62, TOP, TOP + 1, { top: C.metalLight, left: C.metal, right: C.black });
+  s.box(1.68, 0.3, 1.78, 0.44, TOP, 38, { top: C.metal, left: C.metalLight, right: C.black });
+  s.faceX(2.32, 0.36, 0.42, 38, 76, C.black);
+  const main = codeRows(rng, 11);
+  s.faceY(0.42, 1.16, 2.32, 38, 76, (gx, z) => {
+    const edge = Math.min(gx - 1.16, 2.32 - gx, (z - 38) / 38, (76 - z) / 38);
+    if (edge < 0.035) return C.black;
+    const u = (gx - 1.16) / 1.16;
+    if (z > 71.5) {
+      if (z > 74) return '#2b3350';
+      return Math.floor(u * 8) === 1 ? '#3a4a78' : '#1f2642';
+    }
+    if (u < 0.1) return Math.floor((71 - z) / 3) % 2 === 0 ? '#2b3350' : '#141a2e';
+    const index = Math.floor((71 - z) / 3);
+    const row = main[index];
+    if ((71 - z) % 3 < 1.6 && row) {
       const hit = row.find(([at, len]) => u >= at && u < at + len);
       if (hit) return hit[2];
     }
-    return Math.abs(Math.floor((58 - z) / 3) - 3) < 1 ? '#22294a' : '#1a2036';
+    return index === 4 ? '#2a3358' : '#1a2036';
   });
-  const noteX = Math.round(s.sx(2.12, 0.42));
-  const noteY = Math.round(s.sy(2.12, 0.42, 37));
+  const noteX = Math.round(s.sx(2.2, 0.42));
+  const noteY = Math.round(s.sy(2.2, 0.42, 44));
   s.p.rect(noteX, noteY, 4, 4, C.gold);
 
   // Màn hình dọc: terminal.
-  s.box(2.54, 0.28, 2.62, 0.36, 24, 34, { top: C.metal, left: C.metalLight, right: C.black });
-  const term = codeRows(rng, 11);
-  s.faceY(0.36, 2.3, 2.88, 33, 72, (gx, z) => {
-    const edge = Math.min(gx - 2.3, 2.88 - gx, (z - 33) / 39, (72 - z) / 39);
+  s.box(2.62, 0.28, 2.7, 0.36, TOP, 38, { top: C.metal, left: C.metalLight, right: C.black });
+  s.faceX(2.98, 0.3, 0.36, 38, 86, C.black);
+  const term = codeRows(rng, 15);
+  s.faceY(0.36, 2.36, 2.98, 38, 86, (gx, z) => {
+    const edge = Math.min(gx - 2.36, 2.98 - gx, (z - 38) / 48, (86 - z) / 48);
     if (edge < 0.05) return C.black;
-    const u = (gx - 2.3) / 0.58;
-    const index = Math.floor((69 - z) / 3);
+    const u = (gx - 2.36) / 0.62;
+    const index = Math.floor((83 - z) / 3);
     const row = term[index];
-    if ((69 - z) % 3 < 1.5 && row && row.some(([at, len]) => u >= at - 0.1 && u < at + len)) {
+    if ((83 - z) % 3 < 1.6 && row && row.some(([at, len]) => u >= at - 0.1 && u < at + len)) {
       return index % 4 === 0 ? C.waterHigh : '#a7f3c0';
     }
     return '#0c1a1c';
   });
 
   // Lót chuột, bàn phím RGB, chuột, cốc.
-  s.top(1.32, 0.56, 2.56, 0.88, 24, (gx, gy) => {
-    const edge = Math.min(gx - 1.32, 2.56 - gx, gy - 0.56, 0.88 - gy);
+  s.top(1.3, 0.72, 2.62, 1.22, TOP, (gx, gy) => {
+    const edge = Math.min(gx - 1.3, 2.62 - gx, gy - 0.72, 1.22 - gy);
     return edge < 0.025 ? '#58a6ff' : '#141a2e';
   });
-  s.box(1.42, 0.62, 2.06, 0.82, 24, 26, {
+  s.box(1.42, 0.82, 2.12, 1.1, TOP, TOP + 2, {
     top: (gx, gy) => {
       if (Math.floor(gx * 26) % 2 === 1 || Math.floor(gy * 34) % 2 === 1) return C.black;
-      return RGB[Math.floor(((gx - 1.42) / 0.64) * RGB.length) % RGB.length];
+      return RGB[Math.floor(((gx - 1.42) / 0.7) * RGB.length) % RGB.length];
     },
     left: C.metal,
     right: C.black,
   });
-  s.box(2.2, 0.66, 2.32, 0.8, 24, 26, { top: C.metalLight, left: C.metal, right: C.black });
-  s.p.set(Math.round(s.sx(2.26, 0.73)), Math.round(s.sy(2.26, 0.73, 26)), C.neon);
-  s.box(1.16, 0.6, 1.28, 0.72, 24, 31, { top: '#2a1d1c', left: C.linen, right: C.linenShade });
+  s.box(2.26, 0.86, 2.4, 1.02, TOP, TOP + 2, { top: C.metalLight, left: C.metal, right: C.black });
+  s.p.set(Math.round(s.sx(2.33, 0.94)), Math.round(s.sy(2.33, 0.94, TOP + 2)), C.neon);
+  s.box(1.16, 0.66, 1.28, 0.78, TOP, TOP + 8, { top: '#2a1d1c', left: C.linen, right: C.linenShade });
 
   // Tai nghe trên giá.
-  s.box(2.72, 0.66, 2.78, 0.72, 24, 44, { top: C.metal, left: C.metalLight, right: C.metal });
-  const hx = Math.round(s.sx(2.75, 0.69));
-  const hy = Math.round(s.sy(2.75, 0.69, 46));
+  s.box(2.76, 0.72, 2.82, 0.78, TOP, 46, { top: C.metal, left: C.metalLight, right: C.metal });
+  const hx = Math.round(s.sx(2.79, 0.75));
+  const hy = Math.round(s.sy(2.79, 0.75, 48));
   s.p.line(hx - 6, hy + 5, hx - 3, hy, C.black);
   s.p.line(hx - 3, hy, hx + 3, hy, C.metalLight);
   s.p.line(hx + 3, hy, hx + 6, hy + 5, C.black);
@@ -578,18 +631,34 @@ export function roomDesk() {
   s.p.rect(hx - 7, hy + 7, 1, 3, C.neon);
   s.p.rect(hx + 7, hy + 7, 1, 3, C.neon);
 
-  // Ghế xoay, lệch sang phải để không che case.
-  s.box(1.94, 1.12, 2.02, 1.2, 4, 15, { top: C.metal, left: C.metalLight, right: C.metal });
-  s.top(1.68, 0.98, 2.28, 1.42, 2, (gx, gy) =>
-    Math.abs(gx - 1.98) < 0.05 || Math.abs(gy - 1.2) < 0.05 ? C.metal : null,
+  // Ánh màn hình và LED hắt lên mặt bàn, trước khi vẽ ghế.
+  glow(s.p, s.sx(1.8, 0.95), s.sy(1.8, 0.95, TOP), 44, 15, '#58a6ff', 0.32);
+  glow(s.p, s.sx(1.2, 0.8), s.sy(1.2, 0.8, 22), 22, 16, '#ff5ccf', 0.2);
+
+  // Ghế xoay kéo ra ngoài bàn, lệch sang phải để không che case.
+  const foot = { top: C.metal, left: C.black, right: C.black };
+  s.top(2.1, 1.42, 2.7, 1.98, 2, (gx, gy) =>
+    Math.abs(gx - 2.4) < 0.05 || Math.abs(gy - 1.7) < 0.05 ? C.metal : null,
   );
-  s.box(1.7, 1.0, 2.26, 1.4, 15, 19, { top: '#374256', left: C.black, right: C.black, edge: C.metalLight });
-  s.box(1.72, 1.3, 2.24, 1.4, 19, 33, {
-    top: C.metalLight,
-    left: (gx, z, x, y) => (bayer(x, y) > 0.6 ? C.metal : '#28303f'),
+  for (const [gx, gy] of [[2.12, 1.7], [2.68, 1.7], [2.4, 1.44], [2.4, 1.96]]) {
+    s.box(gx - 0.05, gy - 0.05, gx + 0.05, gy + 0.05, 0, 3, foot);
+  }
+  s.box(2.36, 1.66, 2.44, 1.74, 3, 13, { top: C.metal, left: C.metalLight, right: C.metal });
+  s.box(2.06, 1.42, 2.74, 1.96, 13, 18, {
+    top: (gx, gy, x, y) => (Math.abs(gx - 2.4) < 0.06 ? '#b86bff' : bayer(x, y) > 0.7 ? '#2a3146' : '#374256'),
+    left: C.black,
     right: C.black,
-    edge: C.metalLight,
+    edge: '#7fc4ff',
   });
+  s.box(2.06, 1.46, 2.12, 1.8, 18, 25, { top: C.metalLight, left: C.black, right: C.metal });
+  s.box(2.68, 1.46, 2.74, 1.8, 18, 25, { top: C.metalLight, left: C.black, right: C.metal });
+  const backrest = (gx, z, x, y) => {
+    if (Math.abs(gx - 2.4) < 0.07) return z > 37 ? '#ff5ccf' : '#b86bff';
+    if (Math.floor(z / 5) % 2 === 0 && gx > 2.16 && gx < 2.64) return '#28303f';
+    return bayer(x, y) > 0.7 ? C.metal : '#1f2534';
+  };
+  s.box(2.1, 1.86, 2.7, 1.96, 18, 41, { top: '#7f8ca8', left: backrest, right: C.black, edge: '#7fc4ff' });
+  s.box(2.24, 1.86, 2.56, 1.97, 42, 48, { top: '#7f8ca8', left: '#28303f', right: C.black, edge: '#7fc4ff' });
   s.p.outline(C.ink);
   return s.p;
 }
@@ -636,9 +705,41 @@ function surfaceAt(x, y) {
     : { px: along, py: 0, pz: z, nx: 0, ny: 1, nz: 0 };
 }
 
+/** Pixel nào trên ảnh tường+sàn đang bị đồ nội thất che. */
+function furnitureMask() {
+  const mask = new Uint8Array(SHELL_W * SHELL_H);
+  for (const [draw, ox, oy] of [
+    [roomDesk, 200, 14],
+    [roomTank, 320, 82],
+    [roomBed, 32, 135],
+    [roomNightstand, 99, 128],
+    [roomBookcase, 209, 25],
+    [roomPlant, 8, 150],
+  ]) {
+    const p = draw();
+    for (let y = 0; y < p.height; y++) {
+      for (let x = 0; x < p.width; x++) {
+        const sx = x + ox;
+        const sy = y + oy;
+        if (p.alphaAt(x, y) > 0 && sx >= 0 && sy >= 0 && sx < SHELL_W && sy < SHELL_H) mask[sy * SHELL_W + sx] = 1;
+      }
+    }
+  }
+  return mask;
+}
+
+/** Độ bóng của sàn gỗ: khe ván gần như không phản chiếu, thảm mờ hơn gỗ nhiều. */
+function floorGloss(gx, gy) {
+  if (gx >= 2.9 && gx <= 6.3 && gy >= 2.9 && gy <= 6.5) return 0.22;
+  const row = Math.floor(gy / 0.5);
+  if (gy / 0.5 - row < 0.09) return 0.2;
+  return 0.78 + 0.22 * Math.sin(row * 2.7 + 1);
+}
+
 /** Lớp cộng sáng: mỗi nguồn là điểm sáng 3D; chỉ tô trong hình căn phòng, chia bậc để giữ chất pixel. */
 function lightLayer(sources) {
   const shell = roomShell();
+  const mask = furnitureMask();
   const layer = new Pixels(SHELL_W, SHELL_H);
   const BANDS = 10;
   for (let y = 0; y < SHELL_H; y++) {
@@ -646,6 +747,7 @@ function lightLayer(sources) {
       if (shell.alphaAt(x, y) === 0) continue;
       const surface = surfaceAt(x, y);
       if (!surface) continue;
+      const covered = mask[y * SHELL_W + x] === 1;
       let total = 0;
       let [r, g, b] = [0, 0, 0];
       for (const light of sources) {
@@ -656,6 +758,18 @@ function lightLayer(sources) {
         const facing = Math.max(0, (lx * surface.nx + ly * surface.ny + lz * surface.nz) / d);
         const fall = Math.max(0, 1 - d / light.range);
         let amount = light.strength * fall * fall * (0.3 + 0.7 * facing);
+        if (covered) amount *= 0.55;
+        if (light.reflect && surface.nz === 1 && !covered) {
+          // Vệt phản chiếu chạy dọc màn hình từ chân nguồn sáng về phía người nhìn.
+          const across = surface.px - surface.py - (light.x - light.y);
+          const along = surface.px + surface.py - (light.x + light.y);
+          if (along > 0) {
+            const { width, length, strength } = light.reflect;
+            const spread = width * (1 + along / length);
+            const t = Math.max(0, 1 - Math.abs(across) / spread) * Math.max(0, 1 - along / length);
+            amount += strength * t * t * floorGloss(surface.px, surface.py);
+          }
+        }
         if (light.ripple && surface.nz === 1) {
           amount *= 0.72 + 0.28 * Math.sin(surface.px * 7 + Math.sin(surface.py * 6) * 2);
         }
@@ -682,20 +796,22 @@ function rgbHex(r, g, b) {
 
 export const roomLightPc = () =>
   lightLayer([
-    { x: 1.75, y: 0.6, z: 1.9, color: '#4f94ff', range: 3.6, strength: 0.42 },
+    { x: 1.75, y: 0.6, z: 1.9, color: '#4f94ff', range: 3.8, strength: 0.46, reflect: { width: 0.7, length: 3.6, strength: 0.5 } },
     { x: 1.7, y: 0.42, z: 2.1, color: '#3fd7ff', range: 2.0, strength: 0.42 },
-    { x: 2.0, y: 1.0, z: 0.25, color: '#c05cff', range: 1.5, strength: 0.6 },
+    { x: 2.0, y: 1.4, z: 0.25, color: '#c05cff', range: 1.7, strength: 0.6 },
     { x: 0.8, y: 0.85, z: 0.7, color: '#ff5ccf', range: 1.0, strength: 0.32 },
   ]);
 
 export const roomLightTank = () =>
   lightLayer([
-    { x: 4.85, y: 1.3, z: 1.5, color: '#2fe3b4', range: 4.2, strength: 0.5, ripple: true },
+    { x: 4.85, y: 1.3, z: 1.5, color: '#2fe3b4', range: 4.4, strength: 0.54, ripple: true, reflect: { width: 1.3, length: 3.8, strength: 0.52 } },
     { x: 4.85, y: 0.5, z: 2.6, color: '#2fe3b4', range: 2.2, strength: 0.32 },
   ]);
 
 export const roomLightLamp = () =>
-  lightLayer([{ x: 0.38, y: 4.62, z: 1.35, color: '#ffb05c', range: 4.4, strength: 0.62 }]);
+  lightLayer([
+    { x: 0.38, y: 4.62, z: 1.35, color: '#ffb05c', range: 4.6, strength: 0.66, reflect: { width: 0.6, length: 3.2, strength: 0.42 } },
+  ]);
 
 export function roomTank() {
   const s = new Stage(320, 82, 114, 132);
@@ -703,7 +819,11 @@ export function roomTank() {
   const gx0 = 3.5;
   const gx1 = 6.2;
   const gy1 = 1.1;
-  const onFront = (gx, z) => [Math.round(s.sx(gx, gy1)), Math.round(s.sy(gx, gy1, z))];
+  const SAND = 36;
+  const WATER = 68;
+  const pt = (gx, gy, z) => [Math.round(s.sx(gx, gy)), Math.round(s.sy(gx, gy, z))];
+  // Càng xa kính trước càng ngả về màu nước.
+  const haze = (color, gy) => mixHex(color, '#0e5a52', 0.68 * Math.max(0, 1 - gy / gy1) ** 1.1);
 
   // Tủ gỗ có hai cánh, tay nắm đồng.
   s.box(gx0, 0, gx1, gy1, 0, 30, {
@@ -718,124 +838,188 @@ export function roomTank() {
     edge: C.woodHigh,
   });
 
-  // Nước sâu dần về phía sau: nền mờ, các vệt nắng từ đèn.
-  const waterAt = (a, z, x, y) => {
-    if (z > 66) return C.glass;
-    const shaft = Math.sin(a * 8.5 + 1.1) > 0.62 && z > 44 && bayer(x, y) > 0.5;
-    if (shaft) return '#3fb48a';
-    return ramp(['#0d3f3e', '#14665a', '#249270'], (z - 32) / 34, x, y);
-  };
-  s.faceY(gy1, gx0, gx1, 30, 68, waterAt);
-  s.faceX(gx1, 0, gy1, 30, 68, (gy, z, x, y) => {
-    if (z > 66) return C.glass;
-    return ramp(['#0a3234', '#115047', '#1b7560'], (z - 32) / 34, x, y);
+  // Vách sau và vách trái bên trong hồ, nền cát trải theo chiều sâu.
+  s.faceY(0.04, gx0, gx1, 30, WATER, (gx, z, x, y) => {
+    const shaft = Math.sin(gx * 8.5 + 1.1) > 0.62 && z > 46 && bayer(x, y) > 0.5;
+    return shaft ? '#2f9a7c' : ramp(['#0b3a3a', '#0f5a52', '#1b8068'], (z - 34) / 34, x, y);
   });
-  s.top(gx0, 0, gx1, gy1, 68, (gx, gy, x, y) => {
-    const ripple = Math.sin(gx * 8 + Math.sin(gy * 7) * 2);
-    if (ripple > 0.86) return '#2f9a70';
-    return bayer(x, y) > 0.7 ? '#1a6a52' : '#134f46';
+  s.faceX(gx0, 0, gy1, 30, WATER, (gy, z, x, y) =>
+    ramp(['#082e30', '#0c4a46', '#14665a'], (z - 34) / 34, x, y),
+  );
+  s.top(gx0, 0, gx1, gy1, SAND, (gx, gy, x, y) => {
+    const dune = Math.sin(gx * 3.1 + gy * 5.2) * 0.22 + Math.sin(gx * 9 - gy * 7) * 0.08;
+    const color = ramp(['#5f5438', '#8a7a52', '#c0a974'], 0.45 + dune + gy * 0.25, x, y);
+    return haze(color, gy);
   });
 
-  const stalk = (gx, base, height, colors, sway) => {
+  const blade = (gx, gy, height, colors, sway, width) => {
     for (let k = 0; k < height; k++) {
-      const [x, y] = onFront(gx, base + k);
-      const dx = Math.round(Math.sin(k * 0.32 + sway) * 1.6);
-      s.p.rect(x + dx, y, 2, 1, colors[Math.min(colors.length - 1, Math.floor((k / height) * colors.length))]);
-      if (k % 3 === 0 && k > 2) s.p.set(x + dx + (k % 6 === 0 ? 2 : -1), y, colors[colors.length - 1]);
+      const [x, y] = pt(gx, gy, SAND + k);
+      const dx = Math.round(Math.sin(k * 0.3 + sway) * (k / height) * 3.2);
+      const half = Math.round(Math.sin(((k + 1) / (height + 1)) * Math.PI) * width);
+      const base = colors[Math.min(colors.length - 1, Math.floor((k / height) * colors.length))];
+      for (let w = -half; w <= half; w++) {
+        const tone = w < 0 ? mixHex(base, '#0b3a3a', 0.28) : w > 0 ? mixHex(base, '#d8ffc0', 0.18) : base;
+        s.put(x + dx + w, y, haze(tone, gy));
+      }
     }
   };
-
-  // Lớp xa: bóng cây phai màu, nền cát cao dần về sau.
-  for (let i = 0; i < 16; i++) {
-    stalk(rng.range(gx0 + 0.08, gx1 - 0.08), 37, rng.int(14, 28), ['#155049', '#1b6a58'], rng.range(0, 6));
-  }
-  for (let x = Math.round(s.sx(gx0, gy1)); x < Math.round(s.sx(gx1, gy1)); x++) {
-    const gx = gx0 + (x - s.sx(gx0, gy1)) / U;
-    const base = s.sy(gx, gy1);
-    const bed = 37 - (gx - gx0) * 1.4 + Math.sin(gx * 4.3) * 1.4;
-    for (let y = Math.round(base - bed); y < Math.round(base - 30); y++) {
-      s.put(x, y, ramp(['#4f4630', '#8a7a52'], (base - y - 30) / 8, x, y));
+  const clump = (gx, gy, count, tall, colors, width) => {
+    for (let i = 0; i < count; i++) {
+      blade(gx + rng.range(-0.1, 0.1), gy + rng.range(-0.03, 0.03), rng.int(tall * 0.6, tall), colors, rng.range(0, 6), width);
     }
-  }
-
-  // Lớp giữa: đá, lũa, cây.
-  const rock = (gx, z, rx, ry) => {
-    const [x, y] = onFront(gx, z);
-    s.p.ellipse(x, y, rx, ry, '#37414e');
-    s.p.ellipse(x - 1, y - 1, rx - 1, ry - 1, '#5b6775');
-    s.p.ellipse(x - 2, y - 2, Math.max(1, rx - 4), Math.max(1, ry - 3), '#8d9aa4');
   };
-  rock(3.98, 40, 10, 8);
-  rock(4.28, 37, 7, 5);
-  rock(5.62, 39, 9, 7);
-  const branch = (points, width, color) => {
+  // Cây lá rộng: các lá xoè từ một gốc, lá dài vẽ trước.
+  const rosette = (gx, gy, count, reach, colors) => {
+    const [cx, cy] = pt(gx, gy, SAND);
+    const leaves = [];
+    for (let i = 0; i < count; i++) leaves.push([-Math.PI / 2 + rng.range(-1.05, 1.05), rng.range(reach * 0.6, reach)]);
+    leaves.sort((a, b) => b[1] - a[1]);
+    leaves.forEach(([angle, length], index) => {
+      const color = colors[index % colors.length];
+      for (let k = 0; k <= length; k++) {
+        const t = k / length;
+        const x = cx + Math.cos(angle) * k;
+        const y = cy + Math.sin(angle) * k + t * t * 5;
+        const half = Math.round(Math.sin(t * Math.PI) * 2.6);
+        for (let w = -half; w <= half; w++) {
+          const tone = w === 0 ? mixHex(color, '#e0ffc0', 0.3) : w < 0 ? mixHex(color, '#0b3a3a', 0.3) : color;
+          s.put(Math.round(x + w), Math.round(y), haze(tone, gy));
+        }
+      }
+    });
+  };
+  const rock = (gx, gy, rx, ry) => {
+    const [x, y] = pt(gx, gy, SAND);
+    s.p.ellipse(x + 2, y + 1, rx + 2, Math.max(2, ry * 0.45), haze('#2f2a20', gy));
+    s.p.ellipse(x, y - ry * 0.6, rx, ry, haze('#2c3540', gy));
+    s.p.ellipse(x - 1, y - ry * 0.7, rx - 1, ry - 1, haze('#55616f', gy));
+    s.p.ellipse(x - 2, y - ry, Math.max(1, rx - 4), Math.max(1, ry - 3), haze('#93a2a8', gy));
+  };
+  const wood = (points, gy, width) => {
     for (let i = 0; i < points.length - 1; i++) {
-      const [ax, ay] = onFront(...points[i]);
-      const [bx, by] = onFront(...points[i + 1]);
-      for (let w = 0; w < width; w++) s.p.line(ax + w, ay, bx + w, by, color);
+      const [ax, ay] = pt(points[i][0], gy, points[i][1]);
+      const [bx, by] = pt(points[i + 1][0], gy, points[i + 1][1]);
+      for (let w = 0; w < width; w++) s.p.line(ax + w, ay, bx + w, by, haze(w === 0 ? '#8a6240' : '#3b271e', gy));
     }
   };
-  branch([[4.72, 36], [4.95, 45], [5.3, 53], [5.5, 60]], 3, '#3b271e');
-  branch([[4.72, 36], [4.95, 45], [5.3, 53], [5.5, 60]], 1, '#8a6240');
-  branch([[5.02, 47], [4.82, 56], [4.72, 60]], 2, '#4a3226');
-  branch([[5.3, 53], [5.68, 54]], 2, '#4a3226');
-  for (let i = 0; i < 12; i++) {
-    stalk(rng.range(gx0 + 0.1, gx1 - 0.1), 36, rng.int(9, 22), [C.leafDark, '#3e8a52', C.leaf], rng.range(0, 6));
+  // Cá có lưng tối, bụng sáng, vây và mắt; gần kính thì to hơn.
+  const fish = (gx, gy, z, size, color, flip) => {
+    const [x, y] = pt(gx, gy, z);
+    const len = Math.round(size * (0.72 + (0.34 * gy) / gy1));
+    const tall = Math.max(1, Math.round(len * 0.55));
+    const dir = flip ? -1 : 1;
+    s.p.ellipse(x, y, len, tall, haze(mixHex(color, '#1a2030', 0.34), gy));
+    s.p.ellipse(x, y + (tall > 1 ? 1 : 0), Math.max(1, len - 1), Math.max(1, tall - 1), haze(color, gy));
+    if (tall > 1) s.p.rect(x - len + 2, y + tall - 1, len * 2 - 4, 1, haze(mixHex(color, '#fff6d8', 0.55), gy));
+    const tailX = x - dir * (len + 1);
+    for (let i = 0; i <= tall + 1; i++) {
+      s.p.rect(tailX - dir * i, y - i, 1, i * 2 + 1, haze(mixHex(color, '#a03a30', 0.3), gy));
+    }
+    s.p.rect(x - 1, y - tall - 1, 3, 1, haze(mixHex(color, '#a03a30', 0.3), gy));
+    s.p.set(x + dir * (len - 2), y - (tall > 1 ? 1 : 0), C.ink);
+  };
+
+  // Vẽ từ sau ra trước để lớp gần che lớp xa thật sự.
+  const items = [];
+  for (let i = 0; i < 14; i++) {
+    const gx = rng.range(gx0 + 0.15, gx1 - 0.15);
+    const gy = rng.range(0.1, 0.3);
+    items.push([gy, () => blade(gx, gy, rng.int(16, 28), ['#1f7a60', '#2f9a6a'], rng.range(0, 6), 1)]);
+  }
+  items.push([0.34, () => rock(4.05, 0.34, 11, 8)]);
+  items.push([0.3, () => rock(5.55, 0.3, 9, 7)]);
+  items.push([0.42, () => rosette(4.75, 0.42, 9, 24, ['#2f7a44', '#3e8a52', '#4f9a4a'])]);
+  items.push([0.46, () => {
+    wood([[4.95, SAND], [5.1, 44], [5.3, 52], [5.5, 60]], 0.46, 3);
+    wood([[5.12, 46], [4.95, 55], [4.88, 60]], 0.46, 2);
+    wood([[5.3, 52], [5.68, 55]], 0.46, 2);
+  }]);
+  items.push([0.55, () => clump(5.85, 0.55, 5, 24, ['#a84a35', '#d9603f', '#f08a5b'], 1)]);
+  items.push([0.6, () => clump(3.8, 0.6, 6, 26, ['#2f6a3e', C.leaf, C.leafLight], 1)]);
+  items.push([0.68, () => rock(5.15, 0.68, 8, 5)]);
+  items.push([0.72, () => rosette(4.3, 0.72, 7, 15, [C.leaf, '#5fa84a', '#3e8a52'])]);
+  for (let i = 0; i < 16; i++) {
+    const gy = rng.range(0.25, 0.85);
+    const gx = 4.5 + rng.range(-0.42, 0.55);
+    const z = 54 + rng.range(-6, 7);
+    items.push([gy, () => fish(gx, gy, z, 2, '#62e0f4', false)]);
+  }
+  items.push([0.3, () => fish(5.25, 0.3, 58, 5, '#f0e0a0', true)]);
+  items.push([0.62, () => fish(3.95, 0.62, 57, 6, '#ff8f6b', false)]);
+  items.push([0.9, () => fish(5.3, 0.9, 50, 7, '#ffb45e', true)]);
+  items.push([0.98, () => clump(5.98, 0.98, 3, 14, ['#a84a35', '#d9603f', '#f08a5b'], 1)]);
+  items.push([1.0, () => {
+    for (let i = 0; i < 90; i++) {
+      const gx = rng.range(gx0 + 0.04, gx1 - 0.04);
+      const [x, y] = pt(gx, rng.range(0.92, 1.08), SAND);
+      s.p.rect(x, y - rng.int(1, 6), 1, rng.int(3, 6), rng.pick([C.leaf, C.leafLight, '#5fa84a', C.leafDark]));
+    }
+  }]);
+  items.sort((a, b) => a[0] - b[0]).forEach(([, draw]) => draw());
+
+  // Bọt khí và tia sáng từ đèn máng.
+  for (let z = 40; z < WATER - 2; z += 5) {
+    const [x, y] = pt(5.86, 0.5, z);
+    s.p.set(x + Math.round(Math.sin(z) * 1.5), y, '#d6fff0', 0.8);
+  }
+  for (const [gx, width] of [[4.05, 5], [4.75, 7], [5.5, 4]]) {
+    for (let z = WATER - 2; z > SAND; z--) {
+      const [x, y] = pt(gx - (WATER - z) * 0.012, gy1, z);
+      for (let w = 0; w < width; w++) {
+        if (s.p.alphaAt(x + w, y) > 0 && bayer(x + w, y) > 0.2) s.p.set(x + w, y, '#b4ffe6', 0.14 * ((z - SAND) / (WATER - SAND)));
+      }
+    }
   }
 
-  // Đàn cá nhỏ giữa nước và vài con lớn.
-  const school = [];
-  for (let i = 0; i < 11; i++) school.push([4.2 + rng.range(-0.34, 0.5), 55 + rng.range(-5, 6)]);
-  for (const [gx, z] of school) {
-    const [x, y] = onFront(gx, z);
-    s.p.rect(x, y, 3, 1, '#62e0f4');
-    s.p.set(x, y + 1, '#ff6b5e');
-  }
-  for (const [gx, z, color] of [
-    [5.2, 62, '#ffb45e'],
-    [5.72, 48, '#f0e0a0'],
-    [3.86, 60, '#ff8f6b'],
+  // Tầng đất nhìn qua kính, rồi màng nước và mặt nước.
+  const strata = (z, x, y) => ramp(['#3a3122', '#6a5a3c', '#a18c5c'], (z - 30) / 6, x, y);
+  s.faceY(gy1, gx0, gx1, 30, SAND, (gx, z, x, y) => strata(z, x, y));
+  s.faceX(gx1, 0, gy1, 30, SAND, (gy, z, x, y) => mixHex(strata(z, x, y), '#120c10', 0.3));
+  s.faceY(gy1, gx0, gx1, SAND, WATER, (gx, z, x, y) => {
+    s.p.set(x, y, '#0f7d6a', 0.12);
+    return null;
+  });
+  s.faceX(gx1, 0, gy1, SAND, WATER, (gy, z, x, y) => {
+    s.p.set(x, y, '#08403e', 0.46);
+    return null;
+  });
+  s.top(gx0, 0, gx1, gy1, WATER, (gx, gy, x, y) => {
+    const ripple = Math.sin(gx * 8 + Math.sin(gy * 7) * 2);
+    s.p.set(x, y, ripple > 0.82 ? '#b4ffe0' : '#1a7a66', ripple > 0.82 ? 0.42 : 0.3);
+    return null;
+  });
+
+  // Khung kính bốn cạnh trên, cạnh đứng, vệt phản chiếu, đèn máng.
+  for (const [a, b, c, d, alpha] of [
+    [gx0, gy1, gx1, gy1, 1],
+    [gx1, gy1, gx1, 0, 1],
+    [gx0, 0, gx1, 0, 0.5],
+    [gx0, 0, gx0, gy1, 0.5],
   ]) {
-    const [x, y] = onFront(gx, z);
-    s.p.rect(x, y, 5, 3, color);
-    s.p.rect(x - 2, y, 2, 3, color);
-    s.p.set(x + 4, y, C.ink);
+    const [ax, ay] = pt(a, b, WATER);
+    const [bx, by] = pt(c, d, WATER);
+    const steps = Math.max(Math.abs(bx - ax), Math.abs(by - ay));
+    for (let i = 0; i <= steps; i++) {
+      s.p.set(Math.round(ax + ((bx - ax) * i) / steps), Math.round(ay + ((by - ay) * i) / steps), C.glass, alpha);
+    }
   }
-
-  // Lớp gần: thảm cỏ sáng và cây đỏ làm điểm nhấn.
-  for (let i = 0; i < 80; i++) {
-    const gx = rng.range(gx0 + 0.03, gx1 - 0.03);
-    const [x, y] = onFront(gx, 33 + rng.range(0, 3));
-    s.p.rect(x, y - rng.int(1, 5), 1, rng.int(3, 6), rng.pick([C.leaf, C.leafLight, '#5fa84a']));
+  for (const [gx, gy] of [[gx0, gy1], [gx1, gy1], [gx1, 0]]) {
+    const [x, yTop] = pt(gx, gy, WATER);
+    for (let y = yTop; y < yTop + 38; y++) s.p.set(x, y, C.glass, gy === 0 ? 0.5 : 1);
   }
-  stalk(5.92, 36, 24, ['#a84a35', '#d9603f', '#f08a5b'], 1);
-  stalk(5.98, 36, 18, ['#a84a35', '#d9603f', '#f08a5b'], 3);
-  stalk(3.72, 36, 26, ['#2f6a3e', C.leaf, C.leafLight], 2);
-  stalk(3.8, 36, 20, ['#2f6a3e', C.leaf, C.leafLight], 4);
-
-  // Mặt nước, khung kính, đèn máng.
-  for (let x = Math.round(s.sx(gx0, gy1)); x < Math.round(s.sx(gx1, gy1)); x++) {
-    const gx = gx0 + (x - s.sx(gx0, gy1)) / U;
-    if (Math.sin(gx * 21) > 0.2) s.put(x, Math.round(s.sy(gx, gy1, 65)), '#8fe8c0');
-  }
-  for (const [a, b, c, d] of [
-    [gx0, gy1, gx1, gy1],
-    [gx1, gy1, gx1, 0],
-  ]) {
-    s.p.line(
-      Math.round(s.sx(a, b)),
-      Math.round(s.sy(a, b, 68)),
-      Math.round(s.sx(c, d)),
-      Math.round(s.sy(c, d, 68)),
-      C.glass,
-    );
-  }
-  for (const gx of [gx0, gx1]) {
-    const x = Math.round(s.sx(gx, gy1));
-    const yTop = Math.round(s.sy(gx, gy1, 68));
-    for (let y = yTop; y < yTop + 38; y++) s.p.set(x, y, C.glass);
+  for (const start of [3.72, 3.9]) {
+    for (let z = WATER - 3; z > 44; z--) {
+      const [x, y] = pt(start + (WATER - z) * 0.018, gy1, z);
+      s.p.set(x, y, '#e8fff6', 0.32);
+    }
   }
   s.box(3.8, 0.42, 5.9, 0.68, 71, 74, { top: C.metalLight, left: C.black, right: C.black, edge: C.metal });
+  s.faceY(0.68, 3.84, 5.86, 71, 72, '#d6fff0');
+
+  // Ánh nước hắt xuống mép tủ.
+  const [spillX, spillY] = pt(4.85, gy1, 30);
+  glow(s.p, spillX, spillY, 62, 13, '#2fe3b4', 0.3);
   s.p.outline(C.ink);
   return s.p;
 }
@@ -845,6 +1029,7 @@ export function roomBed() {
   const gy0 = 5;
   const gy1 = 7.2;
   const gx1 = 3.2;
+  const QUILT = 20;
 
   const plaid = (a, b, x, y) => {
     const lineA = (a * 3.2) % 1 < 0.14;
@@ -859,56 +1044,82 @@ export function roomBed() {
   };
 
   // Đầu giường đặt sát tường, vẽ trước vì nằm sau gối.
-  s.box(0, gy0, 0.14, gy1, 0, 44, {
+  s.box(0, gy0, 0.14, gy1, 0, 40, {
     top: C.woodHigh,
     left: C.woodDark,
     right: woodGrain,
     edge: C.woodHigh,
   });
 
-  // Khung, nệm, chăn kẻ có nếp gấp.
-  s.box(0.05, gy0, gx1, gy1, 0, 12, {
+  // Khung, nệm, chăn kẻ có nếp gấp nổi khối.
+  s.box(0.05, gy0, gx1, gy1, 0, 8, {
     top: C.woodLight,
     left: woodGrain,
     right: C.woodDark,
     edge: C.woodHigh,
   });
-  s.box(0.1, gy0 + 0.06, gx1 - 0.08, gy1 - 0.06, 12, 22, {
+  s.box(0.1, gy0 + 0.06, gx1 - 0.08, gy1 - 0.06, 8, 17, {
     top: C.linen,
     left: C.linenShade,
     right: '#8d8079',
   });
-  s.box(1.08, gy0 + 0.02, gx1 - 0.03, gy1 - 0.02, 12, 25, {
+  s.box(1.08, gy0 + 0.02, gx1 - 0.03, gy1 - 0.02, 8, QUILT, {
     top: (gx, gy, x, y) => {
-      const fold = Math.sin(gx * 5.2 + gy * 1.4);
-      if (fold > 0.9 && bayer(x, y) > 0.35) return C.tealDark;
+      const fold = Math.sin(gx * 5.2 + gy * 1.4) + Math.sin(gy * 3.3 - gx * 0.8) * 0.3;
+      if (fold > 1.02 && bayer(x, y) > 0.3) return C.tealDark;
+      if (fold > 0.72 && fold <= 1.02 && bayer(x, y) > 0.55) return '#4e8e86';
+      if (fold < -0.95 && bayer(x, y) > 0.5) return C.tealDark;
       return plaid(gx, gy, x, y);
     },
-    left: (gx, z, x, y) => (z < 15 ? C.tealDark : plaid(gx, z / 30, x, y)),
-    right: (gy, z, x, y) => (z < 15 ? '#183a3d' : bayer(x, y) > 0.5 ? C.tealDark : C.teal),
+    left: (gx, z, x, y) => {
+      const drape = Math.sin(gx * 11) > 0.55 && bayer(x, y) > 0.35;
+      return z < 11 || drape ? C.tealDark : plaid(gx, z / 30, x, y);
+    },
+    right: (gy, z, x, y) => {
+      const drape = Math.sin(gy * 11) > 0.55;
+      return z < 11 || drape ? '#183a3d' : bayer(x, y) > 0.5 ? C.tealDark : C.teal;
+    },
     edge: '#4e8e86',
   });
-  s.box(1.08, gy0 + 0.02, 1.5, gy1 - 0.02, 25, 28, {
+  s.box(1.08, gy0 + 0.02, 1.5, gy1 - 0.02, QUILT, QUILT + 3, {
     top: (gx, gy, x, y) => (bayer(x, y) > 0.82 ? C.linenShade : C.linen),
     left: C.linenShade,
     right: '#8d8079',
     edge: '#efe6d6',
   });
 
-  // Hai gối và thú bông cá tròn tự thiết kế.
-  const pillow = { top: '#efe6d6', left: C.linenShade, right: '#c4b6aa', edge: '#fff6e8' };
-  s.box(0.24, 5.2, 0.92, 6.02, 22, 29, pillow);
-  s.box(0.24, 6.18, 0.92, 7.0, 22, 29, pillow);
-  const px = Math.round(s.sx(0.7, 6.1));
-  const py = Math.round(s.sy(0.7, 6.1, 31));
-  s.p.ellipse(px, py - 4, 7, 6, '#f0a24f');
-  s.p.ellipse(px, py - 2, 5, 3, '#ffd28a');
-  s.p.rect(px - 11, py - 7, 4, 7, '#d9803f');
-  s.p.rect(px + 3, py - 7, 2, 2, C.ink);
-  s.p.rect(px - 3, py - 7, 2, 2, C.ink);
+  // Khăn gấp vắt ngang cuối giường, thả xuống hai bên.
+  const throwColor = (t, x, y) => {
+    if (Math.floor(t * 9) % 3 === 0) return '#e0b070';
+    return bayer(x, y) > 0.6 ? '#94503a' : '#b5634a';
+  };
+  s.box(2.52, gy0, 3.0, gy1, 12, QUILT + 2, {
+    top: (gx, gy, x, y) => throwColor(gx - 2.52, x, y),
+    left: (gx, z, x, y) => (z < 13 ? '#e0b070' : throwColor(gx - 2.52, x, y)),
+    right: '#6e3a2c',
+    edge: '#e8a884',
+  });
+
+  // Hai gối có bóng nếp và thú bông cá nhỏ tự thiết kế.
+  const pillowTop = (gx, gy, x, y) => {
+    const edge = Math.min(gx - 0.24, 0.92 - gx);
+    if (edge < 0.08 && bayer(x, y) > 0.5) return '#d8cdbd';
+    return '#efe6d6';
+  };
+  const pillow = { top: pillowTop, left: C.linenShade, right: '#c4b6aa', edge: '#fff6e8' };
+  s.box(0.24, 5.2, 0.92, 6.02, 17, 24, pillow);
+  s.box(0.24, 6.18, 0.92, 7.0, 17, 24, pillow);
+  const px = Math.round(s.sx(0.74, 6.1));
+  const py = Math.round(s.sy(0.74, 6.1, 25));
+  s.p.ellipse(px, py - 3, 5, 4, '#e08f42');
+  s.p.ellipse(px, py - 2, 3, 2, '#ffd28a');
+  s.p.rect(px - 8, py - 5, 3, 5, '#c9713a');
+  s.p.rect(px - 1, py - 8, 3, 2, '#c9713a');
+  s.p.rect(px + 1, py - 4, 1, 1, C.ink);
+  s.p.rect(px - 2, py - 4, 1, 1, C.ink);
 
   // Cuốn sách mở trên chăn.
-  s.box(2.1, 5.72, 2.62, 6.42, 25, 27, {
+  s.box(1.72, 5.72, 2.24, 6.42, QUILT, QUILT + 2, {
     top: (gx, gy) => {
       if (Math.abs(gy - 6.07) < 0.03) return C.linenShade;
       return Math.floor((gy - 5.72) * 18) % 3 === 0 ? '#b8ae9f' : '#f3ecdd';
@@ -916,6 +1127,22 @@ export function roomBed() {
     left: '#7d352f',
     right: '#5c2823',
   });
+
+  // Vệt trăng qua rèm trải trên chăn: nhiều dải, mờ dần ở hai đầu.
+  s.top(1.5, gy0, 2.5, 6.5, QUILT + 2, (gx, gy, x, y) => {
+    if (s.p.alphaAt(x, y) === 0 || Math.floor((gx + gy * 0.55) * 7) % 2 === 1) return null;
+    const fade = Math.min((gx - 1.5) / 0.3, (2.5 - gx) / 0.3, (6.5 - gy) / 0.5, 1);
+    const level = Math.round(fade * 3 + bayer(x, y) * 0.6) / 3;
+    if (level > 0) s.p.set(x, y, '#9fb8ff', level * 0.3);
+    return null;
+  });
+
+  // Đèn ngủ ấm phủ đầu giường và gối, giảm dần theo hai nấc; ánh hồ cá viền cuối giường.
+  const lampX = s.sx(0.45, 5.25);
+  const lampY = s.sy(0.45, 5.25, 26);
+  glow(s.p, lampX, lampY, 92, 48, '#ffb05c', 0.26);
+  glow(s.p, lampX, lampY, 42, 22, '#ffe2a8', 0.12);
+  glow(s.p, s.sx(3.2, 5), s.sy(3.2, 5, 12), 54, 28, '#2fe3b4', 0.28);
   s.p.outline(C.ink);
   return s.p;
 }
@@ -1004,7 +1231,7 @@ export function roomPlant() {
 }
 
 const FRAME_W = 24;
-const FRAME_H = 40;
+const FRAME_H = 44;
 
 function drawHero(p, ox, oy, frame, back) {
   const skin = '#f0c29d';
@@ -1013,9 +1240,11 @@ function drawHero(p, ox, oy, frame, back) {
   const hairHigh = '#5e4258';
   const hoodie = '#d9963f';
   const hoodieShade = '#a96a2b';
+  const hoodieHigh = '#f0b866';
   const pants = '#2e4266';
   const pantsShade = '#233352';
   const shoe = '#e9e2d4';
+  const sole = '#a99b92';
 
   const bob = frame === 1 || frame === 3 ? -1 : 0;
   const stepA = frame === 1 ? 2 : frame === 3 ? -1 : 0;
@@ -1025,45 +1254,52 @@ function drawHero(p, ox, oy, frame, back) {
   const rect = (x, y, w, h, color) => p.rect(ox + x, oy + y, w, h, color);
 
   // Chân, giày.
-  rect(8 + stepB, 30, 3, 6, pantsShade);
-  rect(8 + stepB, 36, 4, 2, shoe);
-  rect(13 + stepA, 30, 3, 6, pants);
-  rect(13 + stepA, 36, 4, 2, shoe);
+  rect(8 + stepB, 28, 3, 11, pantsShade);
+  rect(8 + stepB, 39, 4, 2, shoe);
+  rect(8 + stepB, 41, 4, 1, sole);
+  rect(13 + stepA, 28, 3, 11, pants);
+  rect(15 + stepA, 28, 1, 11, pantsShade);
+  rect(13 + stepA, 39, 4, 2, shoe);
+  rect(13 + stepA, 41, 4, 1, sole);
 
   // Thân áo, tay.
-  rect(7, 20 + bob, 10, 11, hoodie);
-  rect(7, 28 + bob, 10, 3, hoodieShade);
-  rect(5, 21 + bob + swing, 3, 8, hoodieShade);
-  rect(5, 29 + bob + swing, 3, 2, skin);
-  rect(16, 21 + bob - swing, 3, 8, hoodie);
-  rect(16, 29 + bob - swing, 3, 2, skin);
+  rect(7, 16 + bob, 10, 13, hoodie);
+  rect(7, 26 + bob, 10, 3, hoodieShade);
+  rect(16, 17 + bob, 1, 9, hoodieShade);
+  rect(8, 17 + bob, 1, 6, hoodieHigh);
+  rect(5, 17 + bob + swing, 3, 9, hoodieShade);
+  rect(5, 26 + bob + swing, 3, 2, skin);
+  rect(17, 17 + bob - swing, 2, 9, hoodie);
+  rect(17, 26 + bob - swing, 2, 2, skin);
   if (!back) {
-    rect(11, 22 + bob, 5, 1, '#f0d9a8');
-    rect(13, 23 + bob, 1, 3, '#f0d9a8');
+    rect(9, 23 + bob, 6, 3, hoodieShade);
+    rect(11, 17 + bob, 1, 3, '#f0d9a8');
+    rect(14, 17 + bob, 1, 3, '#f0d9a8');
   } else {
-    rect(8, 20 + bob, 8, 4, hoodieShade);
+    rect(8, 16 + bob, 8, 5, hoodieShade);
+    rect(9, 17 + bob, 6, 2, hoodie);
   }
 
-  // Đầu to kiểu chibi.
-  rect(7, 7 + bob, 11, 14, skin);
-  rect(6, 9 + bob, 13, 10, skin);
+  // Đầu, nhỏ hơn bản cũ để hợp tỉ lệ nội thất.
+  rect(7, 4 + bob, 11, 12, skin);
+  rect(6, 6 + bob, 13, 8, skin);
   if (back) {
-    rect(6, 7 + bob, 13, 12, hair);
-    rect(7, 5 + bob, 11, 2, hair);
-    rect(8, 19 + bob, 9, 2, hair);
-    rect(9, 6 + bob, 6, 2, hairHigh);
-    rect(16, 10 + bob, 2, 6, hairHigh);
+    rect(6, 4 + bob, 13, 11, hair);
+    rect(7, 2 + bob, 11, 2, hair);
+    rect(8, 15 + bob, 9, 1, hair);
+    rect(9, 3 + bob, 6, 2, hairHigh);
+    rect(16, 7 + bob, 2, 5, hairHigh);
   } else {
-    rect(6, 7 + bob, 13, 5, hair);
-    rect(7, 5 + bob, 11, 2, hair);
-    rect(6, 12 + bob, 4, 5, hair);
-    rect(9, 6 + bob, 5, 2, hairHigh);
-    rect(17, 11 + bob, 2, 2, hair);
-    rect(11, 13 + bob, 2, 3, C.ink);
-    rect(16, 13 + bob, 2, 3, C.ink);
-    rect(10, 17 + bob, 2, 1, '#e8947f');
-    rect(17, 17 + bob, 1, 1, '#e8947f');
-    rect(13, 18 + bob, 3, 1, skinShade);
+    rect(6, 4 + bob, 13, 4, hair);
+    rect(7, 2 + bob, 11, 2, hair);
+    rect(6, 8 + bob, 3, 4, hair);
+    rect(9, 3 + bob, 5, 1, hairHigh);
+    rect(17, 8 + bob, 2, 2, hair);
+    rect(11, 9 + bob, 2, 3, C.ink);
+    rect(16, 9 + bob, 1, 3, C.ink);
+    rect(10, 12 + bob, 1, 1, '#e8947f');
+    rect(17, 12 + bob, 1, 1, '#e8947f');
+    rect(13, 14 + bob, 3, 1, skinShade);
   }
 }
 
@@ -1080,10 +1316,10 @@ export function roomHero() {
   for (let row = 0; row < 2; row++) {
     for (let frame = 0; frame < 4; frame++) {
       const cx = frame * FRAME_W + 12;
-      const cy = row * FRAME_H + 38;
+      const cy = row * FRAME_H + 42;
       for (let y = cy - 1; y <= cy + 1; y++) {
-        for (let x = cx - 7; x <= cx + 7; x++) {
-          const inside = Math.hypot((x - cx) / 7.5, (y - cy) / 1.8) < 1;
+        for (let x = cx - 8; x <= cx + 8; x++) {
+          const inside = Math.hypot((x - cx) / 8.5, (y - cy) / 1.8) < 1;
           if (inside && sheet.alphaAt(x, y) === 0 && (x + y) % 2 === 0) sheet.set(x, y, C.ink);
         }
       }
