@@ -4,7 +4,8 @@
   "startingPearls": 0,
   "startingFish": [{ "species": "guppy", "count": 3 }],
   "economy": {
-    "pearlValueInCoins": 1000
+    "pearlValueInCoins": 1000,
+    "skipSecondsPerPearl": 300
   },
   "absence": {
     "maxSeconds": 3600
@@ -28,6 +29,9 @@
   },
   "station": {
     "chargePerSecond": 25
+  },
+  "devices": {
+    "auxChargerRadius": 40
   },
   "water": {
     "changePerMinute": 6

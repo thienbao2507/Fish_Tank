@@ -19,8 +19,8 @@
 
 .inventory-window {
   position: relative;
-  width: min(570px, calc(100% - 24px));
-  height: min(360px, calc(100% - 16px));
+  width: min(620px, calc(100% - 24px));
+  height: min(430px, calc(100% - 16px));
   overflow: hidden;
   border: 2px solid #0e4fa4;
   border-radius: 9px 9px 4px 4px;
@@ -90,6 +90,27 @@
   gap: 7px;
 }
 
+.inventory-group + .inventory-group {
+  margin-top: 12px;
+}
+
+.inventory-group h2 {
+  margin: 0 0 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #9cafc7;
+  color: #174d8d;
+  font-size: 14px;
+}
+
+.inventory-alert {
+  margin: 0 0 9px;
+  padding: 6px 8px;
+  border: 1px solid #b27a27;
+  background: #fff4c7;
+  color: #654611;
+  font-weight: 700;
+}
+
 .inventory-row {
   display: grid;
   min-height: 62px;
@@ -102,7 +123,7 @@
   background: #fff;
 }
 
-.inventory-fish-image {
+.inventory-item-image {
   display: block;
   width: 76px;
   height: 48px;
@@ -117,15 +138,23 @@
   gap: 4px;
 }
 
-.inventory-fish-name {
+.inventory-item-name {
   overflow-wrap: anywhere;
 }
 
-.inventory-count {
+.inventory-count,
+.inventory-level,
+.inventory-stat {
   color: #72501f;
 }
 
-.inventory-release {
+.inventory-level,
+.inventory-stat {
+  color: #56677d;
+  font-size: 12px;
+}
+
+.inventory-action {
   min-width: 72px;
   padding: 7px 10px;
   border: 1px solid #315f9b;
@@ -133,6 +162,35 @@
   background: linear-gradient(#fff, #cfe1f7);
   color: #123860;
   cursor: pointer;
+}
+
+.inventory-action:disabled {
+  border-color: #a6a6a6;
+  background: #dedede;
+  color: #666;
+  cursor: default;
+}
+
+.inventory-placement {
+  display: grid;
+  min-width: 102px;
+  gap: 4px;
+}
+
+.inventory-slot {
+  min-width: 102px;
+  padding: 4px;
+  border: 1px solid #7695bd;
+  background: #fff;
+  color: #123860;
+  font: inherit;
+}
+
+.inventory-no-slot {
+  max-width: 108px;
+  color: #7a3c2a;
+  font-size: 12px;
+  text-align: center;
 }
 
 .inventory-empty {
@@ -149,7 +207,7 @@
     grid-template-columns: 58px minmax(0, 1fr) auto;
   }
 
-  .inventory-fish-image {
+  .inventory-item-image {
     width: 54px;
   }
 }

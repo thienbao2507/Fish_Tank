@@ -1,8 +1,11 @@
 import { UI_FONT_FAMILY } from '../config';
 import type { Content } from '../core/content/loader';
+import type { DeviceType, UpgradeTrack } from '../core/content/schemas';
 import { t, type StringKey } from '../core/i18n';
+import { isFishOrder } from '../core/sim/orders';
 import { isDone, remainingSeconds } from '../core/time/timers';
-import type { World } from '../core/world';
+import type { OrderItem, World } from '../core/world';
+import { presentItem, type ItemPresentation } from './itemPresentation';
 import './pcDesktop.css';
 
 export interface PcDesktopOptions {
@@ -11,6 +14,16 @@ export interface PcDesktopOptions {
   readonly now: () => number;
   readonly onClose: () => void;
 }
+
+type ShopTab = 'robot' | 'devices' | 'fish' | 'items' | 'exchange';
+
+const SHOP_TABS: readonly { readonly id: ShopTab; readonly label: StringKey }[] = [
+  { id: 'robot', label: 'shop.tab.robot' },
+  { id: 'devices', label: 'shop.tab.devices' },
+  { id: 'fish', label: 'shop.tab.fish' },
+  { id: 'items', label: 'shop.tab.items' },
+  { id: 'exchange', label: 'shop.tab.exchange' },
+];
 
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -23,13 +36,14 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** Desktop retro phủ lên game; toàn bộ luật mua cá vẫn thuộc về World. */
+/** Desktop retro phủ lên game; mọi luật mua, đổi và tua vẫn thuộc về World. */
 export class PcDesktop {
   private root?: HTMLDivElement;
   private shopWindow?: HTMLElement;
   private shopBody?: HTMLElement;
   private deliveryBody?: HTMLElement;
   private deliveryInterval?: ReturnType<typeof setInterval>;
+  private activeTab: ShopTab = 'robot';
 
   constructor(private readonly options: PcDesktopOptions) {}
 
@@ -126,43 +140,15 @@ export class PcDesktop {
   private renderShop(): void {
     const body = this.shopBody;
     if (!body) return;
-    const { world, content } = this.options;
-    const coins = world.wallet.get('coins');
+    const { world } = this.options;
     const fragment = document.createDocumentFragment();
 
-    fragment.append(element('div', 'pc-shop-balance', t('shop.coins', { coins })));
-    const catalog = element('div', 'pc-shop-catalog');
-    for (const species of content.fish.species) {
-      const row = element('article', 'pc-fish-row');
-      const texture = content.art.textures[species.texture];
-      if (texture?.kind === 'image') {
-        const image = element('img', 'pc-fish-image');
-        image.src = texture.file;
-        image.alt = t(species.name as StringKey);
-        row.append(image);
-      }
-
-      const details = element('div', 'pc-fish-details');
-      details.append(
-        element('strong', 'pc-fish-name', t(species.name as StringKey)),
-        element('span', 'pc-fish-price', t('shop.price', { price: species.price })),
-      );
-      const canBuy = coins >= species.price;
-      const buy = element(
-        'button',
-        'pc-buy-button',
-        t(canBuy ? 'shop.buy' : 'shop.notEnough'),
-      );
-      buy.type = 'button';
-      buy.disabled = !canBuy;
-      buy.addEventListener('click', () => {
-        world.orderFish(species.id, this.options.now());
-        this.renderShop();
-      });
-      row.append(details, buy);
-      catalog.append(row);
-    }
-    fragment.append(catalog);
+    const balances = element('div', 'pc-shop-balances');
+    balances.append(
+      element('span', undefined, t('shop.coins', { coins: world.wallet.get('coins') })),
+      element('span', undefined, t('shop.pearls', { pearls: world.wallet.get('pearls') })),
+    );
+    fragment.append(balances, this.renderTabs(), this.renderActiveCatalog());
 
     const delivery = element('section', 'pc-delivery');
     delivery.append(element('h2', undefined, t('shop.delivering')));
@@ -172,6 +158,331 @@ export class PcDesktop {
     body.replaceChildren(fragment);
     this.deliveryBody = deliveryBody;
     this.updateDelivery();
+  }
+
+  private renderTabs(): HTMLElement {
+    const tabs = element('div', 'pc-shop-tabs');
+    tabs.setAttribute('role', 'tablist');
+    for (const tab of SHOP_TABS) {
+      const button = element('button', 'pc-shop-tab', t(tab.label));
+      button.type = 'button';
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-selected', String(tab.id === this.activeTab));
+      button.classList.toggle('is-active', tab.id === this.activeTab);
+      button.addEventListener('click', () => {
+        this.activeTab = tab.id;
+        this.renderShop();
+      });
+      tabs.append(button);
+    }
+    return tabs;
+  }
+
+  private renderActiveCatalog(): HTMLElement {
+    switch (this.activeTab) {
+      case 'robot':
+        return this.renderRobotCatalog();
+      case 'devices':
+        return this.renderDeviceCatalog();
+      case 'fish':
+        return this.renderFishCatalog();
+      case 'items':
+        return this.renderPowerBankCatalog();
+      case 'exchange':
+        return this.renderExchange();
+    }
+  }
+
+  private renderRobotCatalog(): HTMLElement {
+    const { upgrades } = this.options.content;
+    const catalog = element('div', 'pc-shop-catalog');
+    for (const track of ['cargo', 'speed', 'vacuum'] as const) {
+      this.appendItemOrMaximum(catalog, this.nextUpgrade(track), {
+        kind: 'upgrade',
+        track,
+        level: upgrades[track].levels.length,
+      });
+    }
+
+    const lastBattery = upgrades.batteries[upgrades.batteries.length - 1];
+    if (lastBattery) {
+      this.appendItemOrMaximum(catalog, this.nextBattery(), {
+        kind: 'battery',
+        id: lastBattery.id,
+      });
+    }
+    const lastCharger = upgrades.chargers[upgrades.chargers.length - 1];
+    if (lastCharger) {
+      this.appendItemOrMaximum(catalog, this.nextCharger(), {
+        kind: 'charger',
+        id: lastCharger.id,
+      });
+    }
+    return catalog;
+  }
+
+  private renderDeviceCatalog(): HTMLElement {
+    const catalog = element('div', 'pc-shop-catalog');
+    for (const type of Object.keys(this.options.content.upgrades.devices) as DeviceType[]) {
+      const levels = this.options.content.upgrades.devices[type].levels;
+      this.appendItemOrMaximum(catalog, this.nextDevice(type), {
+        kind: 'device',
+        type,
+        level: levels.length,
+      });
+    }
+    return catalog;
+  }
+
+  private renderFishCatalog(): HTMLElement {
+    const { content, world } = this.options;
+    const catalog = element('div', 'pc-shop-catalog');
+    for (const species of content.fish.species) {
+      const row = element('article', 'pc-catalog-row');
+      this.appendImage(row, species.texture, t(species.name as StringKey));
+      const details = element('div', 'pc-catalog-details');
+      details.append(
+        element('strong', 'pc-catalog-name', t(species.name as StringKey)),
+        element(
+          'span',
+          'pc-catalog-stat',
+          t('shop.growthRemaining', {
+            time: formatRemainingTime(species.growSeconds),
+          }),
+        ),
+        element('span', 'pc-catalog-price', t('shop.price', { price: species.price })),
+        element(
+          'span',
+          'pc-catalog-delivery',
+          t('shop.deliveryTime', {
+            time: formatRemainingTime(species.deliverySeconds),
+          }),
+        ),
+      );
+      const canBuy = world.wallet.get('coins') >= species.price;
+      const buy = element('button', 'pc-buy-button', t(canBuy ? 'shop.buy' : 'shop.notEnough'));
+      buy.type = 'button';
+      buy.disabled = !canBuy;
+      buy.addEventListener('click', () => {
+        world.orderFish(species.id, this.options.now());
+        this.renderShop();
+      });
+      row.append(details, buy);
+      catalog.append(row);
+    }
+    return catalog;
+  }
+
+  private renderPowerBankCatalog(): HTMLElement {
+    const catalog = element('div', 'pc-shop-catalog');
+    for (const definition of this.options.content.upgrades.powerBanks) {
+      catalog.append(this.renderItemRow({ kind: 'powerBank', id: definition.id }));
+    }
+    return catalog;
+  }
+
+  private renderExchange(): HTMLElement {
+    const { world, content } = this.options;
+    const container = element('div', 'pc-exchange');
+    container.append(
+      element(
+        'p',
+        'pc-exchange-rate',
+        t('shop.exchangeRate', {
+          coins: content.balance.economy.pearlValueInCoins,
+        }),
+      ),
+    );
+
+    const pearls = world.wallet.get('pearls');
+    const actions = element('div', 'pc-exchange-actions');
+    const exchangeOne = element('button', 'pc-buy-button', t('shop.exchangeOne'));
+    exchangeOne.type = 'button';
+    exchangeOne.disabled = pearls < 1;
+    exchangeOne.addEventListener('click', () => {
+      world.exchangePearls(1);
+      this.renderShop();
+    });
+    const exchangeAll = element('button', 'pc-buy-button', t('shop.exchangeAll', { pearls }));
+    exchangeAll.type = 'button';
+    exchangeAll.disabled = pearls < 1;
+    exchangeAll.addEventListener('click', () => {
+      world.exchangePearls(pearls);
+      this.renderShop();
+    });
+    actions.append(exchangeOne, exchangeAll);
+    container.append(actions, element('h2', undefined, t('shop.growingFish')));
+
+    const growing = world.fish.filter((fish) => !fish.leaving && !fish.isGrown);
+    if (growing.length === 0) {
+      container.append(element('p', 'pc-no-orders', t('shop.noGrowingFish')));
+      return container;
+    }
+
+    const list = element('div', 'pc-growing-list');
+    for (const fish of growing) {
+      const remaining = Math.max(0, fish.species.growSeconds - fish.ageSeconds);
+      const cost = world.skipCost(remaining);
+      const row = element('article', 'pc-growing-row');
+      const details = element('div', 'pc-catalog-details');
+      details.append(
+        element('strong', undefined, t(fish.species.name as StringKey)),
+        element(
+          'span',
+          'pc-catalog-stat',
+          t('shop.growthRemaining', {
+            time: formatRemainingTime(remaining),
+          }),
+        ),
+      );
+      const skip = element('button', 'pc-skip-button', t('shop.skipPearls', { pearls: cost }));
+      skip.type = 'button';
+      skip.disabled = pearls < cost;
+      skip.addEventListener('click', () => {
+        world.skipFishGrowth(fish.id);
+        this.renderShop();
+      });
+      row.append(details, skip);
+      list.append(row);
+    }
+    container.append(list);
+    return container;
+  }
+
+  private appendItemOrMaximum(
+    catalog: HTMLElement,
+    item: OrderItem | undefined,
+    maximumItem: OrderItem,
+  ): void {
+    if (item) {
+      catalog.append(this.renderItemRow(item));
+      return;
+    }
+    const presentation = presentItem(this.options.content, maximumItem);
+    if (presentation) catalog.append(this.renderMaximumRow(presentation));
+  }
+
+  private renderItemRow(item: OrderItem): HTMLElement {
+    const presentation = presentItem(this.options.content, item);
+    const row = element('article', 'pc-catalog-row');
+    if (!presentation) return row;
+    this.appendImage(row, presentation.icon, presentation.name);
+    const details = this.renderItemDetails(presentation);
+    const canOrder = this.options.world.canOrderItem(item);
+    const canAfford = this.options.world.wallet.get('coins') >= presentation.price;
+    const buttonKey: StringKey = !canOrder
+      ? 'shop.unavailable'
+      : canAfford
+        ? 'shop.buy'
+        : 'shop.notEnough';
+    const buy = element('button', 'pc-buy-button', t(buttonKey));
+    buy.type = 'button';
+    buy.disabled = !canOrder || !canAfford;
+    buy.addEventListener('click', () => {
+      this.options.world.orderItem(item, this.options.now());
+      this.renderShop();
+    });
+    row.append(details, buy);
+    return row;
+  }
+
+  private renderMaximumRow(presentation: ItemPresentation): HTMLElement {
+    const row = element('article', 'pc-catalog-row');
+    this.appendImage(row, presentation.icon, presentation.name);
+    const details = element('div', 'pc-catalog-details');
+    details.append(
+      element('strong', 'pc-catalog-name', presentation.name),
+      element('span', 'pc-catalog-level', t('shop.maximum')),
+    );
+    for (const stat of presentation.stats) {
+      details.append(element('span', 'pc-catalog-stat', stat));
+    }
+    const maximum = element('button', 'pc-buy-button', t('shop.maximum'));
+    maximum.type = 'button';
+    maximum.disabled = true;
+    row.append(details, maximum);
+    return row;
+  }
+
+  private renderItemDetails(presentation: ItemPresentation): HTMLElement {
+    const details = element('div', 'pc-catalog-details');
+    details.append(element('strong', 'pc-catalog-name', presentation.name));
+    if (presentation.level) {
+      details.append(element('span', 'pc-catalog-level', presentation.level));
+    }
+    for (const stat of presentation.stats) {
+      details.append(element('span', 'pc-catalog-stat', stat));
+    }
+    details.append(
+      element('span', 'pc-catalog-price', t('shop.price', { price: presentation.price })),
+      element(
+        'span',
+        'pc-catalog-delivery',
+        t('shop.deliveryTime', {
+          time: formatRemainingTime(presentation.deliverySeconds),
+        }),
+      ),
+    );
+    return details;
+  }
+
+  private appendImage(parent: HTMLElement, textureKey: string, alt: string): void {
+    const texture = this.options.content.art.textures[textureKey];
+    if (texture?.kind !== 'image') return;
+    const image = element('img', 'pc-catalog-image');
+    image.src = texture.file;
+    image.alt = alt;
+    parent.append(image);
+  }
+
+  private nextUpgrade(track: UpgradeTrack): OrderItem | undefined {
+    const held = this.heldItem((item) => item.kind === 'upgrade' && item.track === track);
+    if (held) return held;
+    const levels = this.options.content.upgrades[track].levels;
+    for (let level = 2; level <= levels.length; level++) {
+      const item: OrderItem = { kind: 'upgrade', track, level };
+      if (this.options.world.canOrderItem(item)) return item;
+    }
+    return undefined;
+  }
+
+  private nextBattery(): OrderItem | undefined {
+    const held = this.heldItem((item) => item.kind === 'battery');
+    if (held) return held;
+    const definitions = this.options.content.upgrades.batteries;
+    const current = definitions.findIndex(
+      (definition) => definition.capacity === this.options.world.robot.battery.capacity,
+    );
+    const next = definitions[current + 1];
+    return next && { kind: 'battery', id: next.id };
+  }
+
+  private nextCharger(): OrderItem | undefined {
+    const held = this.heldItem((item) => item.kind === 'charger');
+    if (held) return held;
+    const definitions = this.options.content.upgrades.chargers;
+    const current = definitions.findIndex(
+      (definition) => !this.options.world.canOrderItem({ kind: 'charger', id: definition.id }),
+    );
+    const next = definitions[current + 1];
+    return next && { kind: 'charger', id: next.id };
+  }
+
+  private nextDevice(type: DeviceType): OrderItem | undefined {
+    const held = this.heldItem((item) => item.kind === 'device' && item.type === type);
+    if (held) return held;
+    const level =
+      (this.options.world.devices.find((device) => device.type === type)?.level ?? 0) + 1;
+    return this.options.content.upgrades.devices[type].levels[level - 1]
+      ? { kind: 'device', type, level }
+      : undefined;
+  }
+
+  private heldItem(predicate: (item: OrderItem) => boolean): OrderItem | undefined {
+    for (const order of this.options.world.orders) {
+      if (!isFishOrder(order) && predicate(order.item)) return order.item;
+    }
+    return this.options.world.items.find(({ item }) => predicate(item))?.item;
   }
 
   private startDeliveryUpdates(): void {
@@ -196,18 +507,53 @@ export class PcDesktop {
     }
 
     const current = now();
+    const pearls = world.wallet.get('pearls');
     const list = element('ul', 'pc-order-list');
     for (const order of world.orders) {
-      const species = content.fish.species.find((candidate) => candidate.id === order.speciesId);
-      if (!species) continue;
       const row = element('li');
-      row.append(element('span', undefined, t(species.name as StringKey)));
-      const status = isDone(order.timer, current)
-        ? t('shop.arrived')
-        : t('shop.remaining', {
-            time: formatRemainingTime(remainingSeconds(order.timer, current)),
-          });
-      row.append(element('span', 'pc-order-status', status));
+      if (isFishOrder(order)) {
+        const species = content.fish.species.find((candidate) => candidate.id === order.speciesId);
+        if (!species) continue;
+        row.append(element('span', 'pc-order-name', t(species.name as StringKey)));
+      } else {
+        const presentation = presentItem(content, order.item);
+        if (!presentation) continue;
+        const name = element('span', 'pc-order-name', presentation.name);
+        if (order.item.kind === 'upgrade' || order.item.kind === 'device') {
+          name.append(element('small', undefined, t('shop.level', { level: order.item.level })));
+        }
+        row.append(name);
+      }
+
+      if (isDone(order.timer, current)) {
+        row.append(element('span', 'pc-order-status', t('shop.arrived')));
+      } else {
+        const remaining = remainingSeconds(order.timer, current);
+        const cost = world.skipCost(remaining);
+        row.append(
+          element(
+            'span',
+            'pc-order-status',
+            t('shop.remaining', {
+              time: formatRemainingTime(remaining),
+            }),
+          ),
+        );
+        const skip = element(
+          'button',
+          'pc-skip-button',
+          t('shop.skipPearls', {
+            pearls: cost,
+          }),
+        );
+        skip.type = 'button';
+        skip.disabled = pearls < cost;
+        skip.addEventListener('click', () => {
+          world.skipOrder(order.id, this.options.now());
+          this.renderShop();
+        });
+        row.append(skip);
+      }
       list.append(row);
     }
     body.replaceChildren(list);
@@ -228,7 +574,7 @@ export class PcDesktop {
 }
 
 function formatRemainingTime(seconds: number): string {
-  const total = Math.ceil(seconds);
+  const total = Math.max(0, Math.ceil(seconds));
   const minutes = Math.floor(total / 60);
   return `${minutes}:${String(total % 60).padStart(2, '0')}`;
 }

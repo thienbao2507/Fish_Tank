@@ -230,15 +230,15 @@ Mục tiêu: có đủ vòng chi tiêu và nâng cấp qua PC trong phòng, có 
   AC: mở/đóng được trên điện thoại; game tạm dừng khi trang mở; unit test đơn hàng (đủ xu mới đặt được, bộ đếm giao đúng thời lượng).
 - [~] **P3-02b** Cửa phòng và Kho: hàng tới thì cửa sáng + thông báo; mở cửa lấy hết hàng đã tới vào Kho; nút Kho trên HUD bể mở được ở mọi chỗ.
   AC: unit test inventory; đặt hàng → chờ/ngủ → mở cửa → thấy hàng trong Kho.
-- [ ] **P3-03** Nâng cấp Lv1–5 trong `upgrades.json` (giá, thời gian giao, hiệu ứng): khoang chứa, tốc độ bơi, máy hút. Đặt mua linh kiện trên PC, lắp từ Kho có hiệu lực ngay.
+- [~] **P3-03** Nâng cấp Lv1–5 trong `upgrades.json` (giá, thời gian giao, hiệu ứng): khoang chứa, tốc độ bơi, máy hút. Đặt mua linh kiện trên PC, lắp từ Kho có hiệu lực ngay.
   AC: unit test áp dụng hiệu ứng theo cấp; hiệu ứng thấy được trong game.
-- [ ] **P3-04** Pin theo loại, bộ sạc ở trạm (tốc độ sạc), sạc dự phòng (vật phẩm, dùng từ Kho). Tất cả đặt mua trên PC. Sạc ở trạm thay bằng bản dùng bộ đếm.
+- [~] **P3-04** Pin theo loại, bộ sạc ở trạm (tốc độ sạc), sạc dự phòng (vật phẩm, dùng từ Kho). Tất cả đặt mua trên PC. Sạc ở trạm thay bằng bản dùng bộ đếm.
   AC: đổi pin thì dung lượng đổi; rời trạm giữa chừng giữ phần đã sạc.
-- [ ] **P3-05** Thiết bị đặt vào vị trí có sẵn: máy lọc, máy cho ăn tự động, trạm sạc phụ, san hô; Lv1–5. Đặt mua trên PC, chọn vị trí trống từ Kho, lắp xong ngay (thời gian giao thay thời gian lắp).
+- [~] **P3-05** Thiết bị đặt vào vị trí có sẵn: máy lọc, máy cho ăn tự động, trạm sạc phụ, san hô; Lv1–5. Đặt mua trên PC, chọn vị trí trống từ Kho, lắp xong ngay (thời gian giao thay thời gian lắp).
   AC: mỗi thiết bị có tác động đo được (lọc → nước bẩn chậm hơn; san hô → cá vui hơn…).
 - [~] **P3-06** Mua cá: đặt trên PC, thả cá con từ Kho tại chỗ robot, thời gian làm quen/lớn rồi mới sinh xu.
   AC: không thả được khi khu đã đủ sức chứa.
-- [ ] **P3-07** Đổi ngọc → xu (1:1000) và tua thời gian bằng ngọc.
+- [~] **P3-07** Đổi ngọc → xu (1:1000) và tua thời gian bằng ngọc.
   AC: unit test; không có đường đổi xu → ngọc.
 
 Demo P3: kiếm xu → nâng cấp → thấy robot/bể tốt lên; tua bằng ngọc hoạt động.

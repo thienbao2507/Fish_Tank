@@ -1,0 +1,96 @@
+{
+  "cargo": {
+    "name": "upgrade.cargo.name",
+    "icon": "shop.cargo",
+    "levels": [
+      { "capacity": 20, "price": 0, "deliverySeconds": 0 },
+      { "capacity": 30, "price": 120, "deliverySeconds": 60 },
+      { "capacity": 42, "price": 300, "deliverySeconds": 180 },
+      { "capacity": 56, "price": 700, "deliverySeconds": 360 },
+      { "capacity": 75, "price": 1500, "deliverySeconds": 600 }
+    ]
+  },
+  "speed": {
+    "name": "upgrade.speed.name",
+    "icon": "shop.speed",
+    "levels": [
+      { "maxSpeed": 110, "price": 0, "deliverySeconds": 0 },
+      { "maxSpeed": 125, "price": 120, "deliverySeconds": 60 },
+      { "maxSpeed": 140, "price": 300, "deliverySeconds": 180 },
+      { "maxSpeed": 155, "price": 700, "deliverySeconds": 360 },
+      { "maxSpeed": 170, "price": 1500, "deliverySeconds": 600 }
+    ]
+  },
+  "vacuum": {
+    "name": "upgrade.vacuum.name",
+    "icon": "shop.vacuum",
+    "levels": [
+      { "radius": 36, "pullSpeed": 140, "price": 0, "deliverySeconds": 0 },
+      { "radius": 44, "pullSpeed": 170, "price": 120, "deliverySeconds": 60 },
+      { "radius": 52, "pullSpeed": 200, "price": 300, "deliverySeconds": 180 },
+      { "radius": 60, "pullSpeed": 230, "price": 700, "deliverySeconds": 360 },
+      { "radius": 68, "pullSpeed": 260, "price": 1500, "deliverySeconds": 600 }
+    ]
+  },
+  "batteries": [
+    { "id": "S", "name": "battery.s.name", "icon": "shop.battery", "capacity": 100, "price": 0, "deliverySeconds": 0 },
+    { "id": "M", "name": "battery.m.name", "icon": "shop.battery", "capacity": 150, "price": 250, "deliverySeconds": 60 },
+    { "id": "L", "name": "battery.l.name", "icon": "shop.battery", "capacity": 220, "price": 800, "deliverySeconds": 240 },
+    { "id": "XL", "name": "battery.xl.name", "icon": "shop.battery", "capacity": 320, "price": 2000, "deliverySeconds": 600 }
+  ],
+  "chargers": [
+    { "id": "basic", "name": "charger.basic.name", "icon": "shop.charger", "chargePerSecond": 25, "price": 0, "deliverySeconds": 0 },
+    { "id": "fast", "name": "charger.fast.name", "icon": "shop.charger", "chargePerSecond": 40, "price": 300, "deliverySeconds": 180 },
+    { "id": "ultra", "name": "charger.ultra.name", "icon": "shop.charger", "chargePerSecond": 70, "price": 1200, "deliverySeconds": 480 }
+  ],
+  "powerBanks": [
+    { "id": "small", "name": "powerBank.small.name", "icon": "shop.powerbank", "charge": 30, "price": 20, "deliverySeconds": 60 },
+    { "id": "large", "name": "powerBank.large.name", "icon": "shop.powerbank", "charge": 80, "price": 50, "deliverySeconds": 60 }
+  ],
+  "devices": {
+    "filter": {
+      "name": "device.filter.name",
+      "icon": "device.filter",
+      "levels": [
+        { "pollutionReduction": 0.1, "price": 150, "deliverySeconds": 120 },
+        { "pollutionReduction": 0.2, "price": 400, "deliverySeconds": 180 },
+        { "pollutionReduction": 0.3, "price": 900, "deliverySeconds": 300 },
+        { "pollutionReduction": 0.4, "price": 1800, "deliverySeconds": 420 },
+        { "pollutionReduction": 0.5, "price": 3500, "deliverySeconds": 600 }
+      ]
+    },
+    "feeder": {
+      "name": "device.feeder.name",
+      "icon": "device.feeder",
+      "levels": [
+        { "intervalSeconds": 120, "price": 150, "deliverySeconds": 120 },
+        { "intervalSeconds": 100, "price": 400, "deliverySeconds": 180 },
+        { "intervalSeconds": 80, "price": 900, "deliverySeconds": 300 },
+        { "intervalSeconds": 60, "price": 1800, "deliverySeconds": 420 },
+        { "intervalSeconds": 40, "price": 3500, "deliverySeconds": 600 }
+      ]
+    },
+    "auxCharger": {
+      "name": "device.auxCharger.name",
+      "icon": "device.charger",
+      "levels": [
+        { "chargePerSecond": 10, "price": 150, "deliverySeconds": 120 },
+        { "chargePerSecond": 15, "price": 400, "deliverySeconds": 180 },
+        { "chargePerSecond": 20, "price": 900, "deliverySeconds": 300 },
+        { "chargePerSecond": 25, "price": 1800, "deliverySeconds": 420 },
+        { "chargePerSecond": 30, "price": 3500, "deliverySeconds": 600 }
+      ]
+    },
+    "coral": {
+      "name": "device.coral.name",
+      "icon": "device.coral",
+      "levels": [
+        { "sadWaterDrop": 2, "price": 150, "deliverySeconds": 120 },
+        { "sadWaterDrop": 4, "price": 400, "deliverySeconds": 180 },
+        { "sadWaterDrop": 6, "price": 900, "deliverySeconds": 300 },
+        { "sadWaterDrop": 8, "price": 1800, "deliverySeconds": 420 },
+        { "sadWaterDrop": 10, "price": 3500, "deliverySeconds": 600 }
+      ]
+    }
+  }
+}

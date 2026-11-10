@@ -118,6 +118,10 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 - Mọi thứ trong bảng đều đặt mua trên **PC trong phòng** dưới dạng hàng hoặc linh kiện (mục 17). Trạm trong bể chỉ còn đổi rác và sạc pin.
 - Thiết bị đặt vào các **vị trí có sẵn** trong mỗi khu.
 - Thời gian giao hàng **thay cho** thời gian lắp: hàng về Kho, bấm lắp là xong ngay.
+- **Số liệu** (duyệt 2026-11-09): cấp, giá, thời gian giao nằm trong `src/data/upgrades.json`; vị trí đặt thiết bị trong `zones.json` (khu 1 có 6 chỗ).
+- **Tác dụng thiết bị:** máy lọc giảm phần ô nhiễm tính vào nước; máy cho ăn tự thả thức ăn theo chu kỳ, mỗi lần trừ đúng giá thức ăn, hết xu thì dừng; trạm sạc phụ chỉ sạc, không đổi rác; san hô hạ ngưỡng nước làm cá buồn.
+- **Sạc theo giờ thực:** đang đậu ở trạm thì sạc theo giờ thực, kể cả khi ẩn hoặc tắt game; rời trạm giữ phần đã sạc.
+- **Tua bằng ngọc:** áp dụng cho đơn đang giao và cá con đang lớn; 1 ngọc cho mỗi 5 phút còn lại, làm tròn lên.
 
 ## 8. Bản đồ và khu vực
 - Một bể lớn cố định, **3 khu nối theo chiều ngang**, mỗi khu rộng khoảng 2 màn hình:

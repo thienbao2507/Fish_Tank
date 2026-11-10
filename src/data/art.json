@@ -1199,6 +1199,46 @@
       "kind": "image",
       "file": "art/gen/room-plant.png"
     },
+    "device.filter": {
+      "kind": "image",
+      "file": "art/gen/device-filter.png"
+    },
+    "device.feeder": {
+      "kind": "image",
+      "file": "art/gen/device-feeder.png"
+    },
+    "device.charger": {
+      "kind": "image",
+      "file": "art/gen/device-charger.png"
+    },
+    "device.coral": {
+      "kind": "image",
+      "file": "art/gen/device-coral.png"
+    },
+    "shop.cargo": {
+      "kind": "image",
+      "file": "art/gen/shop-cargo.png"
+    },
+    "shop.speed": {
+      "kind": "image",
+      "file": "art/gen/shop-speed.png"
+    },
+    "shop.vacuum": {
+      "kind": "image",
+      "file": "art/gen/shop-vacuum.png"
+    },
+    "shop.battery": {
+      "kind": "image",
+      "file": "art/gen/shop-battery.png"
+    },
+    "shop.charger": {
+      "kind": "image",
+      "file": "art/gen/shop-charger.png"
+    },
+    "shop.powerbank": {
+      "kind": "image",
+      "file": "art/gen/shop-powerbank.png"
+    },
     "room.door.glow": {
       "kind": "image",
       "file": "art/gen/room-door-glow.png"

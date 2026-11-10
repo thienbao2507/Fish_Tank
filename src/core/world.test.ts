@@ -4,6 +4,7 @@ import { rawContent } from './content/raw';
 import type { Balance, TrashTypeDef, ZoneDef } from './content/schemas';
 import { EventBus, type GameEvents } from './events';
 import { createRng } from './rng';
+import type { OrderItem } from './sim/items';
 import { World } from './world';
 
 const STILL = { moveX: 0, moveY: 0 };
@@ -49,6 +50,18 @@ function dock(world: World): void {
   const { station } = world.zone;
   world.robot.x = station.x + station.width / 2;
   world.robot.y = station.y + station.height / 2;
+}
+
+function deliverItem(world: World, item: OrderItem, now = 0): void {
+  if (!world.orderItem(item, now)) throw new Error(`Không đặt được ${JSON.stringify(item)}`);
+  const order = world.orders[world.orders.length - 1];
+  if (!order) throw new Error('Đơn vật phẩm không được tạo');
+  world.collectDeliveries(order.timer.startedAt + order.timer.durationMs);
+}
+
+function deliverAndInstall(world: World, item: OrderItem): void {
+  deliverItem(world, item);
+  if (!world.installItem(item)) throw new Error(`Không lắp được ${JSON.stringify(item)}`);
 }
 
 describe('World', () => {
@@ -544,6 +557,323 @@ describe('World — cá và nước (P2)', () => {
     it('chưa leaveTank thì returnToTank trả 0', () => {
       const { world } = setup();
       expect(world.returnToTank(21_000)).toBe(0);
+    });
+  });
+});
+
+describe('World — vật phẩm, nâng cấp và ngọc (P3 ST1)', () => {
+  describe('đặt và giao hàng tổng quát', () => {
+    it('từ chối khi thiếu xu, sai cấp hoặc trùng tuyến', () => {
+      const poor = setup({ startingCoins: 40, startingFish: [] });
+      const speed2: OrderItem = { kind: 'upgrade', track: 'speed', level: 2 };
+      expect(poor.world.orderItem(speed2, 0)).toBe(false);
+      expect(poor.world.wallet.get('coins')).toBe(40);
+      expect(poor.world.orders).toHaveLength(0);
+
+      const { world } = setup({ startingCoins: 100_000, startingFish: [] });
+      expect(world.orderItem({ kind: 'upgrade', track: 'speed', level: 3 }, 0)).toBe(false);
+      expect(world.orderItem(speed2, 0)).toBe(true);
+      expect(world.orderItem(speed2, 1)).toBe(false);
+      expect(world.orderItem({ kind: 'upgrade', track: 'speed', level: 3 }, 1)).toBe(false);
+    });
+
+    it('giao đúng thời lượng và đưa item vào Kho qua luồng nhận hàng hiện có', () => {
+      const { world } = setup({ startingCoins: 100_000, startingFish: [] });
+      const item: OrderItem = { kind: 'upgrade', track: 'cargo', level: 2 };
+      expect(world.orderItem(item, 1_000)).toBe(true);
+      const order = world.orders[0];
+      if (!order) throw new Error('Thiếu đơn kiểm thử');
+      expect(order.timer.durationMs).toBe(60_000);
+      expect(world.collectDeliveries(60_999)).toBe(0);
+      expect(world.collectDeliveries(61_000)).toBe(1);
+      expect(world.items).toEqual([{ item, count: 1 }]);
+    });
+
+    it('pin/bộ sạc chặn đúng loại đang dùng hoặc đã có; sạc dự phòng không giới hạn', () => {
+      const { world } = setup({ startingCoins: 100_000, startingFish: [] });
+      expect(world.orderItem({ kind: 'battery', id: 'S' }, 0)).toBe(false);
+      expect(world.orderItem({ kind: 'charger', id: 'basic' }, 0)).toBe(false);
+      expect(world.orderItem({ kind: 'battery', id: 'M' }, 0)).toBe(true);
+      expect(world.orderItem({ kind: 'battery', id: 'M' }, 0)).toBe(false);
+      expect(world.orderItem({ kind: 'powerBank', id: 'small' }, 0)).toBe(true);
+      expect(world.orderItem({ kind: 'powerBank', id: 'small' }, 0)).toBe(true);
+    });
+  });
+
+  describe('nâng cấp robot', () => {
+    it('mọi cấp khoang tăng đúng sức chứa và giữ nguyên rác', () => {
+      const { world, content, trashType } = setup({ startingCoins: 100_000, startingFish: [] });
+      const bottle = trashType('bottle');
+      expect(world.robot.cargo.add(bottle.id, bottle.slots)).toBe(true);
+      const used = world.robot.cargo.used;
+      for (let level = 2; level <= 5; level++) {
+        deliverAndInstall(world, { kind: 'upgrade', track: 'cargo', level });
+        expect(world.robot.cargo.capacity).toBe(content.upgrades.cargo.levels[level - 1]?.capacity);
+        expect(world.robot.cargo.used).toBe(used);
+        expect(world.robot.cargo.contents.get(bottle.id)).toBe(1);
+      }
+    });
+
+    it('mọi cấp tốc độ dùng maxSpeed của cấp hiện tại', () => {
+      const { world, content } = setup({ startingCoins: 100_000, startingFish: [] });
+      for (let level = 2; level <= 5; level++) {
+        deliverAndInstall(world, { kind: 'upgrade', track: 'speed', level });
+        world.robot.x = 512;
+        world.robot.y = 512;
+        world.robot.vx = 0;
+        world.robot.vy = 0;
+        run(world, 1, { moveX: 1, moveY: 0 });
+        expect(world.robot.vx).toBeCloseTo(
+          content.upgrades.speed.levels[level - 1]?.maxSpeed ?? 0,
+          5,
+        );
+      }
+    });
+
+    it('mọi cấp máy hút dùng đúng bán kính hiện tại', () => {
+      const { world, content, trashType } = setup({ startingCoins: 100_000, startingFish: [] });
+      const tire = trashType('tire');
+      world.robot.x = 512;
+      world.robot.y = 512;
+      for (let level = 2; level <= 5; level++) {
+        deliverAndInstall(world, { kind: 'upgrade', track: 'vacuum', level });
+        const radius = content.upgrades.vacuum.levels[level - 1]?.radius ?? 0;
+        const near = world.trash.add(tire, world.robot.x + radius - 1, world.robot.y, 0, 0);
+        const far = world.trash.add(tire, world.robot.x + radius + 1, world.robot.y, 0, 0);
+        const nearBefore = near.x;
+        const farBefore = far.x;
+        expect(world.toggleVacuum()).toBe(true);
+        world.update(DT, STILL);
+        expect(near.x).toBeLessThan(nearBefore);
+        expect(far.x).toBe(farBefore);
+        expect(world.toggleVacuum()).toBe(false);
+      }
+    });
+  });
+
+  describe('pin, bộ sạc và sạc theo giờ thực', () => {
+    it('đổi pin giữ điện tuyệt đối và cắt theo dung lượng mới', () => {
+      const { world } = setup({ startingCoins: 100_000, startingFish: [] });
+      world.robot.battery.drain(60);
+      deliverAndInstall(world, { kind: 'battery', id: 'M' });
+      expect(world.robot.battery.capacity).toBe(150);
+      expect(world.robot.battery.charge).toBe(40);
+
+      world.robot.battery.recharge(1_000);
+      deliverAndInstall(world, { kind: 'battery', id: 'S' });
+      expect(world.robot.battery.capacity).toBe(100);
+      expect(world.robot.battery.charge).toBe(100);
+    });
+
+    it('bộ sạc đã lắp đổi tốc độ sạc tại trạm', () => {
+      const { world } = setup({ startingCoins: 100_000, startingFish: [] });
+      deliverAndInstall(world, { kind: 'charger', id: 'fast' });
+      world.robot.battery.drain(100);
+      dock(world);
+      world.update(1, STILL);
+      expect(world.robot.battery.charge).toBeCloseTo(40, 5);
+    });
+
+    it('catchUpCharging lần đầu chỉ ghi mốc, sau đó bù khi đậu và không bù khi rời trạm', () => {
+      const docked = setup({ startingFish: [] }).world;
+      docked.robot.battery.drain(100);
+      dock(docked);
+      docked.update(DT, STILL);
+      const before = docked.robot.battery.charge;
+      docked.catchUpCharging(1_000);
+      expect(docked.robot.battery.charge).toBe(before);
+      docked.catchUpCharging(3_000);
+      expect(docked.robot.battery.charge).toBeCloseTo(before + 50, 5);
+
+      const away = setup({ startingFish: [] }).world;
+      away.robot.battery.drain(100);
+      moveAway(away);
+      const awayBefore = away.robot.battery.charge;
+      away.catchUpCharging(1_000);
+      away.catchUpCharging(3_000);
+      expect(away.robot.battery.charge).toBe(awayBefore);
+    });
+
+    it('sạc chính vẫn bù khi vắng mặt còn trạm sạc phụ thì không chạy', () => {
+      const main = setup({ startingFish: [] }).world;
+      main.robot.battery.drain(100);
+      dock(main);
+      main.update(DT, STILL);
+      main.catchUpCharging(0);
+      const mainBefore = main.robot.battery.charge;
+      main.leaveTank(0);
+      main.returnToTank(2_000);
+      expect(main.robot.battery.charge).toBeCloseTo(mainBefore + 50, 5);
+
+      const aux = setup({ startingCoins: 100_000, startingFish: [] }).world;
+      deliverItem(aux, { kind: 'device', type: 'auxCharger', level: 1 });
+      expect(aux.placeDevice('auxCharger', 0)).toBe(true);
+      const slot = aux.devices[0];
+      if (!slot) throw new Error('Thiếu trạm sạc phụ kiểm thử');
+      aux.robot.battery.drain(100);
+      aux.robot.x = slot.x;
+      aux.robot.y = slot.y - 23;
+      aux.update(DT, STILL);
+      aux.catchUpCharging(0);
+      const auxBefore = aux.robot.battery.charge;
+      aux.leaveTank(0);
+      aux.returnToTank(2_000);
+      expect(aux.robot.battery.charge).toBe(auxBefore);
+    });
+
+    it('pin đầy thì không dùng và không trừ sạc dự phòng trong Kho', () => {
+      const { world } = setup({ startingCoins: 100_000, startingFish: [] });
+      const item: OrderItem = { kind: 'powerBank', id: 'small' };
+      deliverItem(world, item);
+      expect(world.usePowerBank('small')).toBe(false);
+      expect(world.items).toEqual([{ item, count: 1 }]);
+      world.robot.battery.drain(10);
+      expect(world.usePowerBank('small')).toBe(true);
+      expect(world.robot.battery.isFull).toBe(true);
+      expect(world.items).toEqual([]);
+    });
+  });
+
+  describe('thiết bị trong khu', () => {
+    it('không đặt vào slot đã có và giữ item thất bại trong Kho', () => {
+      const { world } = setup({ startingCoins: 100_000, startingFish: [] });
+      deliverItem(world, { kind: 'device', type: 'filter', level: 1 });
+      deliverItem(world, { kind: 'device', type: 'feeder', level: 1 });
+      expect(world.placeDevice('filter', 0)).toBe(true);
+      expect(world.placeDevice('feeder', 0)).toBe(false);
+      expect(world.items).toContainEqual({
+        item: { kind: 'device', type: 'feeder', level: 1 },
+        count: 1,
+      });
+      deliverItem(world, { kind: 'device', type: 'filter', level: 2 });
+      expect(world.installItem({ kind: 'device', type: 'filter', level: 2 })).toBe(true);
+      expect(world.devices).toContainEqual({
+        type: 'filter',
+        level: 2,
+        slotIndex: 0,
+        x: 230,
+        y: 600,
+      });
+    });
+
+    it('máy lọc giảm phần ô nhiễm dùng làm mục tiêu nước', () => {
+      const plain = setup({ startingCoins: 100_000, startingFish: [] });
+      const filtered = setup({ startingCoins: 100_000, startingFish: [] });
+      deliverItem(filtered.world, { kind: 'device', type: 'filter', level: 1 });
+      expect(filtered.world.placeDevice('filter', 0)).toBe(true);
+      for (let i = 0; i < 10; i++) {
+        plain.world.trash.add(plain.trashType('tire'), 300 + i, 400, 0, 0);
+        filtered.world.trash.add(filtered.trashType('tire'), 300 + i, 400, 0, 0);
+      }
+      run(plain.world, 10, STILL, 60);
+      run(filtered.world, 10, STILL, 60);
+      expect(plain.world.water).toBe(50);
+      expect(filtered.world.water).toBe(55);
+    });
+
+    it('máy cho ăn chạy theo dt × timeScale, trừ xu và thả tại máy', () => {
+      const { world, content } = setup({ startingCoins: 100_000, startingFish: [] });
+      deliverItem(world, { kind: 'device', type: 'feeder', level: 1 });
+      expect(world.placeDevice('feeder', 0)).toBe(true);
+      const before = world.wallet.get('coins');
+      world.update(2, STILL, 60);
+      expect(world.wallet.get('coins')).toBe(before - content.balance.food.price);
+      expect(world.food.pellets).toHaveLength(content.balance.food.pellets);
+      expect(world.food.pellets.every((pellet) => pellet.lane === 0)).toBe(true);
+      world.wallet.spend('coins', world.wallet.get('coins'));
+      world.update(2, STILL, 60);
+      expect(world.food.pellets).toHaveLength(content.balance.food.pellets);
+    });
+
+    it('trạm sạc phụ sạc ở tầng đáy nhưng không bán rác', () => {
+      const { world, trashType } = setup({ startingCoins: 100_000, startingFish: [] });
+      deliverItem(world, { kind: 'device', type: 'auxCharger', level: 1 });
+      expect(world.placeDevice('auxCharger', 0)).toBe(true);
+      const slot = world.devices[0];
+      if (!slot) throw new Error('Thiếu thiết bị kiểm thử');
+      const bottle = trashType('bottle');
+      world.robot.cargo.add(bottle.id, bottle.slots);
+      world.robot.battery.drain(50);
+      world.robot.x = slot.x;
+      world.robot.y = slot.y - 23;
+      world.update(1, STILL);
+      expect(world.isCharging).toBe(true);
+      expect(world.robot.battery.charge).toBeCloseTo(60, 5);
+      expect(world.robot.cargo.isEmpty).toBe(false);
+    });
+
+    it('san hô hạ ngưỡng buồn nhưng giữ nguyên ngưỡng nước bẩn', () => {
+      const plain = setup({ startingCoins: 100_000 });
+      const coral = setup({ startingCoins: 100_000 });
+      deliverItem(coral.world, { kind: 'device', type: 'coral', level: 1 });
+      expect(coral.world.placeDevice('coral', 0)).toBe(true);
+      for (const fixture of [plain, coral]) {
+        for (let i = 0; i < 7; i++) {
+          fixture.world.trash.add(fixture.trashType('tire'), 300 + i, 400, 0, 0);
+        }
+        for (let i = 0; i < 2; i++) {
+          fixture.world.trash.add(fixture.trashType('bag'), 350 + i, 450, 0, 0);
+        }
+        run(fixture.world, 7, STILL, 60);
+      }
+      const plainFish = plain.world.fish[0];
+      const coralFish = coral.world.fish[0];
+      if (!plainFish || !coralFish) throw new Error('Thiếu cá kiểm thử');
+      plainFish.fullness = 80;
+      coralFish.fullness = 80;
+      expect(plain.world.water).toBe(59);
+      expect(coral.world.water).toBe(59);
+      expect(plain.world.moodOf(plainFish)).toBe('sad');
+      expect(coral.world.moodOf(coralFish)).toBe('happy');
+      expect(coralFish.health).toBe(plainFish.health);
+    });
+  });
+
+  describe('đổi và tua bằng ngọc', () => {
+    it('skipCost đúng ở các biên', () => {
+      const { world } = setup();
+      expect([-1, 0, 1, 300, 300.1, 600].map((seconds) => world.skipCost(seconds))).toEqual([
+        0, 0, 1, 1, 2, 2,
+      ]);
+    });
+
+    it('thiếu ngọc thì đổi thất bại và không thay đổi ví', () => {
+      const { world } = setup({ startingCoins: 10, startingPearls: 1, startingFish: [] });
+      expect(world.exchangePearls(2)).toBe(false);
+      expect(world.wallet.get('pearls')).toBe(1);
+      expect(world.wallet.get('coins')).toBe(10);
+      expect(world.exchangePearls(1)).toBe(true);
+      expect(world.wallet.get('pearls')).toBe(0);
+      expect(world.wallet.get('coins')).toBe(1_010);
+    });
+
+    it('tua được cả đơn giao và quá trình lớn của cá con', () => {
+      const { world, content } = setup({
+        startingCoins: 100_000,
+        startingPearls: 10,
+        startingFish: [],
+      });
+      const species = content.fish.species[0];
+      if (!species) throw new Error('Thiếu loài cá kiểm thử');
+      expect(world.orderFish(species.id, 0)).toBe(true);
+      const order = world.orders[0];
+      if (!order) throw new Error('Thiếu đơn cá kiểm thử');
+      expect(world.skipOrder(order.id, 0)).toBe(true);
+      expect(world.collectDeliveries(0)).toBe(1);
+      expect(world.releaseFish(species.id)).toBe(true);
+      const juvenile = world.fish[0];
+      if (!juvenile) throw new Error('Thiếu cá con kiểm thử');
+      expect(juvenile.isGrown).toBe(false);
+      expect(world.skipFishGrowth(juvenile.id)).toBe(true);
+      expect(juvenile.isGrown).toBe(true);
+
+      const item: OrderItem = { kind: 'upgrade', track: 'speed', level: 2 };
+      expect(world.orderItem(item, 0)).toBe(true);
+      const itemOrder = world.orders[0];
+      if (!itemOrder) throw new Error('Thiếu đơn item kiểm thử');
+      expect(world.skipOrder(itemOrder.id, 0)).toBe(true);
+      expect(world.collectDeliveries(0)).toBe(1);
+      expect(world.items).toContainEqual({ item, count: 1 });
     });
   });
 });

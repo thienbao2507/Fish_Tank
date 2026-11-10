@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import { isDebugMode } from '../../config';
+import type { DeviceType } from '../../core/content/schemas';
 import { t } from '../../core/i18n';
 import { createRng } from '../../core/rng';
 import type { Drop } from '../../core/sim/drops';
 import { fishGrowthScale, type Fish } from '../../core/sim/fish';
 import type { FoodPellet } from '../../core/sim/food';
 import type { TrashItem } from '../../core/sim/trash';
+import type { PlacedDevice } from '../../core/world';
 import { TextureKeys } from '../art/keys';
 import { getContext, type GameContext } from '../context';
 import { addCameraBloom } from '../env/bloom';
@@ -85,6 +87,11 @@ interface FishView extends ShadowedWorldView {
   readonly countdown: Phaser.GameObjects.Text;
 }
 
+interface DeviceSpriteItem extends PlacedDevice {
+  /** SpriteSync dùng chính slotIndex làm định danh ổn định của thiết bị. */
+  readonly id: number;
+}
+
 interface StationView {
   readonly sprite: Phaser.GameObjects.Image;
   readonly shadow: Phaser.GameObjects.Image;
@@ -158,6 +165,12 @@ const CAST_ANGLE = -60;
 const CAST_SCALE_X = 0.8;
 const FOOT_ALPHA_MIN = 128;
 const FOOT_ROWS = 3;
+const DEVICE_TEXTURES: Readonly<Record<DeviceType, string>> = {
+  filter: TextureKeys.deviceFilter,
+  feeder: TextureKeys.deviceFeeder,
+  auxCharger: TextureKeys.deviceCharger,
+  coral: TextureKeys.deviceCoral,
+};
 
 /** Lớp màu nước phủ toàn màn hình: nâng vùng tối lên tông xanh, bớt ngả nâu. */
 const WATER_WASH_COLOR = 0x1f8fb0;
@@ -218,6 +231,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
   private foodViews!: SpriteSync<FoodPellet, ShadowedWorldView>;
   private dropViews!: SpriteSync<Drop, ShadowedWorldView>;
   private fishViews!: SpriteSync<Fish, FishView>;
+  private deviceViews!: SpriteSync<DeviceSpriteItem, ShadowedWorldView>;
   private stationView!: StationView;
   private now = 0;
   /** Tổng thời gian tạo ảnh có viền lúc nạp (ms), để đo chi phí. */
@@ -301,6 +315,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
   override update(time: number, delta: number): void {
     const seconds = Math.min(delta / 1000, MAX_FRAME_SECONDS);
     const { world, input, clock } = this.ctx;
+    world.catchUpCharging(clock.now());
     world.update(seconds, input, clock.scale);
     this.now = time;
 
@@ -945,6 +960,16 @@ export class IsoPrototypeScene extends Phaser.Scene {
       (fish) => this.createFishView(fish),
       (view, fish) => this.updateFishView(view, fish),
     );
+
+    this.deviceViews = new SpriteSync(
+      (device) => this.createShadowedView(DEVICE_TEXTURES[device.type]),
+      (view, device) => {
+        const p = this.placeEntity(view, device.x, device.y, 0);
+        if (!p) return;
+        this.applyLight(view.sprite, p.zc, 1);
+        view.sprite.setAlpha(1);
+      },
+    );
   }
 
   private createFishView(fish: Fish): FishView {
@@ -1059,6 +1084,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
     this.foodViews.sync(world.food.pellets);
     this.dropViews.sync(world.drops.items);
     this.fishViews.sync(world.fish);
+    this.deviceViews.sync(world.devices.map((device) => ({ ...device, id: device.slotIndex })));
   }
 
   private layoutRays(viewW: number, viewH: number): void {

@@ -14,8 +14,8 @@ export class Robot implements MotionState {
   aimX = 1;
   aimY = 0;
   vacuumOn = false;
-  readonly battery: Battery;
-  readonly cargo: Cargo;
+  battery: Battery;
+  cargo: Cargo;
 
   constructor(x: number, y: number, batteryCapacity: number, cargoCapacity: number) {
     this.x = x;

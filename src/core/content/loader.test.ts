@@ -79,6 +79,13 @@ describe('loadContent', () => {
     );
   });
 
+  it('upgrades.json dùng schema strict cho cả cấp nâng cấp', () => {
+    const raw = rawCopy();
+    raw.upgrades.cargo.levels[0].capcity = 20;
+    const error = errorOf(() => loadContent(raw));
+    expect(error.issues[0]).toContain('upgrades.json › cargo.levels.0');
+  });
+
   describe('kiểm tra chéo giữa các file', () => {
     it('khu tham chiếu loại rác không tồn tại', () => {
       const raw = rawCopy();
@@ -117,6 +124,67 @@ describe('loadContent', () => {
       raw.balance.startingFish = [{ species: 'shark', count: 1 }];
       const error = errorOf(() => loadContent(raw));
       expect(error.issues[0]).toContain('balance.json › startingFish.0.species');
+    });
+
+    it('tên và icon của mọi món nâng cấp phải tồn tại', () => {
+      const raw = rawCopy();
+      raw.upgrades.batteries[0].name = 'missing.name';
+      raw.upgrades.devices.filter.icon = 'missing.texture';
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('upgrades.json') && issue.includes('name'))).toBe(
+        true,
+      );
+      expect(error.issues.some((issue) => issue.includes('upgrades.json') && issue.includes('icon'))).toBe(
+        true,
+      );
+    });
+
+    it('cấp cơ bản của robot, pin và bộ sạc phải khớp balance.json', () => {
+      const raw = rawCopy();
+      raw.upgrades.cargo.levels[0].capacity += 1;
+      raw.upgrades.speed.levels[0].maxSpeed += 1;
+      raw.upgrades.vacuum.levels[0].radius += 1;
+      raw.upgrades.batteries[0].capacity += 1;
+      raw.upgrades.chargers[0].chargePerSecond += 1;
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.filter((issue) => issue.includes('phải khớp'))).toHaveLength(5);
+    });
+
+    it('zone1 phải có đúng 6 vị trí thiết bị', () => {
+      const raw = rawCopy();
+      raw.zones.zones[0].deviceSlots.pop();
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('zone1 phải có đúng 6'))).toBe(true);
+    });
+
+    it('vị trí thiết bị phải trong khu, ngoài vật cản và ngoài trạm', () => {
+      const outside = rawCopy();
+      outside.zones.zones[0].deviceSlots[0].x = -1;
+      expect(errorOf(() => loadContent(outside)).issues.some((issue) => issue.includes('nằm trong khu'))).toBe(
+        true,
+      );
+
+      const blocked = rawCopy();
+      const obstacle = blocked.zones.zones[0].obstacles[0];
+      blocked.zones.zones[0].deviceSlots[0] = { x: obstacle.x, y: obstacle.y };
+      expect(errorOf(() => loadContent(blocked)).issues.some((issue) => issue.includes('vật cản'))).toBe(
+        true,
+      );
+
+      const stationed = rawCopy();
+      const station = stationed.zones.zones[0].station;
+      stationed.zones.zones[0].deviceSlots[0] = { x: station.x, y: station.y };
+      expect(errorOf(() => loadContent(stationed)).issues.some((issue) => issue.includes('trạm'))).toBe(
+        true,
+      );
+    });
+
+    it('các vị trí thiết bị phải cách nhau ít nhất 80', () => {
+      const raw = rawCopy();
+      const first = raw.zones.zones[0].deviceSlots[0];
+      raw.zones.zones[0].deviceSlots[1] = { x: first.x + 79, y: first.y };
+      const error = errorOf(() => loadContent(raw));
+      expect(error.issues.some((issue) => issue.includes('ít nhất 80'))).toBe(true);
     });
 
     it('mặt nước phải nằm trên đáy', () => {

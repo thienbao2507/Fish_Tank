@@ -104,6 +104,8 @@ export const balanceSchema = z.strictObject({
   economy: z.strictObject({
     /** Tỉ giá 1 ngọc trai = ? xu (spec 6.2). */
     pearlValueInCoins: positiveInt,
+    /** Số giây chờ có thể tua bằng một ngọc trai. */
+    skipSecondsPerPearl: positiveInt,
   }),
   absence: z.strictObject({
     /** Thời gian tối đa được tính xu khi rời bể (giây). */
@@ -202,6 +204,9 @@ export const balanceSchema = z.strictObject({
   station: z.strictObject({
     chargePerSecond: positive,
   }),
+  devices: z.strictObject({
+    auxChargerRadius: positive,
+  }),
 });
 
 // ---------- trash.json ----------
@@ -258,6 +263,8 @@ export const zoneSchema = z.strictObject({
   wallWidth: z.number().min(0),
   station: rect,
   robotSpawn: point,
+  /** Các vị trí đặt thiết bị có sẵn; tọa độ là điểm chân của sprite. */
+  deviceSlots: z.array(point),
   obstacles: z.array(obstacle).optional(),
   trash: z.strictObject({
     initialCount: nonNegativeInt,
@@ -303,10 +310,110 @@ export const fishSchema = z.strictObject({
   species: z.array(fishSpeciesSchema).min(1),
 });
 
+// ---------- upgrades.json ----------
+
+const purchaseFields = {
+  price: nonNegativeInt,
+  deliverySeconds: z.number().min(0),
+};
+const itemFields = {
+  /** Khoá chuỗi tên trong strings.vi.json. */
+  name: id,
+  /** Khoá texture trong art.json. */
+  icon: id,
+};
+
+const cargoLevelSchema = z.strictObject({
+  capacity: positiveInt,
+  ...purchaseFields,
+});
+const speedLevelSchema = z.strictObject({
+  maxSpeed: positive,
+  ...purchaseFields,
+});
+const vacuumLevelSchema = z.strictObject({
+  radius: positive,
+  pullSpeed: positive,
+  ...purchaseFields,
+});
+const batterySchema = z.strictObject({
+  id: z.enum(['S', 'M', 'L', 'XL']),
+  ...itemFields,
+  capacity: positive,
+  ...purchaseFields,
+});
+const chargerSchema = z.strictObject({
+  id: z.enum(['basic', 'fast', 'ultra']),
+  ...itemFields,
+  chargePerSecond: positive,
+  ...purchaseFields,
+});
+const powerBankSchema = z.strictObject({
+  id: z.enum(['small', 'large']),
+  ...itemFields,
+  charge: positive,
+  ...purchaseFields,
+});
+
+export const upgradesSchema = z.strictObject({
+  cargo: z.strictObject({
+    ...itemFields,
+    levels: z.array(cargoLevelSchema).length(5),
+  }),
+  speed: z.strictObject({
+    ...itemFields,
+    levels: z.array(speedLevelSchema).length(5),
+  }),
+  vacuum: z.strictObject({
+    ...itemFields,
+    levels: z.array(vacuumLevelSchema).length(5),
+  }),
+  batteries: z.array(batterySchema).length(4),
+  chargers: z.array(chargerSchema).length(3),
+  powerBanks: z.array(powerBankSchema).length(2),
+  devices: z.strictObject({
+    filter: z.strictObject({
+      ...itemFields,
+      levels: z
+        .array(
+          z.strictObject({
+            pollutionReduction: z.number().min(0).max(1),
+            ...purchaseFields,
+          }),
+        )
+        .length(5),
+    }),
+    feeder: z.strictObject({
+      ...itemFields,
+      levels: z
+        .array(z.strictObject({ intervalSeconds: positive, ...purchaseFields }))
+        .length(5),
+    }),
+    auxCharger: z.strictObject({
+      ...itemFields,
+      levels: z
+        .array(z.strictObject({ chargePerSecond: positive, ...purchaseFields }))
+        .length(5),
+    }),
+    coral: z.strictObject({
+      ...itemFields,
+      levels: z
+        .array(z.strictObject({ sadWaterDrop: positive, ...purchaseFields }))
+        .length(5),
+    }),
+  }),
+});
+
 export type ShapePart = z.infer<typeof shapePartSchema>;
 export type TextureDef = z.infer<typeof textureDefSchema>;
 export type ArtManifest = z.infer<typeof artSchema>;
 export type Balance = z.infer<typeof balanceSchema>;
+export type Upgrades = z.infer<typeof upgradesSchema>;
+export type UpgradeTrack = 'cargo' | 'speed' | 'vacuum';
+export type BatteryId = Upgrades['batteries'][number]['id'];
+export type ChargerId = Upgrades['chargers'][number]['id'];
+export type PowerBankId = Upgrades['powerBanks'][number]['id'];
+export type DeviceType = keyof Upgrades['devices'];
 export type TrashLayer = z.infer<typeof trashLayerSchema>;
 export type TrashTypeDef = z.infer<typeof trashTypeSchema>;
 export type TrashCatalog = z.infer<typeof trashSchema>;
@@ -315,8 +422,9 @@ type ParsedZoneDef = z.infer<typeof zoneSchema>;
  * Loader luôn trả fishCapacity; để optional ở type công khai nhằm giữ tương thích các fixture
  * tối giản cũ vốn chỉ cần một phần hình học của khu.
  */
-export type ZoneDef = Omit<ParsedZoneDef, 'fishCapacity'> & {
+export type ZoneDef = Omit<ParsedZoneDef, 'fishCapacity' | 'deviceSlots'> & {
   readonly fishCapacity?: ParsedZoneDef['fishCapacity'];
+  readonly deviceSlots?: ParsedZoneDef['deviceSlots'];
 };
 export type FishSpeciesDef = z.infer<typeof fishSpeciesSchema>;
 export type FishCatalog = z.infer<typeof fishSchema>;

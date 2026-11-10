@@ -8,11 +8,13 @@ import {
   fishSchema,
   stringsSchema,
   trashSchema,
+  upgradesSchema,
   zonesSchema,
   type ArtManifest,
   type Balance,
   type FishCatalog,
   type TrashCatalog,
+  type Upgrades,
   type ZoneDef,
 } from './schemas';
 
@@ -24,6 +26,7 @@ export interface RawContent {
   readonly zones: unknown;
   readonly trash: unknown;
   readonly fish: unknown;
+  readonly upgrades: unknown;
 }
 
 /** Dữ liệu đã kiểm tra, dùng trong toàn game. */
@@ -34,6 +37,7 @@ export interface Content {
   readonly zones: readonly ZoneDef[];
   readonly trash: TrashCatalog;
   readonly fish: FishCatalog;
+  readonly upgrades: Upgrades;
 }
 
 export class ContentError extends Error {
@@ -109,6 +113,7 @@ function crossCheck(content: Content, issues: string[]): void {
 
     const { station, robotSpawn } = zone;
     const obstacles = zone.obstacles ?? [];
+    const deviceSlots = zone.deviceSlots ?? [];
     obstacles.forEach((obstacle, obstacleIndex) => {
       if (
         obstacle.x - obstacle.width / 2 < 0 ||
@@ -162,6 +167,32 @@ function crossCheck(content: Content, issues: string[]): void {
     if (blockedBy(obstacles, robotSpawn.x, robotSpawn.y, 0, 0)) {
       issues.push(`${at}.robotSpawn: điểm xuất phát nằm trong vật cản`);
     }
+    if (zone.id === 'zone1' && deviceSlots.length !== 6) {
+      issues.push(`${at}.deviceSlots: zone1 phải có đúng 6 vị trí`);
+    }
+    deviceSlots.forEach((slot, slotIndex) => {
+      const slotAt = `${at}.deviceSlots.${slotIndex}`;
+      if (slot.x < 0 || slot.x > zone.width || slot.y < zone.surfaceY || slot.y > zone.floorY) {
+        issues.push(`${slotAt}: vị trí phải nằm trong khu`);
+      }
+      if (blockedBy(obstacles, slot.x, slot.y, 0, 0)) {
+        issues.push(`${slotAt}: vị trí nằm trong vật cản`);
+      }
+      if (
+        slot.x >= station.x &&
+        slot.x <= station.x + station.width &&
+        slot.y >= station.y &&
+        slot.y <= station.y + station.height
+      ) {
+        issues.push(`${slotAt}: vị trí nằm trong trạm`);
+      }
+      for (let otherIndex = 0; otherIndex < slotIndex; otherIndex++) {
+        const other = deviceSlots[otherIndex];
+        if (other && Math.hypot(slot.x - other.x, slot.y - other.y) < 80) {
+          issues.push(`${slotAt}: phải cách vị trí ${otherIndex} ít nhất 80`);
+        }
+      }
+    });
     if (zone.trash.initialCount > zone.trash.maxCount) {
       issues.push(`${at}.trash: initialCount không được lớn hơn maxCount`);
     }
@@ -206,6 +237,62 @@ function crossCheck(content: Content, issues: string[]): void {
       );
     }
   });
+
+  const { upgrades } = content;
+  const namedItems = [
+    upgrades.cargo,
+    upgrades.speed,
+    upgrades.vacuum,
+    ...upgrades.batteries,
+    ...upgrades.chargers,
+    ...upgrades.powerBanks,
+    ...Object.values(upgrades.devices),
+  ];
+  namedItems.forEach((item, index) => {
+    if (content.strings[item.name] === undefined) {
+      issues.push(
+        `upgrades.json › item.${index}.name: không có chuỗi "${item.name}" trong strings.vi.json`,
+      );
+    }
+    if (!textureKeys.has(item.icon)) {
+      issues.push(
+        `upgrades.json › item.${index}.icon: không có texture "${item.icon}" trong art.json`,
+      );
+    }
+  });
+  for (const duplicate of findDuplicates(upgrades.batteries.map((item) => item.id))) {
+    issues.push(`upgrades.json › batteries: id "${duplicate}" bị trùng`);
+  }
+  for (const duplicate of findDuplicates(upgrades.chargers.map((item) => item.id))) {
+    issues.push(`upgrades.json › chargers: id "${duplicate}" bị trùng`);
+  }
+  for (const duplicate of findDuplicates(upgrades.powerBanks.map((item) => item.id))) {
+    issues.push(`upgrades.json › powerBanks: id "${duplicate}" bị trùng`);
+  }
+
+  const firstCargo = upgrades.cargo.levels[0];
+  const firstSpeed = upgrades.speed.levels[0];
+  const firstVacuum = upgrades.vacuum.levels[0];
+  const firstBattery = upgrades.batteries.find((item) => item.id === 'S');
+  const firstCharger = upgrades.chargers.find((item) => item.id === 'basic');
+  if (firstCargo?.capacity !== content.balance.robot.cargoCapacity) {
+    issues.push('upgrades.json › cargo.levels.0.capacity: phải khớp balance.robot.cargoCapacity');
+  }
+  if (firstSpeed?.maxSpeed !== content.balance.robot.maxSpeed) {
+    issues.push('upgrades.json › speed.levels.0.maxSpeed: phải khớp balance.robot.maxSpeed');
+  }
+  if (
+    firstVacuum?.radius !== content.balance.robot.vacuum.radius ||
+    firstVacuum.pullSpeed !== content.balance.robot.vacuum.pullSpeed
+  ) {
+    issues.push('upgrades.json › vacuum.levels.0: phải khớp balance.robot.vacuum');
+  }
+  if (firstBattery?.capacity !== content.balance.robot.batteryCapacity) {
+    issues.push('upgrades.json › batteries.S.capacity: phải khớp balance.robot.batteryCapacity');
+  }
+  if (firstCharger?.chargePerSecond !== content.balance.station.chargePerSecond) {
+    issues.push('upgrades.json › chargers.basic.chargePerSecond: phải khớp balance.station');
+  }
 }
 
 /** Kiểm tra toàn bộ dữ liệu; gom lỗi của mọi file rồi ném một ContentError duy nhất. */
@@ -217,12 +304,13 @@ export function loadContent(raw: RawContent): Content {
   const zones = parseFile('zones.json', zonesSchema, raw.zones, issues);
   const trash = parseFile('trash.json', trashSchema, raw.trash, issues);
   const fish = parseFile('fish.json', fishSchema, raw.fish, issues);
+  const upgrades = parseFile('upgrades.json', upgradesSchema, raw.upgrades, issues);
 
-  if (!strings || !art || !balance || !zones || !trash || !fish) {
+  if (!strings || !art || !balance || !zones || !trash || !fish || !upgrades) {
     throw new ContentError(issues);
   }
 
-  const content: Content = { strings, art, balance, zones: zones.zones, trash, fish };
+  const content: Content = { strings, art, balance, zones: zones.zones, trash, fish, upgrades };
   crossCheck(content, issues);
   if (issues.length > 0) {
     throw new ContentError(issues);
