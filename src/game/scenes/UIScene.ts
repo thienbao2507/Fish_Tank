@@ -12,7 +12,8 @@ import { SickFishArrows } from '../hud/SickFishArrows';
 import type { IsoPrototypeScene } from './IsoPrototypeScene';
 import { Toasts } from '../hud/Toasts';
 import { VirtualJoystick } from '../input/VirtualJoystick';
-import { enterRoom } from '../sceneFlow';
+import { PauseButton } from '../menu/PauseButton';
+import { enterRoom, openPauseMenu } from '../sceneFlow';
 import { SceneKeys } from './keys';
 
 interface MoveKeys {
@@ -48,6 +49,7 @@ export class UIScene extends Phaser.Scene {
   private laneOutButton!: ActionButton;
   private backToRoomButton!: ActionButton;
   private inventoryButton!: ActionButton;
+  private pauseButton!: PauseButton;
   private toasts!: Toasts;
   private joystick!: VirtualJoystick;
   private arrows!: SickFishArrows;
@@ -82,6 +84,9 @@ export class UIScene extends Phaser.Scene {
       },
       inventory: (): void => {
         this.openInventory();
+      },
+      pause: (): void => {
+        this.openPauseMenu();
       },
     };
 
@@ -125,6 +130,7 @@ export class UIScene extends Phaser.Scene {
       onPress: actions.inventory,
       size: LANE_BUTTON_SIZE,
     });
+    this.pauseButton = new PauseButton(this, actions.pause, 100);
     this.toasts = new Toasts(this);
     const gameScene = this.scene.get(SceneKeys.Game) as IsoPrototypeScene;
     this.arrows = new SickFishArrows(this, world, (fish) => gameScene.toScreen(fish));
@@ -197,14 +203,23 @@ export class UIScene extends Phaser.Scene {
     const laneInY = laneOutY - LANE_BUTTON_SIZE - LANE_BUTTON_GAP;
     this.laneInButton.setPosition(laneX, laneInY);
     this.laneOutButton.setPosition(laneX, laneOutY);
+    // Nhãn "Về phòng" rộng hơn nút: dời cả cột nút vào trong để nhãn không tràn khỏi mép trái.
+    const sideButtonHalf = Math.ceil(
+      Math.max(
+        LANE_BUTTON_SIZE,
+        this.backToRoomButton.labelWidth,
+        this.inventoryButton.labelWidth,
+      ) / 2,
+    );
     this.backToRoomButton.setPosition(
-      HUD_MARGIN + LANE_BUTTON_SIZE / 2,
+      HUD_MARGIN + sideButtonHalf,
       HUD_TOP_RESERVED + LANE_BUTTON_SIZE / 2,
     );
     this.inventoryButton.setPosition(
-      HUD_MARGIN + LANE_BUTTON_SIZE / 2,
+      HUD_MARGIN + sideButtonHalf,
       HUD_TOP_RESERVED + LANE_BUTTON_SIZE * 1.5 + LANE_BUTTON_GAP,
     );
+    this.pauseButton.layout(width);
     this.hud.layout(width);
     this.hud.layoutLaneIndicator(laneX + LANE_BUTTON_SIZE / 2 + 7, (laneInY + laneOutY) / 2);
     this.toasts.layout(width);
@@ -216,6 +231,7 @@ export class UIScene extends Phaser.Scene {
     medicine: () => void;
     laneIn: () => void;
     laneOut: () => void;
+    pause: () => void;
   }): void {
     const keyboard = this.input.keyboard;
     if (!keyboard) return;
@@ -232,6 +248,16 @@ export class UIScene extends Phaser.Scene {
     key(KeyCodes.R).on('down', actions.medicine);
     key(KeyCodes.Q).on('down', actions.laneIn);
     key(KeyCodes.E).on('down', actions.laneOut);
+    key(KeyCodes.ESC).on('down', actions.pause);
+  }
+
+  private openPauseMenu(): void {
+    if (this.inventoryWindow) return;
+    this.joystick.reset();
+    this.input.keyboard?.resetKeys();
+    this.ctx.input.moveX = 0;
+    this.ctx.input.moveY = 0;
+    openPauseMenu(this, 'tank');
   }
 
   private openInventory(): void {

@@ -243,6 +243,10 @@ Mục tiêu: có đủ vòng chi tiêu và nâng cấp qua PC trong phòng, có 
 
 Demo P3: kiếm xu → nâng cấp → thấy robot/bể tốt lên; tua bằng ngọc hoạt động.
 
+### MN — Menu (yêu cầu ngày 2026-11-10, spec 19)
+- [~] **MN-01** Màn tiêu đề (bảng điều khiển, màn hình số liệu bể, cá bơi), menu tạm dừng (nút HUD + Esc), cài đặt hiệu ứng lưu localStorage, trang Hướng dẫn và Thông tin.
+  AC: unit test lưu/nạp cài đặt; mở game vào màn tiêu đề; Bắt đầu vào phòng; tạm dừng ở phòng và bể; về màn tiêu đề rồi vào lại vẫn giữ ván.
+
 ### P4 — Mối đe dọa
 - [ ] **P4-01** Hệ thống event/mối đe dọa theo `threats.json` (khu, lịch, cường độ, thời gian báo trước).
   AC: thêm một event mới chỉ bằng JSON.
@@ -281,10 +285,8 @@ Demo P6: cài APK lên máy Android, chơi trọn vòng.
 
 | Ý tưởng | Lý do | Ngày ghi |
 |---|---|---|
-| Màn tiêu đề khung kính bể kiểu diorama | Theo ảnh mẫu (spec 12.4) | 2026-11-05 |
 | Va chạm cứng với props, méo sóng toàn màn hình, trục sâu trong gameplay | Phần "chưa làm" của bộ luật layer (spec 12.5) | 2026-11-06 |
 | Vẽ props (lâu đài, tàu đắm, lũa) và animation cá/tàu bằng Pixelbolt | Pixelbolt 0.12.1 đã cài (spec 12.2) | 2026-11-06 |
-| Công tắc hiệu ứng (bloom) cho người chơi trong menu cài đặt | Hiện chỉ tắt được ở panel debug; cần khi máy yếu bị giật (đo ở P6-03) | 2026-11-06 |
 | Đèn điểm động chiếu sáng cảnh (đèn pha, đèn trạm, sứa) bằng Lighting của Phaser 4 | Bước tiếp theo của HD-2D; tốn hiệu năng và phải bật lighting cho từng đối tượng | 2026-11-06 |
 
 ### Việc đang chờ người dùng quyết định

@@ -21,6 +21,6 @@ export class PreloadScene extends Phaser.Scene {
   create(): void {
     createPlaceholderTextures(this, getContext(this).content.art);
     assertTexturesExist(this, Object.values(TextureKeys));
-    this.scene.start(SceneKeys.Room);
+    this.scene.start(SceneKeys.Menu);
   }
 }

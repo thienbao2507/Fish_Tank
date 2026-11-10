@@ -245,7 +245,7 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
   - ánh lửa nhấp nháy ở cửa trạm;
   - phù du phát sáng li ti, nhấp nháy;
   - tối nhẹ ở viền màn hình (màu navy–tím).
-- Chưa làm: màn tiêu đề khung kính bể; công tắc hiệu ứng cho người chơi (cần menu cài đặt); đèn điểm động chiếu sáng cảnh (Lighting của Phaser 4).
+- Chưa làm: đèn điểm động chiếu sáng cảnh (Lighting của Phaser 4).
 
 ### 12.5 Layer và góc nhìn 2.5D
 Theo bộ luật layer người dùng gửi ngày 2026-11-06 (viết cho 3D), chuyển sang Phaser 2D và thêm cảm giác **hộp bể 2.5D**.
@@ -357,3 +357,11 @@ Người dùng duyệt ngày 2026-11-09. Mục này **thay thế** phần "3 là
 - **Xu/ngọc:** rơi từ chỗ cá xuống tầng Đáy; luật tự cộng sau thời hạn giữ nguyên.
 - **Vật cản:** vách, đền và khối đá lớn chặn tàu và cá ở cả 3 tầng; mặt cao nguyên chỉ để ngắm. Rác không sinh trong vùng bị chặn. Có lối cát để đi vòng.
 - **Hiển thị:** theo bản thử `?iso=1`. Tầng thể hiện bằng độ cao của vật và bóng đổ xuống đáy.
+
+## 19. Menu (duyệt 2026-11-10)
+- **Màn tiêu đề**, mở game là vào đây: nền là lòng bể pixel nhìn qua kính (`menu.backdrop`, rộng 840 để phủ mọi tỉ lệ màn hình), có cá bơi qua lại, bọt khí nổi, tia nắng. Logo chữ pixel "FishTank" (`menu.logo`), không có dòng phụ.
+- Menu chính nằm trong một **bảng điều khiển bể cá** bằng kim loại (`menu.panel`, nine-slice), nút `menu.button` (nine-slice, khung 0 thường, khung 1 đang chọn): **Bắt đầu** (vào phòng), **Cài đặt**, **Hướng dẫn**, **Thông tin**. Trên bảng có màn hình nhỏ (`menu.screen`) hiện số liệu thật của bể: tên khu, độ sạch nước, số cá / sức chứa, xu.
+- **Menu tạm dừng:** nút `menu.pause` ở HUD cả phòng lẫn bể, phím `Esc`. Gồm Tiếp tục, Cài đặt, Về màn tiêu đề. Game dừng hẳn khi menu mở; trạng thái ván chơi giữ nguyên khi về màn tiêu đề rồi bấm Bắt đầu lại.
+- **Cài đặt:** công tắc (`menu.toggle`) Phát sáng (bloom), Làm mờ tiêu điểm (tilt-shift), Viền tối. Lưu bằng `localStorage`, nạp lại khi mở game. Chưa có âm thanh nên chưa có âm lượng.
+- **Hướng dẫn:** 3 trang ngắn (điều khiển; vòng chơi dọn rác → đổi xu → chăm cá → mua sắm; phòng và PC). **Thông tin:** phiên bản, ghi công font.
+- Chưa có nút "Chơi tiếp" vì chưa có lưu game (P5-06).

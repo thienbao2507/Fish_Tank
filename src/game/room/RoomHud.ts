@@ -3,6 +3,7 @@ import type { World } from '../../core/world';
 import { TextureKeys } from '../art/keys';
 import { HUD_MARGIN, HUD_ROW_1, HUD_ROW_2, TEXT_OFFSET_Y } from '../hud/layout';
 import { addPixelText } from '../hud/text';
+import { PauseButton } from '../menu/PauseButton';
 import { ROOM_LIGHT_DEPTH } from './layout';
 
 const ICON_GAP = 4;
@@ -18,6 +19,7 @@ export class RoomHud {
   private readonly coinText: Phaser.GameObjects.Text;
   private readonly pearlIcon: Phaser.GameObjects.Image;
   private readonly pearlText: Phaser.GameObjects.Text;
+  private readonly pauseButton: PauseButton;
   private width = 0;
   private shownCoins = -1;
   private shownPearls = -1;
@@ -25,6 +27,7 @@ export class RoomHud {
   constructor(
     scene: Phaser.Scene,
     private readonly world: World,
+    onPause: () => void,
   ) {
     this.coinIcon = scene.add
       .image(0, HUD_ROW_1, TextureKeys.iconCoin)
@@ -40,6 +43,7 @@ export class RoomHud {
     this.pearlText = addPixelText(scene, 0, HUD_ROW_2 + TEXT_OFFSET_Y, '')
       .setOrigin(1, 0)
       .setDepth(HUD_DEPTH);
+    this.pauseButton = new PauseButton(scene, onPause, HUD_DEPTH);
 
     const onResize = (gameSize: Phaser.Structs.Size): void => this.layout(gameSize.width);
     scene.scale.on(Phaser.Scale.Events.RESIZE, onResize);
@@ -67,6 +71,7 @@ export class RoomHud {
 
   private layout(width: number): void {
     this.width = width;
+    this.pauseButton.layout(width);
     this.placeRight(this.coinText, this.coinIcon);
     this.placeRight(this.pearlText, this.pearlIcon);
   }

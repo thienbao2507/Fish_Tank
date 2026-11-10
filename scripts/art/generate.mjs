@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { Pixels, bayer, createRng, mixHex, ramp } from './lib.mjs';
 import { ROOM_ASSETS } from './room.mjs';
 import { SHOP_ASSETS } from './shop.mjs';
+import { MENU_ASSETS } from './menu.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const OUT_DIR = path.join(ROOT, 'public/art/gen');
@@ -2783,6 +2784,7 @@ const ASSETS = {
   'food-pellet': foodPellet,
   ...ROOM_ASSETS,
   ...SHOP_ASSETS,
+  ...MENU_ASSETS,
 };
 
 const made = {};

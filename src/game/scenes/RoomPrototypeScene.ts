@@ -29,7 +29,7 @@ import {
   type RoomPosition,
 } from '../room/layout';
 import { RoomHud } from '../room/RoomHud';
-import { enterTank } from '../sceneFlow';
+import { enterTank, openPauseMenu } from '../sceneFlow';
 import { SceneKeys } from './keys';
 
 interface MoveKeys {
@@ -134,7 +134,7 @@ export class RoomPrototypeScene extends Phaser.Scene {
     (this.children.list[this.children.list.length - 1] as Phaser.GameObjects.Text).setDepth(
       ROOM_LIGHT_DEPTH + 2,
     );
-    this.roomHud = new RoomHud(this, this.ctx.world);
+    this.roomHud = new RoomHud(this, this.ctx.world, () => this.openPauseMenu());
     this.setupKeyboard();
     addCameraBloom(this, { threshold: 0.86, blendAmount: 0.4 });
 
@@ -214,6 +214,7 @@ export class RoomPrototypeScene extends Phaser.Scene {
     };
     key(KeyCodes.E).on('down', () => this.activateInteraction());
     key(KeyCodes.SPACE).on('down', () => this.activateInteraction());
+    key(KeyCodes.ESC).on('down', () => this.openPauseMenu());
   }
 
   private keyboardDirection(): Direction {
@@ -248,19 +249,14 @@ export class RoomPrototypeScene extends Phaser.Scene {
       width - HUD_MARGIN - ActionButton.SIZE / 2,
       GAME_HEIGHT - HUD_MARGIN - ActionButton.SIZE / 2,
     );
-    this.doorGlow.setPosition(
-      this.shellX + ROOM_DOOR_GLOW.x,
-      ROOM_SHELL_Y + ROOM_DOOR_GLOW.y,
-    );
+    this.doorGlow.setPosition(this.shellX + ROOM_DOOR_GLOW.x, ROOM_SHELL_Y + ROOM_DOOR_GLOW.y);
     this.toasts.layout(width);
     this.updateHero(this.hero.anims.isPlaying);
   }
 
   private refreshDeliveryState(time: number): void {
     const hasArrived = this.ctx.world.hasArrivedDeliveries(this.ctx.clock.now());
-    this.doorGlow
-      .setVisible(hasArrived)
-      .setAlpha(0.7 + 0.3 * Math.sin(time * 0.004));
+    this.doorGlow.setVisible(hasArrived).setAlpha(0.7 + 0.3 * Math.sin(time * 0.004));
     this.refreshInteraction(hasArrived);
   }
 
@@ -285,6 +281,13 @@ export class RoomPrototypeScene extends Phaser.Scene {
       this.ctx.world.collectDeliveries(this.ctx.clock.now());
       this.refreshDeliveryState(0);
     }
+  }
+
+  private openPauseMenu(): void {
+    if (this.pcDesktop) return;
+    this.joystick.reset();
+    this.input.keyboard?.resetKeys();
+    openPauseMenu(this, 'room');
   }
 
   private openPcDesktop(): void {

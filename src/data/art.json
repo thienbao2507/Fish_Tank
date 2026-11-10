@@ -1199,6 +1199,38 @@
       "kind": "image",
       "file": "art/gen/room-plant.png"
     },
+    "menu.backdrop": {
+      "kind": "image",
+      "file": "art/gen/menu-backdrop.png"
+    },
+    "menu.logo": {
+      "kind": "image",
+      "file": "art/gen/menu-logo.png"
+    },
+    "menu.panel": {
+      "kind": "image",
+      "file": "art/gen/menu-panel.png"
+    },
+    "menu.button": {
+      "kind": "spritesheet",
+      "file": "art/gen/menu-button.png",
+      "frameWidth": 48,
+      "frameHeight": 24
+    },
+    "menu.screen": {
+      "kind": "image",
+      "file": "art/gen/menu-screen.png"
+    },
+    "menu.pause": {
+      "kind": "image",
+      "file": "art/gen/menu-pause.png"
+    },
+    "menu.toggle": {
+      "kind": "spritesheet",
+      "file": "art/gen/menu-toggle.png",
+      "frameWidth": 24,
+      "frameHeight": 12
+    },
     "device.filter": {
       "kind": "image",
       "file": "art/gen/device-filter.png"

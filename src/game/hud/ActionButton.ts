@@ -41,6 +41,11 @@ export class ActionButton {
     this.iconOnly = label.length === 0;
   }
 
+  /** Chiều rộng nhãn chữ (px logic), để đặt nút sát mép mà nhãn không bị cắt. */
+  get labelWidth(): number {
+    return this.label.width;
+  }
+
   /** Đặt tâm nút. */
   setPosition(x: number, y: number): void {
     this.background.setPosition(x, y);

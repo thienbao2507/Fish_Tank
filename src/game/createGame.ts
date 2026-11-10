@@ -1,8 +1,14 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT } from '../config';
+import type { Settings } from '../core/settings';
+import { loadSettings, saveSettings } from '../platform/settingsStorage';
 import { setContext, type GameContext } from './context';
+import { BLOOM_KEY } from './env/bloom';
+import { TILT_SHIFT_KEY, VIGNETTE_KEY } from './env/postfx';
 import { BootScene } from './scenes/BootScene';
 import { IsoPrototypeScene } from './scenes/IsoPrototypeScene';
+import { MenuScene } from './scenes/MenuScene';
+import { PauseScene } from './scenes/PauseScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { RoomPrototypeScene } from './scenes/RoomPrototypeScene';
 import { UIScene } from './scenes/UIScene';
@@ -22,7 +28,28 @@ function keepWidthMatchingScreen(game: Phaser.Game): void {
   });
 }
 
+const EFFECT_KEYS = new Set<string>([BLOOM_KEY, TILT_SHIFT_KEY, VIGNETTE_KEY]);
+
+function registrySettings(game: Phaser.Game): Settings {
+  return {
+    bloom: game.registry.get(BLOOM_KEY) !== false,
+    tiltShift: game.registry.get(TILT_SHIFT_KEY) !== false,
+    vignette: game.registry.get(VIGNETTE_KEY) !== false,
+  };
+}
+
+/** Áp cài đặt trước khi scene đầu tiên tạo filter và lưu lại mọi thay đổi từ UI/debug. */
+function setupSettings(game: Phaser.Game, settings: Settings): void {
+  game.registry.set(BLOOM_KEY, settings.bloom);
+  game.registry.set(TILT_SHIFT_KEY, settings.tiltShift);
+  game.registry.set(VIGNETTE_KEY, settings.vignette);
+  game.registry.events.on(Phaser.Data.Events.CHANGE_DATA, (_parent: unknown, key: string) => {
+    if (EFFECT_KEYS.has(key)) saveSettings(registrySettings(game));
+  });
+}
+
 export function createGame(ctx: GameContext): Phaser.Game {
+  const settings = loadSettings();
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
@@ -40,10 +67,21 @@ export function createGame(ctx: GameContext): Phaser.Game {
     input: { activePointers: 3 },
     callbacks: {
       // Gắn context trước khi scene nào chạy.
-      preBoot: (game) => setContext(game, ctx),
+      preBoot: (game) => {
+        setContext(game, ctx);
+        setupSettings(game, settings);
+      },
       postBoot: keepWidthMatchingScreen,
     },
     // Thứ tự trong mảng = thứ tự vẽ: UI nằm trên Game.
-    scene: [BootScene, PreloadScene, IsoPrototypeScene, UIScene, RoomPrototypeScene],
+    scene: [
+      BootScene,
+      PreloadScene,
+      IsoPrototypeScene,
+      UIScene,
+      RoomPrototypeScene,
+      MenuScene,
+      PauseScene,
+    ],
   });
 }
