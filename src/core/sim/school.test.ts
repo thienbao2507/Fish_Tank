@@ -176,8 +176,8 @@ describe('School', () => {
     const far = school.add(testSpecies, 300, 100, 0);
     near.health = 10;
     far.health = 10;
-    expect(school.nearestSick(90, 100, 50)).toBe(near);
-    expect(school.nearestSick(200, 200, 20)).toBeUndefined();
+    expect(school.nearestSick(90, 100, 50, 0, 1)).toBe(near);
+    expect(school.nearestSick(200, 200, 20, 0, 1)).toBeUndefined();
   });
 
   it('cá sinh ở một trong ba làn và z bắt đầu đúng tại làn đó', () => {

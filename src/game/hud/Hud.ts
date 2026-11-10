@@ -1,7 +1,6 @@
 import type Phaser from 'phaser';
 import type { FishRules } from '../../core/content/schemas';
 import { t } from '../../core/i18n';
-import { nearestLane } from '../../core/sim/lanes';
 import type { World } from '../../core/world';
 import { TextureKeys } from '../art/keys';
 import { HUD_MARGIN, HUD_ROW_1, HUD_ROW_2, TEXT_OFFSET_Y } from './layout';
@@ -25,8 +24,11 @@ const BAR_EMPTY = 0x1b2a41;
 const BAR_HIGH = 0x6fe08a;
 const BAR_MID = 0xf2c94c;
 const BAR_LOW = 0xe04f5f;
-const LANE_DOT = 0x36516e;
-const LANE_DOT_ACTIVE = 0xe6f1ff;
+const DEPTH_GAUGE_WIDTH = 8;
+const DEPTH_GAUGE_HEIGHT = 72;
+const DEPTH_GAUGE_FRAME = 0x0b1d2e;
+const DEPTH_GAUGE_EMPTY = 0x36516e;
+const DEPTH_GAUGE_FILL = 0x8ee8ff;
 
 function batteryColor(ratio: number): number {
   if (ratio > 0.5) return BAR_HIGH;
@@ -48,9 +50,9 @@ export class Hud {
   private readonly coinText: Phaser.GameObjects.Text;
   private readonly pearlIcon: Phaser.GameObjects.Image;
   private readonly pearlText: Phaser.GameObjects.Text;
-  private readonly laneDots: Phaser.GameObjects.Graphics;
-  private laneDotsX = 0;
-  private laneDotsY = 0;
+  private readonly depthGauge: Phaser.GameObjects.Graphics;
+  private depthGaugeX = 0;
+  private depthGaugeY = 0;
   private width = 0;
   private shown = {
     batteryPixels: -1,
@@ -59,7 +61,7 @@ export class Hud {
     water: -1,
     coins: -1,
     pearls: -1,
-    lane: -1,
+    depthPixels: -1,
   };
 
   constructor(
@@ -84,7 +86,7 @@ export class Hud {
     this.coinText = addPixelText(scene, 0, HUD_ROW_1 + TEXT_OFFSET_Y, '').setOrigin(1, 0);
     this.pearlIcon = scene.add.image(0, HUD_ROW_2, TextureKeys.iconPearl).setOrigin(0);
     this.pearlText = addPixelText(scene, 0, HUD_ROW_2 + TEXT_OFFSET_Y, '').setOrigin(1, 0);
-    this.laneDots = scene.add.graphics();
+    this.depthGauge = scene.add.graphics();
   }
 
   /** Gọi khi chiều rộng màn hình đổi: các thông số bên phải bám mép phải. */
@@ -94,20 +96,20 @@ export class Hud {
     this.placeRight(this.pearlText, this.pearlIcon);
   }
 
-  /** Đặt tâm cụm ba chấm làn cạnh các nút đổi làn. */
-  layoutLaneIndicator(x: number, y: number): void {
-    this.laneDotsX = x;
-    this.laneDotsY = y;
-    this.drawLaneDots(this.shown.lane < 0 ? nearestLane(this.world.robot.z) : this.shown.lane);
+  /** Đặt tâm thanh độ sâu dọc cạnh hai nút lặn. */
+  layoutDepthGauge(x: number, y: number): void {
+    this.depthGaugeX = x;
+    this.depthGaugeY = y;
+    this.drawDepthGauge(this.depthPixels(this.world.robot.z));
   }
 
   refresh(): void {
     const { robot, wallet } = this.world;
 
-    const lane = nearestLane(robot.z);
-    if (lane !== this.shown.lane) {
-      this.shown.lane = lane;
-      this.drawLaneDots(lane);
+    const depthPixels = this.depthPixels(robot.z);
+    if (depthPixels !== this.shown.depthPixels) {
+      this.shown.depthPixels = depthPixels;
+      this.drawDepthGauge(depthPixels);
     }
 
     const batteryPixels = Math.round((BAR_WIDTH - 4) * robot.battery.ratio);
@@ -171,11 +173,25 @@ export class Hud {
     }
   }
 
-  private drawLaneDots(activeLane: number): void {
-    const g = this.laneDots.clear();
-    for (let lane = 0; lane < 3; lane++) {
-      g.fillStyle(lane === activeLane ? LANE_DOT_ACTIVE : LANE_DOT);
-      g.fillCircle(this.laneDotsX, this.laneDotsY + (1 - lane) * 6, 2);
+  private depthPixels(depth: number): number {
+    const ratio = Math.min(1, Math.max(0, depth / 2));
+    return Math.round((DEPTH_GAUGE_HEIGHT - 4) * ratio);
+  }
+
+  private drawDepthGauge(fillPixels: number): void {
+    const x = Math.round(this.depthGaugeX - DEPTH_GAUGE_WIDTH / 2);
+    const y = Math.round(this.depthGaugeY - DEPTH_GAUGE_HEIGHT / 2);
+    const innerHeight = DEPTH_GAUGE_HEIGHT - 4;
+    const g = this.depthGauge.clear();
+    g.fillStyle(DEPTH_GAUGE_FRAME).fillRect(x, y, DEPTH_GAUGE_WIDTH, DEPTH_GAUGE_HEIGHT);
+    g.fillStyle(DEPTH_GAUGE_EMPTY).fillRect(x + 2, y + 2, DEPTH_GAUGE_WIDTH - 4, innerHeight);
+    if (fillPixels > 0) {
+      g.fillStyle(DEPTH_GAUGE_FILL).fillRect(
+        x + 2,
+        y + 2 + innerHeight - fillPixels,
+        DEPTH_GAUGE_WIDTH - 4,
+        fillPixels,
+      );
     }
   }
 }

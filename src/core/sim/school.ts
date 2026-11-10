@@ -96,11 +96,17 @@ export class School {
   }
 
   /** Cá ốm (chưa bỏ đi) gần (x, y) nhất trong bán kính. */
-  nearestSick(x: number, y: number, radius: number, lane = 0): Fish | undefined {
+  nearestSick(
+    x: number,
+    y: number,
+    radius: number,
+    z: number,
+    depthReach: number,
+  ): Fish | undefined {
     let best: Fish | undefined;
     let bestDistance = radius;
     for (const fish of this.list) {
-      if (fish.leaving || !isSick(fish.health, this.rules) || nearestLane(fish.z) !== lane)
+      if (fish.leaving || !isSick(fish.health, this.rules) || Math.abs(z - fish.z) >= depthReach)
         continue;
       const distance = Math.hypot(fish.x - x, fish.y - y);
       if (distance <= bestDistance) {

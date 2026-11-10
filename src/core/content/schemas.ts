@@ -90,6 +90,36 @@ export const artSchema = z.strictObject({
 
 export const stringsSchema = z.record(z.string(), z.string());
 
+// ---------- sounds.json ----------
+
+const soundDefSchema = z.strictObject({
+  file: z.string().min(1),
+  volume: z.number().min(0).max(1),
+  loop: z.boolean(),
+  cooldownMs: nonNegativeInt,
+});
+
+export const soundsSchema = z.strictObject({
+  vacuum: soundDefSchema,
+  coin: soundDefSchema,
+  pearl: soundDefSchema,
+  sell: soundDefSchema,
+  feed: soundDefSchema,
+  heal: soundDefSchema,
+  lane: soundDefSchema,
+  warn: soundDefSchema,
+  fishSick: soundDefSchema,
+  fishLeft: soundDefSchema,
+  click: soundDefSchema,
+  pause: soundDefSchema,
+  buy: soundDefSchema,
+  install: soundDefSchema,
+  delivery: soundDefSchema,
+  door: soundDefSchema,
+  ambTank: soundDefSchema,
+  ambRoom: soundDefSchema,
+});
+
 // ---------- balance.json ----------
 
 const ratio = z.number().min(0).max(1);
@@ -190,8 +220,10 @@ export const balanceSchema = z.strictObject({
     maxSpeed: positive,
     acceleration: positive,
     deceleration: positive,
-    /** Thời gian chuyển hết một tầng nước (giây). */
-    laneSwitchSeconds: positive,
+    /** Thời gian lặn từ đáy tới mặt nước (giây). */
+    diveSeconds: positive,
+    /** Chênh lệch độ sâu tối đa để robot tương tác với vật. */
+    depthReach: positive,
     batteryCapacity: positive,
     cargoCapacity: positiveInt,
     vacuum: z.strictObject({
@@ -203,6 +235,8 @@ export const balanceSchema = z.strictObject({
   }),
   station: z.strictObject({
     chargePerSecond: positive,
+    /** Robot phải sát đáy tới mức này mới đậu hoặc dùng trạm sạc phụ. */
+    dockMaxZ: z.number().min(0),
   }),
   devices: z.strictObject({
     auxChargerRadius: positive,
@@ -407,6 +441,8 @@ export const upgradesSchema = z.strictObject({
 export type ShapePart = z.infer<typeof shapePartSchema>;
 export type TextureDef = z.infer<typeof textureDefSchema>;
 export type ArtManifest = z.infer<typeof artSchema>;
+export type SoundCatalog = z.infer<typeof soundsSchema>;
+export type SoundCue = keyof SoundCatalog;
 export type Balance = z.infer<typeof balanceSchema>;
 export type Upgrades = z.infer<typeof upgradesSchema>;
 export type UpgradeTrack = 'cargo' | 'speed' | 'vacuum';

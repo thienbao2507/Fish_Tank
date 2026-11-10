@@ -6,6 +6,7 @@ import {
   artSchema,
   balanceSchema,
   fishSchema,
+  soundsSchema,
   stringsSchema,
   trashSchema,
   upgradesSchema,
@@ -13,6 +14,7 @@ import {
   type ArtManifest,
   type Balance,
   type FishCatalog,
+  type SoundCatalog,
   type TrashCatalog,
   type Upgrades,
   type ZoneDef,
@@ -22,6 +24,7 @@ import {
 export interface RawContent {
   readonly strings: unknown;
   readonly art: unknown;
+  readonly sounds: unknown;
   readonly balance: unknown;
   readonly zones: unknown;
   readonly trash: unknown;
@@ -33,6 +36,7 @@ export interface RawContent {
 export interface Content {
   readonly strings: Strings;
   readonly art: ArtManifest;
+  readonly sounds: SoundCatalog;
   readonly balance: Balance;
   readonly zones: readonly ZoneDef[];
   readonly trash: TrashCatalog;
@@ -300,17 +304,27 @@ export function loadContent(raw: RawContent): Content {
   const issues: string[] = [];
   const strings = parseFile('strings.vi.json', stringsSchema, raw.strings, issues);
   const art = parseFile('art.json', artSchema, raw.art, issues);
+  const sounds = parseFile('sounds.json', soundsSchema, raw.sounds, issues);
   const balance = parseFile('balance.json', balanceSchema, raw.balance, issues);
   const zones = parseFile('zones.json', zonesSchema, raw.zones, issues);
   const trash = parseFile('trash.json', trashSchema, raw.trash, issues);
   const fish = parseFile('fish.json', fishSchema, raw.fish, issues);
   const upgrades = parseFile('upgrades.json', upgradesSchema, raw.upgrades, issues);
 
-  if (!strings || !art || !balance || !zones || !trash || !fish || !upgrades) {
+  if (!strings || !art || !sounds || !balance || !zones || !trash || !fish || !upgrades) {
     throw new ContentError(issues);
   }
 
-  const content: Content = { strings, art, balance, zones: zones.zones, trash, fish, upgrades };
+  const content: Content = {
+    strings,
+    art,
+    sounds,
+    balance,
+    zones: zones.zones,
+    trash,
+    fish,
+    upgrades,
+  };
   crossCheck(content, issues);
   if (issues.length > 0) {
     throw new ContentError(issues);

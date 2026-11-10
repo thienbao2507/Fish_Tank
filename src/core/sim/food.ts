@@ -37,8 +37,8 @@ export class FoodField {
     return this.list.reduce((sum, pellet) => sum + (pellet.settled ? this.rules.pollution : 0), 0);
   }
 
-  /** Thả một mẻ thức ăn quanh (x, y). */
-  drop(x: number, y: number, lane = 0): void {
+  /** Thả một mẻ thức ăn quanh (x, y) tại đúng độ sâu z. */
+  drop(x: number, y: number, z = 0): void {
     const { zone, rules } = this;
     const minX = zone.wallWidth + 2;
     const maxX = zone.width - zone.wallWidth - 2;
@@ -49,9 +49,9 @@ export class FoodField {
         id: this.nextId++,
         x: pelletX,
         y,
-        lane,
-        z: lane,
-        settled: lane === 0,
+        lane: nearestLane(z),
+        z,
+        settled: z === 0,
         age: 0,
       });
     }

@@ -24,7 +24,7 @@ import { DropField, type Drop } from './sim/drops';
 import type { Fish, Mood } from './sim/fish';
 import { FoodField } from './sim/food';
 import { itemKey, itemOffer, sameItem, type OrderItem } from './sim/items';
-import { LANE_COUNT, nearestLane, stepLane } from './sim/lanes';
+import { LANE_COUNT, nearestLane } from './sim/lanes';
 import { stepMotion, type Bounds } from './sim/movement';
 import { resolveMove } from './sim/obstacles';
 import {
@@ -72,9 +72,9 @@ interface DeviceState {
 }
 
 class WorldRobot extends Robot {
-  /** Tầng nước đích: 0 Đáy, 1 Giữa, 2 Mặt. */
+  /** Tầng nước gần nhất: 0 Đáy, 1 Giữa, 2 Mặt. */
   lane = 0;
-  /** Vị trí tầng nước liên tục khi đang chuyển tầng. */
+  /** Độ sâu liên tục từ đáy (0) tới mặt nước (2). */
   z = 0;
 }
 
@@ -515,21 +515,13 @@ export class World {
     return this.nearestSickFish() !== undefined;
   }
 
-  /** Đổi tầng nước đích; trả false nếu robot đã ở biên theo hướng đó. */
-  changeLane(delta: -1 | 1): boolean {
-    const lane = Math.min(LANE_COUNT - 1, Math.max(0, this.robot.lane + delta));
-    if (lane === this.robot.lane) return false;
-    this.robot.lane = lane;
-    return true;
-  }
-
   /** Thả thức ăn tại robot; tốn xu. Không đủ xu thì báo và không thả. */
   feed(): boolean {
     if (!this.wallet.spend('coins', this.balance.food.price)) {
       this.bus.emit('toast', { key: 'toast.notEnoughCoins' });
       return false;
     }
-    this.food.drop(this.robot.x, this.robot.y, nearestLane(this.robot.z));
+    this.food.drop(this.robot.x, this.robot.y, this.robot.z);
     return true;
   }
 
@@ -611,7 +603,8 @@ export class World {
       robot.y,
       halfWidth + margin,
       halfHeight + margin,
-      nearestLane(robot.z),
+      robot.z,
+      this.balance.robot.depthReach,
     )) {
       this.collectDrop(drop, false);
     }
@@ -655,7 +648,8 @@ export class World {
       robot.x,
       robot.y,
       this.balance.medicine.radius,
-      nearestLane(robot.z),
+      robot.z,
+      this.balance.robot.depthReach,
     );
   }
 
@@ -666,7 +660,15 @@ export class World {
 
   private moveRobot(dt: number, input: PlayerInput): void {
     const { robot } = this;
-    robot.z = stepLane(robot.z, robot.lane, dt / this.balance.robot.laneSwitchSeconds);
+    const dive = input.dive ?? 0;
+    robot.z = Math.min(
+      LANE_COUNT - 1,
+      Math.max(
+        0,
+        robot.z + (dive * (LANE_COUNT - 1) * dt) / this.balance.robot.diveSeconds,
+      ),
+    );
+    robot.lane = nearestLane(robot.z);
     const fromX = robot.x;
     const fromY = robot.y;
     const speedLevel = this.upgrades.speed.levels[this.upgradeLevels.speed - 1];
@@ -705,7 +707,7 @@ export class World {
     const { robot } = this;
     const { station } = this.zone;
     this.docked =
-      nearestLane(robot.z) === 0 &&
+      robot.z <= this.balance.station.dockMaxZ &&
       robot.x >= station.x &&
       robot.x <= station.x + station.width &&
       robot.y >= station.y &&
@@ -720,7 +722,7 @@ export class World {
     const auxSlot = aux && (this.zone.deviceSlots ?? [])[aux.slotIndex];
     const auxLevel = aux && this.upgrades.devices.auxCharger.levels[aux.level - 1];
     const inAuxRange =
-      nearestLane(robot.z) === 0 &&
+      robot.z <= this.balance.station.dockMaxZ &&
       auxSlot !== undefined &&
       Math.hypot(robot.x - auxSlot.x, robot.y - auxSlot.y) <=
         this.balance.devices.auxChargerRadius;
@@ -770,7 +772,8 @@ export class World {
         canFit: (item) => robot.cargo.canFit(item.type.slots),
         collect: (item) => robot.cargo.add(item.type.id, item.type.slots),
       },
-      nearestLane(robot.z),
+      robot.z,
+      this.balance.robot.depthReach,
     );
     if (blocked && !this.cargoFullWarned) {
       this.cargoFullWarned = true;

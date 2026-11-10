@@ -5,6 +5,7 @@ import {
   createPlaceholderTextures,
   queueImageTextures,
 } from '../art/placeholders';
+import { installSoundDirector, queueSoundAssets } from '../audio/SoundDirector';
 import { getContext } from '../context';
 import { SceneKeys } from './keys';
 
@@ -15,12 +16,20 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
-    queueImageTextures(this.load, getContext(this).content.art);
+    const { content } = getContext(this);
+    queueImageTextures(this.load, content.art);
+    queueSoundAssets(this.load, content.sounds);
   }
 
   create(): void {
-    createPlaceholderTextures(this, getContext(this).content.art);
+    const context = getContext(this);
+    createPlaceholderTextures(this, context.content.art);
     assertTexturesExist(this, Object.values(TextureKeys));
+    installSoundDirector(this, {
+      sounds: context.content.sounds,
+      bus: context.bus,
+      world: context.world,
+    });
     this.scene.start(SceneKeys.Menu);
   }
 }

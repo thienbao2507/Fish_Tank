@@ -1,5 +1,6 @@
 import { UI_FONT_FAMILY } from '../config';
 import type { Content } from '../core/content/loader';
+import type { SoundCue } from '../core/content/schemas';
 import { t, type StringKey } from '../core/i18n';
 import type { ItemInventoryEntry, OrderItem, World } from '../core/world';
 import { presentItem } from './itemPresentation';
@@ -8,6 +9,7 @@ import './inventory.css';
 export interface InventoryWindowOptions {
   readonly world: World;
   readonly content: Content;
+  readonly playSound: (cue: SoundCue) => void;
   readonly onClose: () => void;
 }
 
@@ -58,6 +60,7 @@ export class InventoryWindow {
     root.addEventListener('click', this.blockPointerEvent);
     root.addEventListener('wheel', this.blockPointerEvent, { passive: false });
     root.addEventListener('contextmenu', this.blockPointerEvent);
+    root.addEventListener('click', this.playButtonClick, true);
     window.addEventListener('keydown', this.blockKeyEvent, true);
     window.addEventListener('keyup', this.blockKeyEvent, true);
 
@@ -88,6 +91,11 @@ export class InventoryWindow {
     event.preventDefault();
     event.stopImmediatePropagation();
     if (event.type === 'keydown' && event.key === 'Escape') this.close();
+  };
+
+  private readonly playButtonClick = (event: Event): void => {
+    const target = event.target;
+    if (target instanceof Element && target.closest('button')) this.options.playSound('click');
   };
 
   private render(message?: StringKey): void {
@@ -180,6 +188,7 @@ export class InventoryWindow {
       use.type = 'button';
       use.addEventListener('click', () => {
         const used = this.options.world.usePowerBank(item.id);
+        if (used) this.options.playSound('install');
         this.render(used ? undefined : 'inv.batteryFull');
       });
       return use;
@@ -192,7 +201,7 @@ export class InventoryWindow {
     const install = element('button', 'inventory-action', t('inv.install'));
     install.type = 'button';
     install.addEventListener('click', () => {
-      this.options.world.installItem(item);
+      if (this.options.world.installItem(item)) this.options.playSound('install');
       this.render();
     });
     return install;
@@ -215,7 +224,9 @@ export class InventoryWindow {
     place.type = 'button';
     place.disabled = emptySlots.length === 0;
     place.addEventListener('click', () => {
-      this.options.world.placeDevice(item.type, Number(select.value));
+      if (this.options.world.placeDevice(item.type, Number(select.value))) {
+        this.options.playSound('install');
+      }
       this.render();
     });
     if (emptySlots.length === 0) {

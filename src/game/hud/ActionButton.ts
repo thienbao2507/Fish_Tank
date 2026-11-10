@@ -1,11 +1,14 @@
-import type Phaser from 'phaser';
+import Phaser from 'phaser';
 import { TextureKeys } from '../art/keys';
+import { getSoundDirector } from '../audio/SoundDirector';
 import { addPixelText } from './text';
 
 export interface ActionButtonOptions {
   readonly icon: string;
   readonly label: string;
   readonly onPress: () => void;
+  /** Báo bắt đầu/kết thúc giữ nút; kết thúc cả khi kéo ra ngoài hoặc game mất focus. */
+  readonly onHold?: (active: boolean) => void;
   /** Cạnh nút hiển thị; mặc định 48px. */
   readonly size?: number;
 }
@@ -26,16 +29,43 @@ export class ActionButton {
   private on = false;
   private enabled = true;
   private visible = true;
+  private holdPointerId: number | null = null;
 
   constructor(
     scene: Phaser.Scene,
-    { icon, label, onPress, size = ActionButton.SIZE }: ActionButtonOptions,
+    { icon, label, onPress, onHold, size = ActionButton.SIZE }: ActionButtonOptions,
   ) {
     this.background = scene.add
       .image(0, 0, TextureKeys.button)
       .setDisplaySize(size, size)
       .setInteractive();
-    this.background.on('pointerdown', onPress);
+    this.background.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
+      getSoundDirector(scene).play('click');
+      onPress();
+      if (!onHold || this.holdPointerId !== null) return;
+      this.holdPointerId = pointer.id;
+      onHold(true);
+    });
+    if (onHold) {
+      const release = (pointer?: Phaser.Input.Pointer): void => {
+        if (this.holdPointerId === null) return;
+        if (pointer && pointer.id !== this.holdPointerId) return;
+        this.holdPointerId = null;
+        onHold(false);
+      };
+      const releaseAll = (): void => release();
+      this.background.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, release);
+      this.background.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, release);
+      scene.input.on(Phaser.Input.Events.POINTER_UP_OUTSIDE, release);
+      scene.input.on(Phaser.Input.Events.GAME_OUT, releaseAll);
+      scene.game.events.on(Phaser.Core.Events.BLUR, releaseAll);
+      scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+        releaseAll();
+        scene.input.off(Phaser.Input.Events.POINTER_UP_OUTSIDE, release);
+        scene.input.off(Phaser.Input.Events.GAME_OUT, releaseAll);
+        scene.game.events.off(Phaser.Core.Events.BLUR, releaseAll);
+      });
+    }
     this.icon = scene.add.image(0, 0, icon);
     this.label = addPixelText(scene, 0, 0, label).setOrigin(0.5, 0);
     this.iconOnly = label.length === 0;
@@ -75,7 +105,10 @@ export class ActionButton {
     this.icon.setVisible(visible);
     this.label.setVisible(visible);
     if (visible) this.background.setInteractive();
-    else this.background.disableInteractive();
+    else {
+      this.background.disableInteractive();
+      this.background.emit(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT);
+    }
   }
 
   setDepth(depth: number): void {

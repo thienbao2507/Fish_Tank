@@ -3,11 +3,12 @@ import { loadContent, type Content } from './content/loader';
 import { rawContent } from './content/raw';
 import type { Balance, TrashTypeDef, ZoneDef } from './content/schemas';
 import { EventBus, type GameEvents } from './events';
+import type { PlayerInput } from './input';
 import { createRng } from './rng';
 import type { OrderItem } from './sim/items';
 import { World } from './world';
 
-const STILL = { moveX: 0, moveY: 0 };
+const STILL: PlayerInput = { moveX: 0, moveY: 0 };
 const DT = 1 / 60;
 
 /**
@@ -75,42 +76,43 @@ describe('World', () => {
     expect(world.wallet.get('coins')).toBe(content.balance.startingCoins);
   });
 
-  it('đổi làn trong biên 0..2 và z trượt hết một làn sau khoảng 0,35 giây', () => {
+  it('giữ dive lên tăng z đúng tốc độ và kẹp ở mặt nước', () => {
     const { world, content } = setup();
-    expect(world.robot.lane).toBe(0);
-    expect(world.robot.z).toBe(0);
-    expect(world.changeLane(-1)).toBe(false);
-    expect(world.changeLane(1)).toBe(true);
+    run(world, content.balance.robot.diveSeconds / 2, { moveX: 0, moveY: 0, dive: 1 });
+    expect(world.robot.z).toBeCloseTo(1);
     expect(world.robot.lane).toBe(1);
 
-    run(world, content.balance.robot.laneSwitchSeconds);
-    expect(world.robot.z).toBeCloseTo(1);
-
-    expect(world.changeLane(1)).toBe(true);
-    expect(world.changeLane(1)).toBe(false);
-    run(world, content.balance.robot.laneSwitchSeconds);
-    expect(world.robot.z).toBeCloseTo(2);
+    run(world, content.balance.robot.diveSeconds, { moveX: 0, moveY: 0, dive: 1 });
+    expect(world.robot.z).toBe(2);
+    expect(world.robot.lane).toBe(2);
   });
 
-  it('không đậu và không sạc ở làn khác làn Gần', () => {
-    const { world, trashType } = setup();
-    moveAway(world);
-    world.robot.battery.drain(50);
-    const can = trashType('can');
-    world.robot.cargo.add(can.id, can.slots);
-    const coins = world.wallet.get('coins');
-    world.changeLane(1);
-    run(world, 0.35);
-    const charge = world.robot.battery.charge;
+  it('dive 0 giữ nguyên z', () => {
+    const { world } = setup();
+    world.robot.z = 0.75;
+    run(world, 1, { moveX: 0, moveY: 0, dive: 0 });
+    expect(world.robot.z).toBe(0.75);
+    expect(world.robot.lane).toBe(1);
+  });
 
+  it('giữ dive xuống giảm z và kẹp ở đáy', () => {
+    const { world, content } = setup();
+    world.robot.z = 1;
+    run(world, content.balance.robot.diveSeconds, { moveX: 0, moveY: 0, dive: -1 });
+    expect(world.robot.z).toBe(0);
+    expect(world.robot.lane).toBe(0);
+  });
+
+  it('chỉ đậu trạm khi z không vượt dockMaxZ', () => {
+    const { world, content } = setup();
     dock(world);
-    run(world, 1);
+    world.robot.z = content.balance.station.dockMaxZ;
+    world.update(DT, STILL);
+    expect(world.isDocked).toBe(true);
 
+    world.robot.z = content.balance.station.dockMaxZ + 0.01;
+    world.update(DT, STILL);
     expect(world.isDocked).toBe(false);
-    expect(world.isCharging).toBe(false);
-    expect(world.robot.battery.charge).toBe(charge);
-    expect(world.robot.cargo.isEmpty).toBe(false);
-    expect(world.wallet.get('coins')).toBe(coins);
   });
 
   it('pin chỉ giảm khi máy hút đang bật', () => {
@@ -155,17 +157,17 @@ describe('World', () => {
     expect(world.robot.cargo.contents.get('can')).toBe(1);
   });
 
-  it('máy hút bỏ qua rác khác làn và hút rác cùng làn', () => {
+  it('máy hút được rác chênh 0,9 độ sâu nhưng bỏ qua rác chênh 1,1', () => {
     const { world, trashType } = setup();
     moveAway(world);
     const can = trashType('can');
-    const otherLane = world.trash.add(can, world.robot.x + 5, world.robot.y, 1);
-    world.trash.add(can, world.robot.x + 5, world.robot.y, 0);
+    const outsideReach = world.trash.add(can, world.robot.x + 5, world.robot.y, 0, 1.1);
+    world.trash.add(can, world.robot.x + 5, world.robot.y, 0, 0.9);
     world.toggleVacuum();
 
     run(world, 0.2);
 
-    expect(world.trash.items).toEqual([otherLane]);
+    expect(world.trash.items).toEqual([outsideReach]);
     expect(world.robot.cargo.contents.get('can')).toBe(1);
   });
 
@@ -395,7 +397,7 @@ describe('World — cá và nước (P2)', () => {
       world.trash.pull(item.x, item.y, { radius: 1, pullSpeed: 1, collectRadius: 1 }, DT, {
         canFit: () => true,
         collect: () => true,
-      });
+      }, 0, 1);
     }
     run(world, 2, STILL, 60);
     expect(world.water).toBeGreaterThan(dirty);
@@ -413,10 +415,12 @@ describe('World — cá và nước (P2)', () => {
   describe('cho ăn', () => {
     it('tốn xu và thả thức ăn tại robot', () => {
       const { world, content } = setup();
+      world.robot.z = 0.75;
       const before = world.wallet.get('coins');
       expect(world.feed()).toBe(true);
       expect(world.wallet.get('coins')).toBe(before - content.balance.food.price);
       expect(world.food.pellets).toHaveLength(content.balance.food.pellets);
+      expect(world.food.pellets.every((pellet) => pellet.z === 0.75)).toBe(true);
     });
 
     it('không đủ xu → báo và không thả', () => {
@@ -461,19 +465,18 @@ describe('World — cá và nước (P2)', () => {
       expect(world.wallet.get('coins')).toBe(before - content.balance.medicine.price);
     });
 
-    it('thuốc chỉ chữa cá ốm cùng làn với robot', () => {
+    it('thuốc chữa cá chênh 0,9 độ sâu nhưng không chữa cá chênh 1,1', () => {
       const { world } = setup();
       const fish = world.fish[0] as World['fish'][number];
       fish.health = 10;
       fish.x = world.robot.x;
       fish.y = world.robot.y;
       fish.lane = 1;
-      fish.z = 1;
+      fish.z = 1.1;
       expect(world.canGiveMedicine()).toBe(false);
       expect(world.giveMedicine()).toBe(false);
 
-      world.robot.lane = 1;
-      world.robot.z = 1;
+      fish.z = 0.9;
       expect(world.canGiveMedicine()).toBe(true);
       expect(world.giveMedicine()).toBe(true);
       expect(fish.health).toBeGreaterThan(10);
@@ -491,17 +494,17 @@ describe('World — cá và nước (P2)', () => {
       expect(collected[0]).toMatchObject({ currency: 'coins', amount: 4, auto: false });
     });
 
-    it('robot chỉ nhặt xu khi cùng làn', () => {
+    it('robot nhặt xu chênh 0,9 độ sâu nhưng không nhặt xu chênh 1,1', () => {
       const { world, collected } = setup({ startingFish: [] });
       moveAway(world);
       const before = world.wallet.get('coins');
-      world.drops.spawn('coin', 4, world.robot.x, world.robot.y, 1);
+      const coin = world.drops.spawn('coin', 4, world.robot.x, world.robot.y);
+      coin.z = 1.1;
       world.update(DT, STILL);
       expect(world.wallet.get('coins')).toBe(before);
       expect(world.drops.items).toHaveLength(1);
 
-      world.robot.lane = 1;
-      world.robot.z = 1;
+      coin.z = 0.9;
       world.update(DT, STILL);
       expect(world.wallet.get('coins')).toBe(before + 4);
       expect(world.drops.items).toHaveLength(0);

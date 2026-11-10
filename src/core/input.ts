@@ -2,6 +2,8 @@
 export interface PlayerInput {
   moveX: number;
   moveY: number;
+  /** Nổi lên (+1), đứng yên (0/mặc định), hoặc lặn xuống (-1). */
+  dive?: -1 | 0 | 1;
 }
 
 export interface Direction {

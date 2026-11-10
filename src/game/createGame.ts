@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT } from '../config';
-import type { Settings } from '../core/settings';
+import type { Settings, VolumeSetting } from '../core/settings';
 import { loadSettings, saveSettings } from '../platform/settingsStorage';
 import { setContext, type GameContext } from './context';
+import { SOUND_ENABLED_KEY, SOUND_VOLUME_KEY } from './audio/SoundDirector';
 import { BLOOM_KEY } from './env/bloom';
 import { TILT_SHIFT_KEY, VIGNETTE_KEY } from './env/postfx';
+import { SURFACE_RIPPLE_KEY } from './env/surfaceRipple';
 import { BootScene } from './scenes/BootScene';
 import { IsoPrototypeScene } from './scenes/IsoPrototypeScene';
 import { MenuScene } from './scenes/MenuScene';
@@ -28,13 +30,28 @@ function keepWidthMatchingScreen(game: Phaser.Game): void {
   });
 }
 
-const EFFECT_KEYS = new Set<string>([BLOOM_KEY, TILT_SHIFT_KEY, VIGNETTE_KEY]);
+const EFFECT_KEYS = new Set<string>([
+  BLOOM_KEY,
+  TILT_SHIFT_KEY,
+  VIGNETTE_KEY,
+  SURFACE_RIPPLE_KEY,
+  SOUND_ENABLED_KEY,
+  SOUND_VOLUME_KEY,
+]);
+
+function registryVolume(game: Phaser.Game): VolumeSetting {
+  const value: unknown = game.registry.get(SOUND_VOLUME_KEY);
+  return value === 'low' || value === 'high' ? value : 'mid';
+}
 
 function registrySettings(game: Phaser.Game): Settings {
   return {
     bloom: game.registry.get(BLOOM_KEY) !== false,
     tiltShift: game.registry.get(TILT_SHIFT_KEY) !== false,
     vignette: game.registry.get(VIGNETTE_KEY) !== false,
+    surfaceRipple: game.registry.get(SURFACE_RIPPLE_KEY) !== false,
+    sound: game.registry.get(SOUND_ENABLED_KEY) !== false,
+    volume: registryVolume(game),
   };
 }
 
@@ -43,6 +60,9 @@ function setupSettings(game: Phaser.Game, settings: Settings): void {
   game.registry.set(BLOOM_KEY, settings.bloom);
   game.registry.set(TILT_SHIFT_KEY, settings.tiltShift);
   game.registry.set(VIGNETTE_KEY, settings.vignette);
+  game.registry.set(SURFACE_RIPPLE_KEY, settings.surfaceRipple);
+  game.registry.set(SOUND_ENABLED_KEY, settings.sound);
+  game.registry.set(SOUND_VOLUME_KEY, settings.volume);
   game.registry.events.on(Phaser.Data.Events.CHANGE_DATA, (_parent: unknown, key: string) => {
     if (EFFECT_KEYS.has(key)) saveSettings(registrySettings(game));
   });

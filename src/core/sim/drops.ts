@@ -54,12 +54,19 @@ export class DropField {
     return expired;
   }
 
-  /** Nhặt (và xoá) mọi món nằm trong hộp tâm (x, y) với nửa rộng/nửa cao cho trước. */
-  pickup(x: number, y: number, halfWidth: number, halfHeight: number, lane = 0): Drop[] {
+  /** Nhặt mọi món trong hộp quanh robot và nằm trong tầm tương tác theo độ sâu. */
+  pickup(
+    x: number,
+    y: number,
+    halfWidth: number,
+    halfHeight: number,
+    z: number,
+    depthReach: number,
+  ): Drop[] {
     const picked: Drop[] = [];
     for (let i = this.list.length - 1; i >= 0; i--) {
       const drop = this.list[i] as Drop;
-      if (nearestLane(drop.z) !== lane) continue;
+      if (Math.abs(z - drop.z) >= depthReach) continue;
       if (Math.abs(drop.x - x) <= halfWidth && Math.abs(drop.y - y) <= halfHeight) {
         this.list.splice(i, 1);
         picked.push(drop);

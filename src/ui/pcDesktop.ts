@@ -1,6 +1,6 @@
 import { UI_FONT_FAMILY } from '../config';
 import type { Content } from '../core/content/loader';
-import type { DeviceType, UpgradeTrack } from '../core/content/schemas';
+import type { DeviceType, SoundCue, UpgradeTrack } from '../core/content/schemas';
 import { t, type StringKey } from '../core/i18n';
 import { isFishOrder } from '../core/sim/orders';
 import { isDone, remainingSeconds } from '../core/time/timers';
@@ -12,6 +12,7 @@ export interface PcDesktopOptions {
   readonly world: World;
   readonly content: Content;
   readonly now: () => number;
+  readonly playSound: (cue: SoundCue) => void;
   readonly onClose: () => void;
 }
 
@@ -65,14 +66,28 @@ export class PcDesktop {
     shopIcon.addEventListener('click', () => this.openShop());
 
     const taskbar = element('div', 'pc-taskbar');
-    const start = element('button', 'pc-start-button', t('pc.start'));
+    // Nút bắt đầu là icon game; bấm vào mở menu nhỏ chứa Tắt máy.
+    const start = element('button', 'pc-start-button');
     start.type = 'button';
-    start.tabIndex = -1;
-    const spacer = element('span', 'pc-taskbar-spacer');
+    start.setAttribute('aria-label', t('pc.start'));
+    const startIcon = element('img', 'pc-start-icon');
+    startIcon.src = 'art/gen/fish-guppy.png';
+    startIcon.alt = '';
+    start.append(startIcon);
+    const startMenu = element('div', 'pc-start-menu');
+    startMenu.hidden = true;
     const shutdown = element('button', 'pc-shutdown-button', t('pc.shutdown'));
     shutdown.type = 'button';
     shutdown.addEventListener('click', () => this.close());
-    taskbar.append(start, spacer, shutdown);
+    startMenu.append(shutdown);
+    start.addEventListener('click', () => {
+      startMenu.hidden = !startMenu.hidden;
+    });
+    root.addEventListener('click', (event) => {
+      const target = event.target as Node;
+      if (!start.contains(target) && !startMenu.contains(target)) startMenu.hidden = true;
+    });
+    taskbar.append(start);
 
     const shopWindow = element('section', 'pc-shop-window');
     shopWindow.hidden = true;
@@ -97,10 +112,11 @@ export class PcDesktop {
     root.addEventListener('click', this.blockPointerEvent);
     root.addEventListener('wheel', this.blockPointerEvent, { passive: false });
     root.addEventListener('contextmenu', this.blockPointerEvent);
+    root.addEventListener('click', this.playButtonClick, true);
     window.addEventListener('keydown', this.blockKeyEvent, true);
     window.addEventListener('keyup', this.blockKeyEvent, true);
 
-    root.append(shopIcon, shopWindow, taskbar);
+    root.append(shopIcon, shopWindow, startMenu, taskbar);
     document.body.append(root);
     this.root = root;
     this.shopWindow = shopWindow;
@@ -128,6 +144,11 @@ export class PcDesktop {
     event.preventDefault();
     event.stopImmediatePropagation();
     if (event.type === 'keydown' && event.key === 'Escape') this.close();
+  };
+
+  private readonly playButtonClick = (event: Event): void => {
+    const target = event.target;
+    if (target instanceof Element && target.closest('button')) this.options.playSound('click');
   };
 
   private openShop(): void {
@@ -264,7 +285,7 @@ export class PcDesktop {
       buy.type = 'button';
       buy.disabled = !canBuy;
       buy.addEventListener('click', () => {
-        world.orderFish(species.id, this.options.now());
+        if (world.orderFish(species.id, this.options.now())) this.options.playSound('buy');
         this.renderShop();
       });
       row.append(details, buy);
@@ -379,7 +400,7 @@ export class PcDesktop {
     buy.type = 'button';
     buy.disabled = !canOrder || !canAfford;
     buy.addEventListener('click', () => {
-      this.options.world.orderItem(item, this.options.now());
+      if (this.options.world.orderItem(item, this.options.now())) this.options.playSound('buy');
       this.renderShop();
     });
     row.append(details, buy);

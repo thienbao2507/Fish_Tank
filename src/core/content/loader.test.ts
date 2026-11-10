@@ -41,6 +41,26 @@ describe('loadContent', () => {
     expect(error.issues[0]).toContain('balance.json › robot');
   });
 
+  it('kiểm tra các tham số độ sâu của robot và trạm', () => {
+    const invalidDive = rawCopy();
+    invalidDive.balance.robot.diveSeconds = 0;
+    expect(errorOf(() => loadContent(invalidDive)).issues[0]).toContain(
+      'balance.json › robot.diveSeconds',
+    );
+
+    const invalidReach = rawCopy();
+    invalidReach.balance.robot.depthReach = 0;
+    expect(errorOf(() => loadContent(invalidReach)).issues[0]).toContain(
+      'balance.json › robot.depthReach',
+    );
+
+    const invalidDock = rawCopy();
+    invalidDock.balance.station.dockMaxZ = -0.01;
+    expect(errorOf(() => loadContent(invalidDock)).issues[0]).toContain(
+      'balance.json › station.dockMaxZ',
+    );
+  });
+
   it('gom lỗi của nhiều file vào một lần báo', () => {
     const raw = rawCopy();
     raw.strings = { 'ui.ok': 5 };
@@ -285,5 +305,12 @@ describe('loadContent', () => {
       const error = errorOf(() => loadContent(raw));
       expect(error.issues[0]).toContain('art.json › textures.robot.frameWidth');
     });
+  });
+
+  it('báo lỗi khi sounds.json thiếu cue bắt buộc', () => {
+    const raw = rawCopy();
+    delete raw.sounds.vacuum;
+    const error = errorOf(() => loadContent(raw));
+    expect(error.issues.some((issue) => issue.includes('sounds.json › vacuum'))).toBe(true);
   });
 });

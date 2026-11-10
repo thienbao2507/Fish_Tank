@@ -12,6 +12,7 @@ import { TextureKeys } from '../art/keys';
 import { getContext, type GameContext } from '../context';
 import { addCameraBloom } from '../env/bloom';
 import { addCameraPostFx } from '../env/postfx';
+import { addSurfaceRipple, type SurfaceRippleController } from '../env/surfaceRipple';
 import { headlightAlpha } from '../env/waterVisual';
 import { addPixelText, COIN_COLOR, TEXT_COLOR, WARNING_COLOR } from '../hud/text';
 import { composeReefs, type ReefProp } from '../iso/layout';
@@ -233,6 +234,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
   private fishViews!: SpriteSync<Fish, FishView>;
   private deviceViews!: SpriteSync<DeviceSpriteItem, ShadowedWorldView>;
   private stationView!: StationView;
+  private surfaceRipple?: SurfaceRippleController;
   private now = 0;
   /** Tổng thời gian tạo ảnh có viền lúc nạp (ms), để đo chi phí. */
   private rimMilliseconds = 0;
@@ -263,6 +265,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
       vignetteRadius: 0.92,
       vignetteStrength: 0.3,
     });
+    this.surfaceRipple = addSurfaceRipple(this);
 
     const onResize = (gameSize: Phaser.Structs.Size): void => {
       this.rebuildStrips(gameSize.width, gameSize.height);
@@ -318,6 +321,7 @@ export class IsoPrototypeScene extends Phaser.Scene {
     world.catchUpCharging(clock.now());
     world.update(seconds, input, clock.scale);
     this.now = time;
+    this.surfaceRipple?.update(time, world.robot.z);
 
     const cameraLerp = 1 - Math.pow(1 - CAMERA_LERP, seconds * 60);
     this.focus.x = Phaser.Math.Clamp(

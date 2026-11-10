@@ -29,16 +29,16 @@ describe('DropField', () => {
     const drops = new DropField(zone, rules, FALL_SECONDS);
     drops.spawn('coin', 4, 100, 100);
     drops.spawn('pearl', 1, 140, 100);
-    const picked = drops.pickup(100, 100, 10, 10);
+    const picked = drops.pickup(100, 100, 10, 10, 0, 1);
     expect(picked.map((drop) => drop.kind)).toEqual(['coin']);
     expect(drops.items).toHaveLength(1);
   });
 
-  it('chỉ nhặt được món cùng làn với robot', () => {
+  it('chỉ nhặt được món trong tầm độ sâu của robot', () => {
     const drops = new DropField(zone, rules, FALL_SECONDS);
     drops.spawn('coin', 4, 100, 100, 0);
     drops.spawn('pearl', 1, 100, 100, 1);
-    const picked = drops.pickup(100, 100, 10, 10, 0);
+    const picked = drops.pickup(100, 100, 10, 10, 0, 1);
     expect(picked.map((drop) => drop.kind)).toEqual(['coin']);
     expect(drops.items).toHaveLength(1);
   });

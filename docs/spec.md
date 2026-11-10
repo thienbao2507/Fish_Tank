@@ -157,7 +157,7 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 - Màn hình ngang. Màn hình dọc → hiện thông báo yêu cầu xoay ngang.
 - Dưới trái: joystick. Dưới phải: cụm nút (Hút to nhất; quanh là Bắn, Thức ăn, Thuốc, Sạc dự phòng).
 - Mép trên: thanh pin, khoang (dạng `12/20`), xu, ngọc trai.
-- Trong bể có thêm nút **Kho** (mục 17) và nút **về phòng**. HUD ở phòng gồm joystick, xu, ngọc, giờ trong ngày và một nút hành động theo ngữ cảnh.
+- Trong bể có thêm nút **Kho** (góc trên trái) và nút **về phòng** (trong cụm nút phải, vùng ngón cái, không sát nút Hút). HUD ở phòng gồm joystick, xu, ngọc, giờ trong ngày và một nút hành động theo ngữ cảnh đặt trong vùng ngón cái phải (không sát mép màn hình).
 - HUD và cụm nút bám theo mép trái/phải thực tế của màn hình (chiều rộng thay đổi theo máy, xem mục 12.1).
 - Theo dõi cá gặp nguy: icon trên đầu cá + mũi tên ở mép màn hình. Không có minimap.
 - Ngôn ngữ prototype: **tiếng Việt**. Mọi chuỗi hiển thị nằm trong file ngôn ngữ riêng.
@@ -192,7 +192,9 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
   - Ảnh cũ `public/art/submarine.png` (thân vàng, khung tím) giữ lại trong repo, không còn dùng.
 
 ### 12.3 Âm thanh
-- Prototype: vài hiệu ứng cơ bản (hút, bắn, nhặt xu, cảnh báo); chưa có nhạc nền.
+- Prototype: hiệu ứng âm thanh, chưa có nhạc nền (duyệt 2026-11-10). Nguồn chỉ lấy file giấy phép **CC0**, ghi nguồn từng file trong `public/audio/CREDITS.md`. Danh sách cue và file nằm trong `src/data/sounds.json`.
+- Gắn tiếng cho: trong bể (máy hút lặp khi bật, nhặt xu/ngọc, bán rác, cho ăn, chữa cá, đổi tầng), cảnh báo (pin cạn, khoang đầy, thiếu xu, khu đủ cá, cá ốm, cá bỏ đi), giao diện và phòng (bấm nút, tạm dừng, mua hàng, lắp đồ, hàng tới, mở cửa), âm nền nhỏ lặp trong bể và trong phòng. Tiếng bắn làm cùng súng bong bóng (P4-05).
+- Tạm dừng thì dừng mọi tiếng trừ tiếng bấm nút. Phaser tự mở khoá âm thanh ở lần chạm đầu (màn tiêu đề).
 
 ### 12.4 Hướng mỹ thuật
 - Hai ảnh mẫu người dùng gửi ngày 2026-11-05 (bể cá tàn tích rêu phong, nắng vàng ấm, xưởng ống đồng) là **key art**: đích về không khí, màu sắc, ánh sáng. Không dùng trực tiếp làm asset; mọi thứ vẽ lại thành pixel art theo 12.1 (640–840×360, nearest-neighbor).
@@ -348,20 +350,21 @@ Cảnh "ngôi nhà" của nhân vật người. Mở game vào thẳng căn phò
 ## 18. Góc nhìn chéo cho cảnh bể
 Người dùng duyệt ngày 2026-11-09. Mục này **thay thế** phần "3 làn sâu" ở 3.1, "Mặt đáy lồi lõm" ở mục 8 và hộp bể nhìn ngang ở 12.5 khi bản mới chạy xong.
 
-- **Điều khiển:** joystick đi trái/phải và xa/gần trên mặt đáy. Hai nút ▲▼ (Q/E) đổi **3 tầng nước**: Đáy (0), Giữa (1), Mặt (2); chuyển mỗi tầng 0,35 giây.
-- **Cùng tầng mới tương tác:** hút rác, chữa cá, nhặt xu/ngọc chỉ với vật cùng tầng với tàu (tầng gần nhất khi đang chuyển).
-- **Bản đồ khu 1:** 1024×1024 đơn vị, bố cục theo bản thử (cao nguyên, hang, đền). Trạm đặt trên đáy gần chỗ xuất phát, chỉ đậu được ở tầng Đáy.
+- **Điều khiển:** joystick (trái) đi trái/phải và xa/gần trên mặt đáy. **Lặn liên tục** (duyệt 2026-11-10): giữ ▲ thì nổi lên, giữ ▼ thì lặn xuống, thả tay thì dừng ở độ sâu đó; bàn phím giữ Q/E. Độ sâu từ đáy (0) tới mặt nước (2), đi hết mất `balance.json › robot.diveSeconds` (1,5 giây); chạm đáy hoặc mặt thì dừng. Nút ▲▼ nằm bên phải cạnh cụm nút hành động, có thanh đo độ sâu.
+- **Tương tác theo độ sâu:** hút rác, chữa cá, nhặt xu/ngọc khi độ sâu của tàu và vật chênh nhau dưới `robot.depthReach` (1 tầng). Rác, cá, thức ăn, xu vẫn nằm ở các độ cao 0/1/2 như trước; thức ăn thả ở đúng độ sâu của tàu.
+- **Bản đồ khu 1:** 1024×1024 đơn vị, bố cục theo bản thử (cao nguyên, hang, đền). Trạm đặt trên đáy gần chỗ xuất phát, chỉ đậu được khi tàu sát đáy (`station.dockMaxZ`, 0,25).
 - **Rác:** nổi ở tầng Mặt, lơ lửng ở tầng Giữa, cả hai trôi chậm trên mặt phẳng. Rác chìm nằm ở tầng Đáy; rác chìm mới sinh rơi dần từ tầng Mặt xuống.
 - **Thức ăn:** thả ở tầng của tàu, chìm dần xuống tầng Đáy; cá đói tự tới chỗ thức ăn và đúng tầng của nó mới ăn được.
 - **Cá:** bơi tự do trên mặt phẳng, thỉnh thoảng đổi tầng.
 - **Xu/ngọc:** rơi từ chỗ cá xuống tầng Đáy; luật tự cộng sau thời hạn giữ nguyên.
 - **Vật cản:** vách, đền và khối đá lớn chặn tàu và cá ở cả 3 tầng; mặt cao nguyên chỉ để ngắm. Rác không sinh trong vùng bị chặn. Có lối cát để đi vòng.
 - **Hiển thị:** theo bản thử `?iso=1`. Tầng thể hiện bằng độ cao của vật và bóng đổ xuống đáy.
+- **Mặt nước:** khi tàu lên gần mặt (độ sâu trên 1,6) màn hình gợn sóng và nhòe nhẹ, mạnh dần tới mặt nước, tắt khi lặn xuống; có công tắc trong Cài đặt.
 
 ## 19. Menu (duyệt 2026-11-10)
 - **Màn tiêu đề**, mở game là vào đây: nền là lòng bể pixel nhìn qua kính (`menu.backdrop`, rộng 840 để phủ mọi tỉ lệ màn hình), có cá bơi qua lại, bọt khí nổi, tia nắng. Logo chữ pixel "FishTank" (`menu.logo`), không có dòng phụ.
 - Menu chính nằm trong một **bảng điều khiển bể cá** bằng kim loại (`menu.panel`, nine-slice), nút `menu.button` (nine-slice, khung 0 thường, khung 1 đang chọn): **Bắt đầu** (vào phòng), **Cài đặt**, **Hướng dẫn**, **Thông tin**. Trên bảng có màn hình nhỏ (`menu.screen`) hiện số liệu thật của bể: tên khu, độ sạch nước, số cá / sức chứa, xu.
 - **Menu tạm dừng:** nút `menu.pause` ở HUD cả phòng lẫn bể, phím `Esc`. Gồm Tiếp tục, Cài đặt, Về màn tiêu đề. Game dừng hẳn khi menu mở; trạng thái ván chơi giữ nguyên khi về màn tiêu đề rồi bấm Bắt đầu lại.
-- **Cài đặt:** công tắc (`menu.toggle`) Phát sáng (bloom), Làm mờ tiêu điểm (tilt-shift), Viền tối. Lưu bằng `localStorage`, nạp lại khi mở game. Chưa có âm thanh nên chưa có âm lượng.
+- **Cài đặt:** công tắc (`menu.toggle`) Phát sáng (bloom), Làm mờ tiêu điểm (tilt-shift), Viền tối, Gợn mặt nước. Thêm công tắc **Tiếng** và 3 mức **âm lượng** (Nhỏ / Vừa / To). Lưu bằng `localStorage`, nạp lại khi mở game.
 - **Hướng dẫn:** 3 trang ngắn (điều khiển; vòng chơi dọn rác → đổi xu → chăm cá → mua sắm; phòng và PC). **Thông tin:** phiên bản, ghi công font.
 - Chưa có nút "Chơi tiếp" vì chưa có lưu game (P5-06).

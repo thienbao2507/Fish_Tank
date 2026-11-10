@@ -15,19 +15,57 @@ describe('settings', () => {
       bloom: false,
       tiltShift: true,
       vignette: true,
+      surfaceRipple: true,
+      sound: true,
+      volume: 'mid',
     });
   });
 
   it('điền mặc định cho giá trị sai kiểu nhưng vẫn giữ trường hợp lệ', () => {
-    expect(parseSettings('{"bloom":"off","tiltShift":false,"vignette":1}')).toEqual({
+    expect(
+      parseSettings(
+        '{"bloom":"off","tiltShift":false,"vignette":1,"surfaceRipple":"on"}',
+      ),
+    ).toEqual({
       bloom: true,
       tiltShift: false,
       vignette: true,
+      surfaceRipple: true,
+      sound: true,
+      volume: 'mid',
     });
   });
 
   it('serialize rồi parse lại không đổi cài đặt', () => {
-    const settings: Settings = { bloom: false, tiltShift: true, vignette: false };
+    const settings: Settings = {
+      bloom: false,
+      tiltShift: true,
+      vignette: false,
+      surfaceRipple: false,
+      sound: false,
+      volume: 'high',
+    };
     expect(parseSettings(serializeSettings(settings))).toEqual(settings);
+  });
+
+  it('đọc bản lưu cũ thiếu sound và volume bằng giá trị mặc định', () => {
+    expect(parseSettings('{"bloom":false,"tiltShift":false,"vignette":false}')).toMatchObject({
+      sound: true,
+      volume: 'mid',
+    });
+  });
+
+  it('dùng mặc định khi sound hoặc volume sai kiểu', () => {
+    expect(parseSettings('{"sound":"on","volume":2}')).toMatchObject({
+      sound: true,
+      volume: 'mid',
+    });
+  });
+
+  it('giữ sound và volume hợp lệ', () => {
+    expect(parseSettings('{"sound":false,"volume":"low"}')).toMatchObject({
+      sound: false,
+      volume: 'low',
+    });
   });
 });

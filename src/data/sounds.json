@@ -1,0 +1,20 @@
+{
+  "vacuum": { "file": "audio/sfx/vacuum.ogg", "volume": 0.45, "loop": true, "cooldownMs": 0 },
+  "coin": { "file": "audio/sfx/coin.ogg", "volume": 0.55, "loop": false, "cooldownMs": 60 },
+  "pearl": { "file": "audio/sfx/pearl.ogg", "volume": 0.65, "loop": false, "cooldownMs": 60 },
+  "sell": { "file": "audio/sfx/sell.wav", "volume": 0.65, "loop": false, "cooldownMs": 100 },
+  "feed": { "file": "audio/sfx/feed.ogg", "volume": 0.55, "loop": false, "cooldownMs": 100 },
+  "heal": { "file": "audio/sfx/heal.ogg", "volume": 0.6, "loop": false, "cooldownMs": 100 },
+  "lane": { "file": "audio/sfx/lane.ogg", "volume": 0.45, "loop": false, "cooldownMs": 100 },
+  "warn": { "file": "audio/sfx/warn.ogg", "volume": 0.55, "loop": false, "cooldownMs": 250 },
+  "fishSick": { "file": "audio/sfx/fishSick.ogg", "volume": 0.6, "loop": false, "cooldownMs": 500 },
+  "fishLeft": { "file": "audio/sfx/fishLeft.ogg", "volume": 0.65, "loop": false, "cooldownMs": 500 },
+  "click": { "file": "audio/sfx/click.ogg", "volume": 0.35, "loop": false, "cooldownMs": 30 },
+  "pause": { "file": "audio/sfx/pause.ogg", "volume": 0.5, "loop": false, "cooldownMs": 100 },
+  "buy": { "file": "audio/sfx/buy.ogg", "volume": 0.6, "loop": false, "cooldownMs": 100 },
+  "install": { "file": "audio/sfx/install.ogg", "volume": 0.6, "loop": false, "cooldownMs": 100 },
+  "delivery": { "file": "audio/sfx/delivery.ogg", "volume": 0.65, "loop": false, "cooldownMs": 500 },
+  "door": { "file": "audio/sfx/door.ogg", "volume": 0.55, "loop": false, "cooldownMs": 100 },
+  "ambTank": { "file": "audio/sfx/ambTank.ogg", "volume": 0.3, "loop": true, "cooldownMs": 0 },
+  "ambRoom": { "file": "audio/sfx/ambRoom.ogg", "volume": 0.28, "loop": true, "cooldownMs": 0 }
+}

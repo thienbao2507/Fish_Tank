@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import type { StringKey } from '../../core/i18n';
 import { t } from '../../core/i18n';
 import { TextureKeys } from '../art/keys';
+import { getSoundDirector } from '../audio/SoundDirector';
 import { addPixelText } from '../hud/text';
 
 const BUTTON_WIDTH = 252;
@@ -36,7 +37,10 @@ export class MenuButton {
       )
       .setInteractive({ useHandCursor: true });
     this.background.on('pointerover', onHover);
-    this.background.on('pointerdown', onPress);
+    this.background.on('pointerdown', () => {
+      getSoundDirector(scene).play('click');
+      onPress();
+    });
     this.label = addPixelText(scene, 0, y, t(labelKey)).setOrigin(0.5);
     parent.add([this.background, this.label]);
   }

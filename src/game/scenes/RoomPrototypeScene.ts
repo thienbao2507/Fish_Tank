@@ -4,10 +4,10 @@ import { t } from '../../core/i18n';
 import { keysToDirection, type Direction } from '../../core/input';
 import { PcDesktop } from '../../ui/pcDesktop';
 import { TextureKeys } from '../art/keys';
+import { getSoundDirector } from '../audio/SoundDirector';
 import { getContext, type GameContext } from '../context';
 import { addCameraBloom } from '../env/bloom';
 import { ActionButton } from '../hud/ActionButton';
-import { HUD_MARGIN } from '../hud/layout';
 import { Toasts } from '../hud/Toasts';
 import { VirtualJoystick } from '../input/VirtualJoystick';
 import {
@@ -73,6 +73,7 @@ export class RoomPrototypeScene extends Phaser.Scene {
   private shellX = 0;
   private position: RoomPosition = { ...HERO_START };
   private facing: RoomFacing = 'SE';
+  private deliveryAtDoor = false;
 
   constructor() {
     super(SceneKeys.Room);
@@ -153,6 +154,7 @@ export class RoomPrototypeScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.WAKE, onWake);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.pcDesktop?.destroy();
+      getSoundDirector(this).resume('pc');
       this.pcDesktop = undefined;
       this.scale.off(Phaser.Scale.Events.RESIZE, onResize);
       this.events.off(Phaser.Scenes.Events.WAKE, onWake);
@@ -237,18 +239,11 @@ export class RoomPrototypeScene extends Phaser.Scene {
     for (const { prop, image } of this.propViews) {
       image.setPosition(this.shellX + prop.x, ROOM_SHELL_Y + prop.y);
     }
-    this.enterTankButton.setPosition(
-      width - HUD_MARGIN - ActionButton.SIZE / 2,
-      GAME_HEIGHT - HUD_MARGIN - ActionButton.SIZE / 2,
-    );
-    this.usePcButton.setPosition(
-      width - HUD_MARGIN - ActionButton.SIZE / 2,
-      GAME_HEIGHT - HUD_MARGIN - ActionButton.SIZE / 2,
-    );
-    this.collectButton.setPosition(
-      width - HUD_MARGIN - ActionButton.SIZE / 2,
-      GAME_HEIGHT - HUD_MARGIN - ActionButton.SIZE / 2,
-    );
+    const actionX = width - 72;
+    const actionY = GAME_HEIGHT - 72;
+    this.enterTankButton.setPosition(actionX, actionY);
+    this.usePcButton.setPosition(actionX, actionY);
+    this.collectButton.setPosition(actionX, actionY);
     this.doorGlow.setPosition(this.shellX + ROOM_DOOR_GLOW.x, ROOM_SHELL_Y + ROOM_DOOR_GLOW.y);
     this.toasts.layout(width);
     this.updateHero(this.hero.anims.isPlaying);
@@ -256,6 +251,8 @@ export class RoomPrototypeScene extends Phaser.Scene {
 
   private refreshDeliveryState(time: number): void {
     const hasArrived = this.ctx.world.hasArrivedDeliveries(this.ctx.clock.now());
+    if (hasArrived && !this.deliveryAtDoor) getSoundDirector(this).play('delivery');
+    this.deliveryAtDoor = hasArrived;
     this.doorGlow.setVisible(hasArrived).setAlpha(0.7 + 0.3 * Math.sin(time * 0.004));
     this.refreshInteraction(hasArrived);
   }
@@ -278,7 +275,9 @@ export class RoomPrototypeScene extends Phaser.Scene {
     } else if (this.activeInteractionId === 'pc') {
       this.openPcDesktop();
     } else if (this.activeInteractionId === 'door') {
-      this.ctx.world.collectDeliveries(this.ctx.clock.now());
+      if (this.ctx.world.collectDeliveries(this.ctx.clock.now()) > 0) {
+        getSoundDirector(this).play('door');
+      }
       this.refreshDeliveryState(0);
     }
   }
@@ -292,19 +291,23 @@ export class RoomPrototypeScene extends Phaser.Scene {
 
   private openPcDesktop(): void {
     if (this.pcDesktop) return;
+    const sound = getSoundDirector(this);
     const desktop = new PcDesktop({
       world: this.ctx.world,
       content: this.ctx.content,
       now: () => this.ctx.clock.now(),
+      playSound: (cue) => sound.play(cue),
       onClose: () => {
         if (this.pcDesktop !== desktop) return;
         this.pcDesktop = undefined;
+        sound.resume('pc');
         this.scene.resume();
         this.joystick.reset();
         this.input.keyboard?.resetKeys();
       },
     });
     this.pcDesktop = desktop;
+    sound.suspend('pc');
     desktop.open();
     this.scene.pause();
   }

@@ -78,7 +78,8 @@ describe('TrashField', () => {
         { radius: 1, pullSpeed: 1, collectRadius: 1 },
         0.016,
         acceptAll,
-        item.lane,
+        item.z,
+        1,
       );
     }
     expect(field.items).toHaveLength(0);
@@ -143,21 +144,21 @@ describe('TrashField', () => {
     it('rác ngoài bán kính không bị ảnh hưởng', () => {
       const field = new TrashField(zone({ initialCount: 0 }), catalog, createRng(7), FALL_SECONDS);
       const item = field.add(bag, 200, 200, 0);
-      field.pull(100, 200, params, 0.1, acceptAll);
+      field.pull(100, 200, params, 0.1, acceptAll, 0, 1);
       expect(item.x).toBe(200);
     });
 
     it('rác trong bán kính bị kéo lại gần', () => {
       const field = new TrashField(zone({ initialCount: 0 }), catalog, createRng(8), FALL_SECONDS);
       const item = field.add(bag, 120, 200, 0);
-      field.pull(100, 200, params, 0.1, acceptAll);
+      field.pull(100, 200, params, 0.1, acceptAll, 0, 1);
       expect(item.x).toBeCloseTo(110);
     });
 
     it('rác đủ gần thì được thu và biến khỏi bãi', () => {
       const field = new TrashField(zone({ initialCount: 0 }), catalog, createRng(9), FALL_SECONDS);
       const item = field.add(bag, 103, 200, 0);
-      const result = field.pull(100, 200, params, 0.1, acceptAll);
+      const result = field.pull(100, 200, params, 0.1, acceptAll, 0, 1);
       expect(result.collected).toEqual([item]);
       expect(field.items).toHaveLength(0);
     });
@@ -165,10 +166,18 @@ describe('TrashField', () => {
     it('khoang không đủ chỗ → không hút và báo blocked', () => {
       const field = new TrashField(zone({ initialCount: 0 }), catalog, createRng(10), FALL_SECONDS);
       const item = field.add(bag, 120, 200, 0);
-      const result = field.pull(100, 200, params, 0.1, {
-        canFit: () => false,
-        collect: () => true,
-      });
+      const result = field.pull(
+        100,
+        200,
+        params,
+        0.1,
+        {
+          canFit: () => false,
+          collect: () => true,
+        },
+        0,
+        1,
+      );
       expect(result.blocked).toBe(true);
       expect(item.x).toBe(120);
     });
@@ -176,10 +185,18 @@ describe('TrashField', () => {
     it('collect từ chối → rác ở lại và báo blocked', () => {
       const field = new TrashField(zone({ initialCount: 0 }), catalog, createRng(11), FALL_SECONDS);
       field.add(bag, 101, 200, 0);
-      const result = field.pull(100, 200, params, 0.1, {
-        canFit: () => true,
-        collect: () => false,
-      });
+      const result = field.pull(
+        100,
+        200,
+        params,
+        0.1,
+        {
+          canFit: () => true,
+          collect: () => false,
+        },
+        0,
+        1,
+      );
       expect(result.blocked).toBe(true);
       expect(field.items).toHaveLength(1);
     });

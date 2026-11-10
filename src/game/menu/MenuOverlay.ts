@@ -1,9 +1,16 @@
 import Phaser from 'phaser';
 import type { StringKey } from '../../core/i18n';
 import { t } from '../../core/i18n';
+import type { VolumeSetting } from '../../core/settings';
 import { TextureKeys } from '../art/keys';
+import {
+  getSoundDirector,
+  SOUND_ENABLED_KEY,
+  SOUND_VOLUME_KEY,
+} from '../audio/SoundDirector';
 import { BLOOM_KEY } from '../env/bloom';
 import { TILT_SHIFT_KEY, VIGNETTE_KEY } from '../env/postfx';
+import { SURFACE_RIPPLE_KEY } from '../env/surfaceRipple';
 import { addPixelText } from '../hud/text';
 import { MenuButton } from './MenuButton';
 
@@ -40,6 +47,18 @@ const SCREEN_SLICE = 5;
 const ROOT_BUTTON_Y = [-37, 3, 43, 83] as const;
 const SIMPLE_BUTTON_Y = [-46, 0, 46] as const;
 const TOGGLE_X = 108;
+const SETTINGS_START_Y = -83;
+const SETTINGS_STEP_Y = 34;
+const VOLUME_LEVELS: readonly VolumeSetting[] = ['low', 'mid', 'high'];
+const VOLUME_LABELS: Readonly<Record<VolumeSetting, StringKey>> = {
+  low: 'menu.settings.volume.low',
+  mid: 'menu.settings.volume.mid',
+  high: 'menu.settings.volume.high',
+};
+
+function registryVolume(value: unknown): VolumeSetting {
+  return value === 'low' || value === 'high' ? value : 'mid';
+}
 
 function addCenteredText(
   scene: Phaser.Scene,
@@ -174,10 +193,12 @@ export class MenuOverlay {
       { label: 'menu.settings.bloom', key: BLOOM_KEY },
       { label: 'menu.settings.tiltShift', key: TILT_SHIFT_KEY },
       { label: 'menu.settings.vignette', key: VIGNETTE_KEY },
+      { label: 'menu.settings.surfaceRipple', key: SURFACE_RIPPLE_KEY },
+      { label: 'menu.settings.sound', key: SOUND_ENABLED_KEY },
     ];
 
     rows.forEach(({ label, key }, index) => {
-      const y = -68 + index * 48;
+      const y = SETTINGS_START_Y + index * SETTINGS_STEP_Y;
       const rowLabel = addPixelText(this.scene, -112, y, t(label)).setOrigin(0, 0.5);
       const toggle = this.scene.add.image(TOGGLE_X, y, TextureKeys.menuToggle, 0);
       const hitArea = this.scene.add
@@ -188,17 +209,56 @@ export class MenuOverlay {
       };
       refresh();
       hitArea.on('pointerdown', () => {
+        getSoundDirector(this.scene).play('click');
         this.scene.registry.set(key, this.scene.registry.get(key) === false);
         refresh();
       });
       page.add([rowLabel, toggle, hitArea]);
     });
 
+    const volumeY = SETTINGS_START_Y + rows.length * SETTINGS_STEP_Y;
+    const volumeLabel = addPixelText(
+      this.scene,
+      -112,
+      volumeY,
+      t('menu.settings.volume'),
+    ).setOrigin(0, 0.5);
+    const volumeButton = this.scene.add
+      .nineslice(
+        TOGGLE_X,
+        volumeY,
+        TextureKeys.menuButton,
+        0,
+        72,
+        26,
+        6,
+        6,
+        6,
+        6,
+      )
+      .setInteractive({ useHandCursor: true });
+    const volumeText = addPixelText(this.scene, TOGGLE_X, volumeY, '').setOrigin(0.5);
+    const refreshVolume = (): void => {
+      const level = registryVolume(this.scene.registry.get(SOUND_VOLUME_KEY));
+      volumeText.setText(t(VOLUME_LABELS[level]));
+    };
+    refreshVolume();
+    volumeButton.on('pointerover', () => volumeButton.setFrame(1));
+    volumeButton.on('pointerout', () => volumeButton.setFrame(0));
+    volumeButton.on('pointerdown', () => {
+      getSoundDirector(this.scene).play('click');
+      const current = registryVolume(this.scene.registry.get(SOUND_VOLUME_KEY));
+      const next = VOLUME_LEVELS[(VOLUME_LEVELS.indexOf(current) + 1) % VOLUME_LEVELS.length];
+      this.scene.registry.set(SOUND_VOLUME_KEY, next);
+      refreshVolume();
+    });
+    page.add([volumeLabel, volumeButton, volumeText]);
+
     this.buttons = [
       new MenuButton(
         this.scene,
         page,
-        103,
+        124,
         'menu.back',
         () => this.select(0),
         () => this.showRoot(),
@@ -309,6 +369,7 @@ export class MenuOverlay {
   }
 
   private pressSelected(): void {
+    getSoundDirector(this.scene).play('click');
     if (this.page === 'root') {
       const entry = this.options.entries[this.selected];
       if (entry) this.activate(entry.action);

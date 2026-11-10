@@ -246,6 +246,12 @@ Demo P3: kiếm xu → nâng cấp → thấy robot/bể tốt lên; tua bằng 
 ### MN — Menu (yêu cầu ngày 2026-11-10, spec 19)
 - [~] **MN-01** Màn tiêu đề (bảng điều khiển, màn hình số liệu bể, cá bơi), menu tạm dừng (nút HUD + Esc), cài đặt hiệu ứng lưu localStorage, trang Hướng dẫn và Thông tin.
   AC: unit test lưu/nạp cài đặt; mở game vào màn tiêu đề; Bắt đầu vào phòng; tạm dừng ở phòng và bể; về màn tiêu đề rồi vào lại vẫn giữ ván.
+- [~] **UX-01** (yêu cầu ngày 2026-11-10, spec 11, 18, 19) Nút vùng ngón cái: nút hành động trong phòng và "Về phòng" trong bể dời vào cụm phải; ▲▼ sang phải; lặn liên tục giữ nút, tương tác theo độ sâu, đậu trạm sát đáy; gợn mặt nước có công tắc.
+  AC: unit test giữ lặn, kẹp đáy/mặt, tầm tương tác, đậu trạm, cài đặt mới; chụp bố cục nút; thử trên điện thoại.
+
+### SFX — Âm thanh (yêu cầu ngày 2026-11-10, spec 12.3)
+- [~] **SFX-01** Hiệu ứng âm thanh CC0 (Gemini tìm, ghi `public/audio/CREDITS.md`), `sounds.json`, SoundDirector nghe event và toast, âm nền phòng/bể, cài đặt Tiếng + 3 mức âm lượng.
+  AC: test settings và loader sounds.json; log cue ở `?debug=1` khớp bảng; nghe thử trên điện thoại.
 
 ### P4 — Mối đe dọa
 - [ ] **P4-01** Hệ thống event/mối đe dọa theo `threats.json` (khu, lịch, cường độ, thời gian báo trước).
@@ -272,7 +278,7 @@ AC chung P4: bỏ qua mối đe dọa → nước bẩn nhanh hơn, cá buồn; 
 Demo P5: chơi từ game mới tới mở được khu 3; tắt mở lại không mất gì.
 
 ### P6 — Hoàn thiện và Android
-- [ ] **P6-01** Hiệu ứng âm thanh (hút, bắn, nhặt xu, cảnh báo), nút tắt/bật tiếng, mở khóa audio ở lần chạm đầu.
+- [ ] **P6-01** Hiệu ứng âm thanh (hút, bắn, nhặt xu, cảnh báo), nút tắt/bật tiếng, mở khóa audio ở lần chạm đầu. *(Phần hiệu ứng, cài đặt tiếng đã chuyển lên SFX-01 ngày 2026-11-10; còn lại tiếng bắn đi cùng P4-05.)*
 - [ ] **P6-02** Rà soát `balance.json`, chơi thử và chỉnh số cùng người dùng.
 - [ ] **P6-03** Hiệu năng: object pooling cho rác, bong bóng, xu; kiểm tra trên máy Android thật.
 - [ ] **P6-04** Capacitor Android: người dùng cài Android Studio + JDK mới (máy hiện có JDK 11, chưa có Android SDK/adb) theo hướng dẫn; thêm platform; storage adapter Capacitor; build APK debug.

@@ -17,7 +17,8 @@
     "maxSpeed": 110,
     "acceleration": 420,
     "deceleration": 160,
-    "laneSwitchSeconds": 0.35,
+    "diveSeconds": 1.5,
+    "depthReach": 1,
     "batteryCapacity": 100,
     "cargoCapacity": 20,
     "vacuum": {
@@ -28,7 +29,8 @@
     }
   },
   "station": {
-    "chargePerSecond": 25
+    "chargePerSecond": 25,
+    "dockMaxZ": 0.25
   },
   "devices": {
     "auxChargerRadius": 40

@@ -1,6 +1,5 @@
 import type { TrashCatalog, TrashTypeDef, ZoneDef } from '../content/schemas';
 import { pickWeighted, type Rng, type Weighted } from '../rng';
-import { nearestLane } from './lanes';
 import { blockedBy, resolveMove } from './obstacles';
 
 export interface TrashItem {
@@ -123,14 +122,15 @@ export class TrashField {
     params: PullParams,
     dt: number,
     collector: TrashCollector,
-    lane = 0,
+    z: number,
+    depthReach: number,
   ): PullResult {
     const collected: TrashItem[] = [];
     let blocked = false;
 
     for (let i = this.list.length - 1; i >= 0; i--) {
       const item = this.list[i] as TrashItem;
-      if (nearestLane(item.z) !== lane) continue;
+      if (Math.abs(z - item.z) >= depthReach) continue;
       const dx = x - item.x;
       const dy = y - item.y;
       const distance = Math.hypot(dx, dy);

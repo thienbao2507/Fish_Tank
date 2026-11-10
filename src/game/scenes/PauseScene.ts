@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getSoundDirector } from '../audio/SoundDirector';
 import { MenuOverlay } from '../menu/MenuOverlay';
 import { getLastPlayArea, type PlayArea } from '../sceneFlow';
 import { SceneKeys } from './keys';
@@ -42,6 +43,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   private resumeGame(): void {
+    getSoundDirector(this).resume('pause');
     if (this.area === 'room') {
       this.scene.resume(SceneKeys.Room);
     } else {
@@ -52,6 +54,9 @@ export class PauseScene extends Phaser.Scene {
   }
 
   private returnToTitle(): void {
+    const sound = getSoundDirector(this);
+    sound.setArea(null);
+    sound.resume('pause');
     if (this.area === 'room') {
       this.scene.resume(SceneKeys.Room);
       this.scene.sleep(SceneKeys.Room);
