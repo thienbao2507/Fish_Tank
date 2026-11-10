@@ -1,4 +1,4 @@
-import type { Timer } from '../time/timers';
+import { advanceTimer, type Timer } from '../time/timers';
 import type { OrderItem } from './items';
 
 export interface FishOrder {
@@ -51,6 +51,14 @@ export class FishOrders {
     if (!order) return false;
     (order as { timer: Timer }).timer = timer;
     return true;
+  }
+
+  /** Tua mọi đơn đang giao thêm `seconds` giây (ngủ qua đêm). */
+  advanceAll(seconds: number): void {
+    if (seconds <= 0) return;
+    for (const order of this.pending) {
+      (order as { timer: Timer }).timer = advanceTimer(order.timer, seconds);
+    }
   }
 
   remove(id: number): boolean {

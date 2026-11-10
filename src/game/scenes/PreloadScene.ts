@@ -5,6 +5,7 @@ import {
   createPlaceholderTextures,
   queueImageTextures,
 } from '../art/placeholders';
+import { installMusicPlayer } from '../audio/MusicPlayer';
 import { installSoundDirector, queueSoundAssets } from '../audio/SoundDirector';
 import { getContext } from '../context';
 import { SceneKeys } from './keys';
@@ -30,6 +31,7 @@ export class PreloadScene extends Phaser.Scene {
       bus: context.bus,
       world: context.world,
     });
+    installMusicPlayer(this, context.content.music);
     this.scene.start(SceneKeys.Menu);
   }
 }

@@ -7,6 +7,16 @@
     "pearlValueInCoins": 1000,
     "skipSecondsPerPearl": 300
   },
+  "day": {
+    "realSecondsPerDay": 1440,
+    "startMinute": 480,
+    "morningFrom": 360,
+    "noonFrom": 660,
+    "afternoonFrom": 840,
+    "duskFrom": 1020,
+    "nightFrom": 1200,
+    "maxSleepRealSeconds": 600
+  },
   "absence": {
     "maxSeconds": 3600
   },

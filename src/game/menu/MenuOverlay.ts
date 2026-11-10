@@ -8,6 +8,7 @@ import {
   SOUND_ENABLED_KEY,
   SOUND_VOLUME_KEY,
 } from '../audio/SoundDirector';
+import { MUSIC_ENABLED_KEY } from '../audio/MusicPlayer';
 import { BLOOM_KEY } from '../env/bloom';
 import { TILT_SHIFT_KEY, VIGNETTE_KEY } from '../env/postfx';
 import { SURFACE_RIPPLE_KEY } from '../env/surfaceRipple';
@@ -47,8 +48,8 @@ const SCREEN_SLICE = 5;
 const ROOT_BUTTON_Y = [-37, 3, 43, 83] as const;
 const SIMPLE_BUTTON_Y = [-46, 0, 46] as const;
 const TOGGLE_X = 108;
-const SETTINGS_START_Y = -83;
-const SETTINGS_STEP_Y = 34;
+const SETTINGS_START_Y = -88;
+const SETTINGS_STEP_Y = 30;
 const VOLUME_LEVELS: readonly VolumeSetting[] = ['low', 'mid', 'high'];
 const VOLUME_LABELS: Readonly<Record<VolumeSetting, StringKey>> = {
   low: 'menu.settings.volume.low',
@@ -195,6 +196,7 @@ export class MenuOverlay {
       { label: 'menu.settings.vignette', key: VIGNETTE_KEY },
       { label: 'menu.settings.surfaceRipple', key: SURFACE_RIPPLE_KEY },
       { label: 'menu.settings.sound', key: SOUND_ENABLED_KEY },
+      { label: 'menu.settings.music', key: MUSIC_ENABLED_KEY },
     ];
 
     rows.forEach(({ label, key }, index) => {

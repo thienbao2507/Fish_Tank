@@ -17,6 +17,7 @@ describe('settings', () => {
       vignette: true,
       surfaceRipple: true,
       sound: true,
+      music: true,
       volume: 'mid',
     });
   });
@@ -32,6 +33,7 @@ describe('settings', () => {
       vignette: true,
       surfaceRipple: true,
       sound: true,
+      music: true,
       volume: 'mid',
     });
   });
@@ -43,6 +45,7 @@ describe('settings', () => {
       vignette: false,
       surfaceRipple: false,
       sound: false,
+      music: true,
       volume: 'high',
     };
     expect(parseSettings(serializeSettings(settings))).toEqual(settings);
@@ -67,5 +70,14 @@ describe('settings', () => {
       sound: false,
       volume: 'low',
     });
+  });
+
+  it('music mặc định bật khi bản lưu cũ thiếu trường', () => {
+    expect(parseSettings('{"sound":false}').music).toBe(true);
+  });
+
+  it('music sai kiểu dùng mặc định, hợp lệ thì giữ', () => {
+    expect(parseSettings('{"music":"off"}').music).toBe(true);
+    expect(parseSettings('{"music":false}').music).toBe(false);
   });
 });

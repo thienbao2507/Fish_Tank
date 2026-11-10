@@ -1,6 +1,7 @@
 import art from '../../data/art.json';
 import balance from '../../data/balance.json';
 import fish from '../../data/fish.json';
+import music from '../../data/music.json';
 import sounds from '../../data/sounds.json';
 import strings from '../../data/strings.vi.json';
 import trash from '../../data/trash.json';
@@ -12,6 +13,7 @@ export const rawContent: RawContent = {
   strings,
   art,
   sounds,
+  music,
   balance,
   zones,
   trash,

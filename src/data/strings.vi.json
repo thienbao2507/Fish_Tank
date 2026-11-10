@@ -117,6 +117,7 @@
   "menu.settings.vignette": "Viền tối",
   "menu.settings.surfaceRipple": "Gợn mặt nước",
   "menu.settings.sound": "Tiếng",
+  "menu.settings.music": "Nhạc nền",
   "menu.settings.volume": "Âm lượng",
   "menu.settings.volume.low": "Nhỏ",
   "menu.settings.volume.mid": "Vừa",
@@ -149,5 +150,13 @@
   "debug.tiltOn": "Tilt-shift: bật",
   "debug.tiltOff": "Tilt-shift: tắt",
   "debug.vignetteOn": "Vignette: bật",
-  "debug.vignetteOff": "Vignette: tắt"
+  "debug.vignetteOff": "Vignette: tắt",
+  "ui.sleep": "Ngủ",
+  "ui.phase.morning": "Sáng",
+  "ui.phase.noon": "Trưa",
+  "ui.phase.afternoon": "Chiều",
+  "ui.phase.night": "Tối",
+  "ui.roomClock": "{time} · {phase}",
+  "toast.slept": "Đã ngủ tới 06:00",
+  "toast.cannotSleep": "Chỉ ngủ được từ 20:00 tới 6:00"
 }

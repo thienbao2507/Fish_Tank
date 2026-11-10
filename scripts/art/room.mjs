@@ -408,7 +408,16 @@ function glowSconce(stage, x, y) {
   stage.p.rect(x, y + 3, 1, 1, '#ffe2a8');
 }
 
-export function roomWindow() {
+/** Bầu trời và thành phố qua cửa sổ theo buổi; bản 'night' là bản gốc. */
+const WINDOW_SKIES = {
+  night: { sky: ['#54508f', '#2c3a78', '#172452'], city: '#1b2038', lit: 1, stars: true },
+  morning: { sky: ['#f6c98a', '#a9d4e6', '#78b6de'], city: '#4f5f7c', cityWin: '#8fb0d4', lit: 0, sun: [3.75, 66, '#fff2c0'] },
+  noon: { sky: ['#cdeef7', '#8ccbec', '#5aa6dc'], city: '#5b6d88', cityWin: '#b4d2ec', lit: 0, clouds: [[2.15, 66], [3.55, 69], [4.05, 63]] },
+  dusk: { sky: ['#f7a35e', '#c56a7d', '#4b4f8f'], city: '#2a2440', cityWin: '#3d3358', lit: 0.45, sun: [2.2, 52, '#ffd27a'] },
+};
+
+export function roomWindow(phase = 'night') {
+  const look = WINDOW_SKIES[phase];
   const s = new Stage(116, 42, 84, 94);
   const rng = createRng(2203);
   const gy0 = 1.6;
@@ -430,10 +439,21 @@ export function roomWindow() {
         Math.floor(x / 3) % 2 === 0 &&
         Math.floor(y / 4) % 2 === 0 &&
         Math.sin(x * 7.1 + y * 3.3 + tower.lit * 9) > 0.1;
-      return windowLit ? C.warm : '#1b2038';
+      if (windowLit && tower.lit < look.lit) return C.warm;
+      return windowLit && look.cityWin ? look.cityWin : look.city;
     }
-    if (Math.sin(x * 12.9898 + y * 78.233) > 0.992) return '#f2ecd5';
-    return ramp(['#54508f', '#2c3a78', '#172452'], (z - 37) / 35, x, y);
+    if (look.sun) {
+      const [sunGy, sunZ, sunColor] = look.sun;
+      const d = Math.hypot((gy - sunGy) * 30, z - sunZ);
+      if (d < 4.5) return sunColor;
+      if (d < 7 && bayer(x, y) > 0.5) return sunColor;
+    }
+    for (const [cloudGy, cloudZ] of look.clouds ?? []) {
+      const d = Math.hypot((gy - cloudGy) * 30 / 8, (z - cloudZ) / 2.6);
+      if (d < 1) return d < 0.7 || bayer(x, y) > 0.4 ? '#f4fbff' : '#d8eef8';
+    }
+    if (look.stars && Math.sin(x * 12.9898 + y * 78.233) > 0.992) return '#f2ecd5';
+    return ramp(look.sky, (z - 37) / 35, x, y);
   });
   return s.p;
 }
@@ -820,6 +840,31 @@ export const roomLightTank = () =>
     { x: 4.85, y: 1.3, z: 1.5, color: '#2fe3b4', range: 4.4, strength: 0.54, ripple: true, reflect: { width: 1.3, length: 3.8, strength: 0.52 } },
     { x: 4.85, y: 0.5, z: 2.6, color: '#2fe3b4', range: 2.2, strength: 0.32 },
   ]);
+
+/** Vệt nắng qua cửa sổ tường trái (gy 1.6–4.4, cao 37–72px) rọi xuống sàn theo hướng +gx, lệch nhẹ về +gy. */
+export function roomLightSun() {
+  const shell = roomShell();
+  const mask = furnitureMask();
+  const layer = new Pixels(SHELL_W, SHELL_H);
+  const slope = 0.62; // độ cao (ô) mà tia nắng hạ xuống cho mỗi ô đi vào phòng
+  const drift = 0.32; // tia nắng lệch về phía +gy cho mỗi ô đi vào phòng
+  for (let y = 0; y < SHELL_H; y++) {
+    for (let x = 0; x < SHELL_W; x++) {
+      if (shell.alphaAt(x, y) === 0 || mask[y * SHELL_W + x] === 1) continue;
+      const surface = surfaceAt(x, y);
+      if (!surface || surface.nz !== 1) continue;
+      const hitZ = (surface.px * slope * U) | 0;
+      const hitGy = surface.py - surface.px * drift;
+      if (hitGy < 1.66 || hitGy > 4.34 || hitZ < 39 || hitZ > 70) continue;
+      if (Math.abs(hitGy - 3) < 0.07 || Math.abs(hitZ - 60) < 1.6) continue;
+      const edge = Math.min(hitGy - 1.66, 4.34 - hitGy, (hitZ - 39) / 30, (70 - hitZ) / 30);
+      const fade = Math.max(0, 1 - surface.px / 5.5);
+      const level = Math.round(Math.min(1, edge * 6) * fade * 4 + (bayer(x, y) - 0.5) * 0.8) / 4;
+      if (level > 0) layer.set(x, y, rgbHex(255 * level, 214 * level, 140 * level));
+    }
+  }
+  return layer;
+}
 
 export const roomLightLamp = () =>
   lightLayer([
@@ -1344,6 +1389,10 @@ export function roomHero() {
 export const ROOM_ASSETS = {
   'room-shell': roomShell,
   'room-window': roomWindow,
+  'room-window-morning': () => roomWindow('morning'),
+  'room-window-noon': () => roomWindow('noon'),
+  'room-window-dusk': () => roomWindow('dusk'),
+  'room-light-sun': roomLightSun,
   'room-door': roomDoor,
   'room-desk': roomDesk,
   'room-tank': roomTank,

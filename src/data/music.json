@@ -1,0 +1,14 @@
+{
+  "volume": 0.35,
+  "fadeSeconds": 1.5,
+  "tracks": [
+    { "id": "iHope", "file": "audio/music/i-hope.mp3", "title": "I Hope", "artist": "Flint" },
+    { "id": "bread", "file": "audio/music/bread.mp3", "title": "Bread", "artist": "Lukrembo" },
+    {
+      "id": "intoTheDeep",
+      "file": "audio/music/into-the-deep.mp3",
+      "title": "Into the Deep",
+      "artist": "Tal Mashiach"
+    }
+  ]
+}

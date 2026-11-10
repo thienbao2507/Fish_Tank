@@ -141,6 +141,11 @@ export const ROOM_INTERACTIONS: readonly RoomInteraction[] = [
     footprint: { gx0: 6.7, gy0: 0, gx1: 7.7, gy1: 0.02 },
     reach: 0.7,
   },
+  {
+    id: 'bed',
+    footprint: { gx0: 0, gy0: 5, gx1: 3.2, gy1: 7.2 },
+    reach: 0.6,
+  },
 ];
 
 export function nearestInteraction(

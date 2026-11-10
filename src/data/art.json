@@ -850,6 +850,93 @@
         }
       ]
     },
+    "icon.bed": {
+      "kind": "shapes",
+      "width": 20,
+      "height": 20,
+      "parts": [
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 5,
+          "w": 3,
+          "h": 11,
+          "color": "#9a6d46"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 5,
+          "w": 3,
+          "h": 1,
+          "color": "#c79a6a"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 8,
+          "w": 4,
+          "h": 3,
+          "color": "#efe6d6"
+        },
+        {
+          "shape": "rect",
+          "x": 5,
+          "y": 11,
+          "w": 13,
+          "h": 2,
+          "color": "#d9cdbb"
+        },
+        {
+          "shape": "rect",
+          "x": 9,
+          "y": 9,
+          "w": 9,
+          "h": 4,
+          "color": "#2f6a68"
+        },
+        {
+          "shape": "rect",
+          "x": 9,
+          "y": 9,
+          "w": 9,
+          "h": 1,
+          "color": "#4e8e86"
+        },
+        {
+          "shape": "rect",
+          "x": 9,
+          "y": 11,
+          "w": 9,
+          "h": 1,
+          "color": "#c7a15f"
+        },
+        {
+          "shape": "rect",
+          "x": 2,
+          "y": 13,
+          "w": 16,
+          "h": 3,
+          "color": "#7a5236"
+        },
+        {
+          "shape": "rect",
+          "x": 3,
+          "y": 16,
+          "w": 2,
+          "h": 2,
+          "color": "#5b3b29"
+        },
+        {
+          "shape": "rect",
+          "x": 15,
+          "y": 16,
+          "w": 2,
+          "h": 2,
+          "color": "#5b3b29"
+        }
+      ]
+    },
     "icon.door": {
       "kind": "shapes",
       "width": 20,
@@ -1198,6 +1285,22 @@
     "room.plant": {
       "kind": "image",
       "file": "art/gen/room-plant.png"
+    },
+    "room.window.morning": {
+      "kind": "image",
+      "file": "art/gen/room-window-morning.png"
+    },
+    "room.window.noon": {
+      "kind": "image",
+      "file": "art/gen/room-window-noon.png"
+    },
+    "room.window.dusk": {
+      "kind": "image",
+      "file": "art/gen/room-window-dusk.png"
+    },
+    "room.light.sun": {
+      "kind": "image",
+      "file": "art/gen/room-light-sun.png"
     },
     "menu.backdrop": {
       "kind": "image",

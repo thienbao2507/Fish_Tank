@@ -180,3 +180,13 @@ describe('nearestInteraction', () => {
     expect(nearestInteraction({ gx: 4.5, gy: 4.5 }, ROOM_INTERACTIONS)).toBeNull();
   });
 });
+
+describe('tương tác giường', () => {
+  it('đứng cạnh giường trả tương tác bed', () => {
+    expect(nearestInteraction({ gx: 3.5, gy: 6 }, ROOM_INTERACTIONS)?.id).toBe('bed');
+  });
+
+  it('giường nằm trong danh sách tương tác', () => {
+    expect(ROOM_INTERACTIONS.some(({ id }) => id === 'bed')).toBe(true);
+  });
+});

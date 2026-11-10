@@ -4,6 +4,7 @@ export interface Settings {
   readonly vignette: boolean;
   readonly surfaceRipple: boolean;
   readonly sound: boolean;
+  readonly music: boolean;
   readonly volume: VolumeSetting;
 }
 
@@ -21,6 +22,7 @@ export const DEFAULT_SETTINGS: Settings = {
   vignette: true,
   surfaceRipple: true,
   sound: true,
+  music: true,
   volume: 'mid',
 };
 
@@ -50,6 +52,7 @@ export function parseSettings(raw: string | null): Settings {
       vignette: booleanSetting(values.vignette, DEFAULT_SETTINGS.vignette),
       surfaceRipple: booleanSetting(values.surfaceRipple, DEFAULT_SETTINGS.surfaceRipple),
       sound: booleanSetting(values.sound, DEFAULT_SETTINGS.sound),
+      music: booleanSetting(values.music, DEFAULT_SETTINGS.music),
       volume: volumeSetting(values.volume),
     };
   } catch {
@@ -64,6 +67,7 @@ export function serializeSettings(settings: Settings): string {
     vignette: settings.vignette,
     surfaceRipple: settings.surfaceRipple,
     sound: settings.sound,
+    music: settings.music,
     volume: settings.volume,
   });
 }

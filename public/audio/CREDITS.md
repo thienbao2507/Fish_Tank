@@ -22,3 +22,13 @@ Mọi file trong `public/audio/sfx/` đều mang giấy phép **CC0 1.0 (public 
 | `lane` | `bubble_01.ogg` | 40 CC0 water / splash / slime SFX | rubberduck | https://opengameart.org/content/40-cc0-water-splash-slime-sfx |
 | `ambTank` | `loop_bubbles_02.ogg` | 40 CC0 water / splash / slime SFX | rubberduck | https://opengameart.org/content/40-cc0-water-splash-slime-sfx |
 | `sell` | `coin2.wav` | 10 8bit Coin Sounds | lukerustltd | https://opengameart.org/content/10-8bit-coin-sounds |
+
+## Nhạc nền
+
+Phát luân phiên theo thứ tự trong `src/data/music.json`.
+
+| Bài | Tác giả | File | Nguồn / giấy phép |
+|---|---|---|---|
+| I Hope | Flint | `music/i-hope.mp3` | nguồn/giấy phép: chưa xác nhận |
+| Bread | Lukrembo | `music/bread.mp3` | Music track: Bread by Lukrembo. Source: https://freetouse.com/music |
+| Into the Deep | Tal Mashiach | `music/into-the-deep.mp3` | nguồn/giấy phép: chưa xác nhận |

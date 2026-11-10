@@ -6,6 +6,7 @@ import {
   artSchema,
   balanceSchema,
   fishSchema,
+  musicSchema,
   soundsSchema,
   stringsSchema,
   trashSchema,
@@ -14,6 +15,7 @@ import {
   type ArtManifest,
   type Balance,
   type FishCatalog,
+  type MusicCatalog,
   type SoundCatalog,
   type TrashCatalog,
   type Upgrades,
@@ -25,6 +27,7 @@ export interface RawContent {
   readonly strings: unknown;
   readonly art: unknown;
   readonly sounds: unknown;
+  readonly music: unknown;
   readonly balance: unknown;
   readonly zones: unknown;
   readonly trash: unknown;
@@ -37,6 +40,7 @@ export interface Content {
   readonly strings: Strings;
   readonly art: ArtManifest;
   readonly sounds: SoundCatalog;
+  readonly music: MusicCatalog;
   readonly balance: Balance;
   readonly zones: readonly ZoneDef[];
   readonly trash: TrashCatalog;
@@ -305,13 +309,14 @@ export function loadContent(raw: RawContent): Content {
   const strings = parseFile('strings.vi.json', stringsSchema, raw.strings, issues);
   const art = parseFile('art.json', artSchema, raw.art, issues);
   const sounds = parseFile('sounds.json', soundsSchema, raw.sounds, issues);
+  const music = parseFile('music.json', musicSchema, raw.music, issues);
   const balance = parseFile('balance.json', balanceSchema, raw.balance, issues);
   const zones = parseFile('zones.json', zonesSchema, raw.zones, issues);
   const trash = parseFile('trash.json', trashSchema, raw.trash, issues);
   const fish = parseFile('fish.json', fishSchema, raw.fish, issues);
   const upgrades = parseFile('upgrades.json', upgradesSchema, raw.upgrades, issues);
 
-  if (!strings || !art || !sounds || !balance || !zones || !trash || !fish || !upgrades) {
+  if (!strings || !art || !sounds || !music || !balance || !zones || !trash || !fish || !upgrades) {
     throw new ContentError(issues);
   }
 
@@ -319,6 +324,7 @@ export function loadContent(raw: RawContent): Content {
     strings,
     art,
     sounds,
+    music,
     balance,
     zones: zones.zones,
     trash,

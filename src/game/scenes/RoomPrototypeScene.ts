@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT } from '../../config';
 import { t } from '../../core/i18n';
 import { keysToDirection, type Direction } from '../../core/input';
+import { dayLightAt } from '../room/dayLight';
 import { PcDesktop } from '../../ui/pcDesktop';
 import { TextureKeys } from '../art/keys';
 import { getSoundDirector } from '../audio/SoundDirector';
@@ -23,6 +24,7 @@ import {
   ROOM_LIGHT_DEPTH,
   ROOM_LIGHTS,
   ROOM_PROPS,
+  ROOM_SHELL_HEIGHT,
   ROOM_SHELL_WIDTH,
   ROOM_SHELL_Y,
   type RoomFacing,
@@ -48,6 +50,7 @@ const STILL: Direction = { x: 0, y: 0 };
 const MAX_FRAME_SECONDS = 0.1;
 const HERO_FRONT_ANIMATION = 'room.hero.front.walk';
 const HERO_BACK_ANIMATION = 'room.hero.back.walk';
+const SLEEP_FADE_MS = 400;
 const ROOM_INTERACTIONS_WITHOUT_DOOR = ROOM_INTERACTIONS.filter(({ id }) => id !== 'door');
 
 function anyDown(keys: readonly Phaser.Input.Keyboard.Key[]): boolean {
@@ -60,6 +63,13 @@ export class RoomPrototypeScene extends Phaser.Scene {
   private propViews: PropView[] = [];
   private hero!: Phaser.GameObjects.Sprite;
   private lightLayers: Phaser.GameObjects.Image[] = [];
+  private windowMorning!: Phaser.GameObjects.Image;
+  private windowNoon!: Phaser.GameObjects.Image;
+  private windowDusk!: Phaser.GameObjects.Image;
+  private sunLayer!: Phaser.GameObjects.Image;
+  private shade!: Phaser.GameObjects.Rectangle;
+  private sleepButton!: ActionButton;
+  private sleeping = false;
   private joystick!: VirtualJoystick;
   private enterTankButton!: ActionButton;
   private usePcButton!: ActionButton;
@@ -89,6 +99,18 @@ export class RoomPrototypeScene extends Phaser.Scene {
       image: this.add.image(0, 0, TextureKeys[prop.key]).setOrigin(0, 0).setDepth(prop.depth),
     }));
 
+    const windowProp = ROOM_PROPS.find(({ key }) => key === 'roomWindow');
+    const windowDepth = windowProp?.depth ?? 1;
+    const addWindow = (key: string, offset: number): Phaser.GameObjects.Image =>
+      this.add
+        .image(0, 0, key)
+        .setOrigin(0, 0)
+        .setDepth(windowDepth + offset)
+        .setAlpha(0);
+    this.windowMorning = addWindow(TextureKeys.roomWindowMorning, 0.1);
+    this.windowNoon = addWindow(TextureKeys.roomWindowNoon, 0.2);
+    this.windowDusk = addWindow(TextureKeys.roomWindowDusk, 0.3);
+
     this.createHeroAnimations();
     this.hero = this.add.sprite(0, 0, TextureKeys.roomHero, 0).setOrigin(12 / 24, 42 / 44);
     this.lightLayers = ROOM_LIGHTS.map(({ key, alpha }) =>
@@ -99,6 +121,17 @@ export class RoomPrototypeScene extends Phaser.Scene {
         .setAlpha(alpha)
         .setBlendMode(Phaser.BlendModes.ADD),
     );
+    this.sunLayer = this.add
+      .image(0, 0, TextureKeys.roomLightSun)
+      .setOrigin(0, 0)
+      .setDepth(ROOM_LIGHT_DEPTH)
+      .setAlpha(0)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    // Lớp tối phủ phòng, nằm dưới các lớp đèn.
+    this.shade = this.add
+      .rectangle(0, 0, ROOM_SHELL_WIDTH, ROOM_SHELL_HEIGHT, 0x000000, 0)
+      .setOrigin(0, 0)
+      .setDepth(ROOM_LIGHT_DEPTH - 1);
     this.doorGlow = this.add
       .image(0, 0, TextureKeys.roomDoorGlow)
       .setOrigin(0, 0)
@@ -131,11 +164,20 @@ export class RoomPrototypeScene extends Phaser.Scene {
       onPress: () => this.activateInteraction(),
     });
     this.collectButton.setDepth(ROOM_LIGHT_DEPTH + 1);
+    this.sleepButton = new ActionButton(this, {
+      icon: TextureKeys.iconBed,
+      label: t('ui.sleep'),
+      onPress: () => this.activateInteraction(),
+    });
+    this.sleepButton.setDepth(ROOM_LIGHT_DEPTH + 1);
     this.toasts = new Toasts(this);
     (this.children.list[this.children.list.length - 1] as Phaser.GameObjects.Text).setDepth(
       ROOM_LIGHT_DEPTH + 2,
     );
-    this.roomHud = new RoomHud(this, this.ctx.world, () => this.openPauseMenu());
+    this.roomHud = new RoomHud(this, this.ctx.world, () => this.openPauseMenu(), {
+      day: this.ctx.day,
+      now: () => this.ctx.clock.now(),
+    });
     this.setupKeyboard();
     addCameraBloom(this, { threshold: 0.86, blendAmount: 0.4 });
 
@@ -163,13 +205,14 @@ export class RoomPrototypeScene extends Phaser.Scene {
     this.layout(this.scale.width);
     this.updateHero(false);
     this.refreshDeliveryState(0);
+    this.applyDayLight();
     this.roomHud.refresh();
   }
 
   override update(time: number, delta: number): void {
     this.ctx.world.checkDeliveries(this.ctx.clock.now());
     const direction = this.joystick.isActive ? this.joystick.direction : this.keyboardDirection();
-    const nextFacing = facingFromDirection(direction, this.facing);
+    const nextFacing = this.sleeping ? null : facingFromDirection(direction, this.facing);
     let moved = false;
     if (nextFacing) {
       this.facing = nextFacing;
@@ -181,7 +224,22 @@ export class RoomPrototypeScene extends Phaser.Scene {
 
     this.updateHero(moved);
     this.refreshDeliveryState(time);
+    this.applyDayLight();
     this.roomHud.refresh();
+  }
+
+  /** Cập nhật cửa sổ, nắng, độ sáng đèn và lớp tối theo giờ trong ngày. */
+  private applyDayLight(): void {
+    const minute = this.ctx.day.minuteOfDay(this.ctx.clock.now());
+    const light = dayLightAt(this.ctx.content.balance.day, minute);
+    this.windowMorning.setAlpha(light.windows.morning);
+    this.windowNoon.setAlpha(light.windows.noon);
+    this.windowDusk.setAlpha(light.windows.dusk);
+    this.sunLayer.setAlpha(light.sun);
+    this.lightLayers.forEach((layer, index) => {
+      layer.setAlpha((ROOM_LIGHTS[index]?.alpha ?? 1) * light.lights);
+    });
+    this.shade.setFillStyle(light.shade.color, light.shade.alpha);
   }
 
   private createHeroAnimations(): void {
@@ -233,17 +291,23 @@ export class RoomPrototypeScene extends Phaser.Scene {
   private layout(width: number): void {
     this.shellX = Math.round((width - ROOM_SHELL_WIDTH) / 2);
     this.shell.setPosition(this.shellX, ROOM_SHELL_Y);
-    for (const light of this.lightLayers) {
+    for (const light of [...this.lightLayers, this.sunLayer, this.shade]) {
       light.setPosition(this.shellX, ROOM_SHELL_Y);
     }
     for (const { prop, image } of this.propViews) {
       image.setPosition(this.shellX + prop.x, ROOM_SHELL_Y + prop.y);
+      if (prop.key === 'roomWindow') {
+        for (const overlay of [this.windowMorning, this.windowNoon, this.windowDusk]) {
+          overlay.setPosition(this.shellX + prop.x, ROOM_SHELL_Y + prop.y);
+        }
+      }
     }
     const actionX = width - 72;
     const actionY = GAME_HEIGHT - 72;
     this.enterTankButton.setPosition(actionX, actionY);
     this.usePcButton.setPosition(actionX, actionY);
     this.collectButton.setPosition(actionX, actionY);
+    this.sleepButton.setPosition(actionX, actionY);
     this.doorGlow.setPosition(this.shellX + ROOM_DOOR_GLOW.x, ROOM_SHELL_Y + ROOM_DOOR_GLOW.y);
     this.toasts.layout(width);
     this.updateHero(this.hero.anims.isPlaying);
@@ -266,20 +330,48 @@ export class RoomPrototypeScene extends Phaser.Scene {
     this.enterTankButton.setVisible(this.activeInteractionId === 'tank');
     this.usePcButton.setVisible(this.activeInteractionId === 'pc');
     this.collectButton.setVisible(this.activeInteractionId === 'door');
+    this.sleepButton.setVisible(this.activeInteractionId === 'bed' && !this.sleeping);
   }
 
   private activateInteraction(): void {
-    if (this.pcDesktop) return;
+    if (this.pcDesktop || this.sleeping) return;
     if (this.activeInteractionId === 'tank') {
       enterTank(this);
     } else if (this.activeInteractionId === 'pc') {
       this.openPcDesktop();
+    } else if (this.activeInteractionId === 'bed') {
+      this.sleepThroughNight();
     } else if (this.activeInteractionId === 'door') {
       if (this.ctx.world.collectDeliveries(this.ctx.clock.now()) > 0) {
         getSoundDirector(this).play('door');
       }
       this.refreshDeliveryState(0);
     }
+  }
+
+  /** Ngủ ở giường: tắt dần màn hình, tua tới 06:00 rồi sáng lại. Ban ngày chỉ báo giờ được ngủ. */
+  private sleepThroughNight(): void {
+    const now = this.ctx.clock.now();
+    if (!this.ctx.day.canSleep(now)) {
+      this.ctx.bus.emit('toast', { key: 'toast.cannotSleep' });
+      return;
+    }
+    this.sleeping = true;
+    this.joystick.reset();
+    this.input.keyboard?.resetKeys();
+    const camera = this.cameras.main;
+    camera.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      const slept = this.ctx.day.sleep(this.ctx.clock.now());
+      if (slept) this.ctx.world.sleep(slept.realSecondsSkipped);
+      this.applyDayLight();
+      this.roomHud.refresh();
+      camera.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () => {
+        this.sleeping = false;
+      });
+      camera.fadeIn(SLEEP_FADE_MS, 0, 0, 0);
+      this.ctx.bus.emit('toast', { key: 'toast.slept' });
+    });
+    camera.fadeOut(SLEEP_FADE_MS, 0, 0, 0);
   }
 
   private openPauseMenu(): void {

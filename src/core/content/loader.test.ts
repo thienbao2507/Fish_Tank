@@ -313,4 +313,11 @@ describe('loadContent', () => {
     const error = errorOf(() => loadContent(raw));
     expect(error.issues.some((issue) => issue.includes('sounds.json › vacuum'))).toBe(true);
   });
+
+  it('báo lỗi khi music.json có id bài nhạc trùng', () => {
+    const raw = rawCopy();
+    raw.music.tracks[1].id = raw.music.tracks[0].id;
+    const error = errorOf(() => loadContent(raw));
+    expect(error.issues.some((issue) => issue.includes('music.json › tracks.1.id'))).toBe(true);
+  });
 });

@@ -90,6 +90,35 @@ export const artSchema = z.strictObject({
 
 export const stringsSchema = z.record(z.string(), z.string());
 
+// ---------- music.json ----------
+
+const musicTrackSchema = z.strictObject({
+  id: z.string().min(1),
+  file: z.string().min(1),
+  title: z.string().min(1),
+  artist: z.string().min(1),
+});
+
+export const musicSchema = z
+  .strictObject({
+    volume: z.number().min(0).max(1),
+    fadeSeconds: z.number().min(0),
+    tracks: z.array(musicTrackSchema).min(1),
+  })
+  .superRefine((music, ctx) => {
+    const seen = new Set<string>();
+    music.tracks.forEach((track, index) => {
+      if (seen.has(track.id)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['tracks', index, 'id'],
+          message: `id bài nhạc trùng: ${track.id}`,
+        });
+      }
+      seen.add(track.id);
+    });
+  });
+
 // ---------- sounds.json ----------
 
 const soundDefSchema = z.strictObject({
@@ -140,6 +169,20 @@ export const balanceSchema = z.strictObject({
   absence: z.strictObject({
     /** Thời gian tối đa được tính xu khi rời bể (giây). */
     maxSeconds: positive,
+  }),
+  /** Giờ trong ngày của căn phòng (spec mục 9); mốc tính bằng phút trong ngày game. */
+  day: z.strictObject({
+    /** Số giây thực của một ngày game. */
+    realSecondsPerDay: positive,
+    startMinute: z.number().min(0).max(1439),
+    morningFrom: z.number().min(0).max(1439),
+    noonFrom: z.number().min(0).max(1439),
+    afternoonFrom: z.number().min(0).max(1439),
+    /** Từ giờ này cửa sổ chuyển sang trời hoàng hôn (trong buổi chiều). */
+    duskFrom: z.number().min(0).max(1439),
+    nightFrom: z.number().min(0).max(1439),
+    /** Trần số giây thực được bỏ qua mỗi lần ngủ. */
+    maxSleepRealSeconds: positive,
   }),
   water: z.strictObject({
     /** Độ sạch tiến về mức mục tiêu với tốc độ này (% mỗi phút game). */
@@ -443,6 +486,8 @@ export type TextureDef = z.infer<typeof textureDefSchema>;
 export type ArtManifest = z.infer<typeof artSchema>;
 export type SoundCatalog = z.infer<typeof soundsSchema>;
 export type SoundCue = keyof SoundCatalog;
+export type MusicCatalog = z.infer<typeof musicSchema>;
+export type MusicTrackDef = MusicCatalog['tracks'][number];
 export type Balance = z.infer<typeof balanceSchema>;
 export type Upgrades = z.infer<typeof upgradesSchema>;
 export type UpgradeTrack = 'cargo' | 'speed' | 'vacuum';

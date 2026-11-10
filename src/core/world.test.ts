@@ -5,6 +5,7 @@ import type { Balance, TrashTypeDef, ZoneDef } from './content/schemas';
 import { EventBus, type GameEvents } from './events';
 import type { PlayerInput } from './input';
 import { createRng } from './rng';
+import { remainingSeconds } from './time/timers';
 import type { OrderItem } from './sim/items';
 import { World } from './world';
 
@@ -561,6 +562,61 @@ describe('World — cá và nước (P2)', () => {
       const { world } = setup();
       expect(world.returnToTank(21_000)).toBe(0);
     });
+  });
+});
+
+describe('World.sleep (ngủ qua đêm)', () => {
+  it('tua đơn đang giao đúng số giây', () => {
+    const { world, content } = setup({ startingCoins: 100_000 });
+    const species = content.fish.species[0];
+    if (!species) throw new Error('Thiếu loài cá kiểm thử');
+    expect(world.orderFish(species.id, 0)).toBe(true);
+    const order = world.orders[0];
+    if (!order) throw new Error('Thiếu đơn kiểm thử');
+    const before = remainingSeconds(order.timer, 0);
+    world.sleep(100);
+    const after = world.orders[0];
+    if (!after) throw new Error('Thiếu đơn kiểm thử');
+    expect(remainingSeconds(after.timer, 0)).toBeCloseTo(Math.max(0, before - 100));
+  });
+
+  it('cá con lớn thêm nhưng không quá growSeconds', () => {
+    const { world, content } = setup({ startingCoins: 100_000, startingFish: [] });
+    const species = content.fish.species[0];
+    if (!species) throw new Error('Thiếu loài cá kiểm thử');
+    world.orderFish(species.id, 0);
+    const order = world.orders[0];
+    if (!order) throw new Error('Thiếu đơn kiểm thử');
+    world.collectDeliveries(order.timer.startedAt + order.timer.durationMs);
+    expect(world.releaseFish(species.id)).toBe(true);
+    const juvenile = world.fish[0];
+    if (!juvenile) throw new Error('Thiếu cá con kiểm thử');
+    const start = juvenile.ageSeconds;
+    world.sleep(10);
+    expect(juvenile.ageSeconds).toBeCloseTo(start + 10);
+    world.sleep(species.growSeconds * 10);
+    expect(juvenile.ageSeconds).toBe(species.growSeconds);
+    expect(juvenile.isGrown).toBe(true);
+  });
+
+  it('dời mốc rời bể để xu vắng mặt tính thêm thời gian ngủ', () => {
+    const plain = setup();
+    plain.world.leaveTank(1_000);
+    const baseline = plain.world.returnToTank(21_000);
+
+    const { world } = setup();
+    world.leaveTank(1_000);
+    world.sleep(600);
+    const coins = world.returnToTank(21_000);
+    expect(coins).toBeGreaterThan(baseline);
+  });
+
+  it('không rời bể thì sleep không gây lỗi và không cộng xu', () => {
+    const { world } = setup();
+    const before = world.wallet.get('coins');
+    world.sleep(600);
+    expect(world.returnToTank(21_000)).toBe(0);
+    expect(world.wallet.get('coins')).toBe(before);
   });
 });
 

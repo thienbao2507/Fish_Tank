@@ -146,6 +146,8 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
 - **Khi nhân vật ở phòng**, bể tính theo đúng luật offline; quay lại bể thì nhận phần xu tích luỹ. Ngủ, ở phòng và offline dùng chung một luật tính.
 - **Luật tính vắng mặt** (2026-11-09): chỉ cá đang vui mới sinh xu, theo `coinValue / coinIntervalSeconds` của loài, không ra ngọc. Thời gian tính tối đa `balance.json › absence.maxSeconds` (tạm 3600 giây). Trạng thái cá và nước giữ nguyên trong lúc vắng.
 - **Đồng hồ ngày/đêm** riêng của game: 1 ngày game ≈ 24 phút thực (số trong `balance.json`), chạy theo giờ thực nên vẫn trôi khi tắt game. Chia sáng / trưa / chiều / tối.
+- **Giờ trong ngày** (duyệt 2026-11-10): sáng 6–11, trưa 11–14, chiều 14–20, tối 20–6; cửa sổ chuyển trời hoàng hôn từ 17:00 (`balance.json › day.duskFrom`). Chưa có lưu game thì mỗi lần mở game đồng hồ bắt đầu lúc 08:00 (khi có lưu game ở P5 thì chạy tiếp theo giờ thực). Trời qua cửa sổ, nắng ban mai và độ sáng các đèn trong phòng đổi dần theo giờ; HUD phòng hiện giờ.
+- **Ngủ được từ 20:00 tới trước 6:00**, bỏ qua tới 6:00; ngủ lúc 20:00 bỏ đúng 10 giờ game = 10 phút thực. Khoảng bỏ qua tua đơn hàng đang giao và cá con đang lớn; xu cá cộng theo luật vắng mặt khi vào lại bể. Ban ngày bấm Ngủ thì báo giờ được ngủ.
 - **Ngủ** (mục 17): từ tối mới ngủ được, nhảy tới 6h sáng hôm sau. Khoảng bị bỏ qua (tối đa khoảng 10 phút thực) tua luôn các bộ đếm và cộng xu cá như offline. Bộ đếm dài vẫn cần ngọc để tua.
 - Rủi ro người chơi chỉnh giờ máy: chấp nhận ở prototype; xử lý khi có monetization.
 
@@ -192,8 +194,9 @@ Bơi ra khu → bật hút dọn rác → khoang đầy / pin cạn → về tr�
   - Ảnh cũ `public/art/submarine.png` (thân vàng, khung tím) giữ lại trong repo, không còn dùng.
 
 ### 12.3 Âm thanh
-- Prototype: hiệu ứng âm thanh, chưa có nhạc nền (duyệt 2026-11-10). Nguồn chỉ lấy file giấy phép **CC0**, ghi nguồn từng file trong `public/audio/CREDITS.md`. Danh sách cue và file nằm trong `src/data/sounds.json`.
+- Prototype: hiệu ứng âm thanh, có nhạc nền (duyệt 2026-11-10). Nguồn chỉ lấy file giấy phép **CC0**, ghi nguồn từng file trong `public/audio/CREDITS.md`. Danh sách cue và file nằm trong `src/data/sounds.json`.
 - Gắn tiếng cho: trong bể (máy hút lặp khi bật, nhặt xu/ngọc, bán rác, cho ăn, chữa cá, đổi tầng), cảnh báo (pin cạn, khoang đầy, thiếu xu, khu đủ cá, cá ốm, cá bỏ đi), giao diện và phòng (bấm nút, tạm dừng, mua hàng, lắp đồ, hàng tới, mở cửa), âm nền nhỏ lặp trong bể và trong phòng. Tiếng bắn làm cùng súng bong bóng (P4-05).
+- **Nhạc nền:** 3 bài trong `public/audio/music/` (I Hope · Bread · Into the Deep) phát nối nhau theo thứ tự rồi quay lại bài đầu, chạy liên tục qua màn tiêu đề, phòng và bể (đổi cảnh không phát lại từ đầu). Phát bằng thẻ audio kiểu stream để không giải mã cả bài vào bộ nhớ. Cài đặt có công tắc "Nhạc nền" riêng; tắt "Tiếng" thì tắt cả nhạc; âm lượng theo mức chung. Ẩn tab thì nhạc tạm dừng.
 - Tạm dừng thì dừng mọi tiếng trừ tiếng bấm nút. Phaser tự mở khoá âm thanh ở lần chạm đầu (màn tiêu đề).
 
 ### 12.4 Hướng mỹ thuật
@@ -303,7 +306,7 @@ Theo bộ luật layer người dùng gửi ngày 2026-11-06 (viết cho 3D), ch
 - Mọi số liệu (giá, dung lượng pin, thời gian chờ, tốc độ đói, tỉ lệ ngọc, ngưỡng X%…) nằm trong `src/data/`, đặt tạm và chỉnh khi chơi thử (giai đoạn P6).
 
 ## 15. Ngoài phạm vi prototype
-Quảng cáo, mua hàng trong app, store, online, lưu đám mây, độ khó, iOS, nhiều ngôn ngữ, chống chỉnh giờ máy, sinh sản cá, nhạc nền.
+Quảng cáo, mua hàng trong app, store, online, lưu đám mây, độ khó, iOS, nhiều ngôn ngữ, chống chỉnh giờ máy, sinh sản cá.
 
 ## 16. Quyết định còn mở
 | Mục | Hạn chót |

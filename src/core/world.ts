@@ -27,12 +27,7 @@ import { itemKey, itemOffer, sameItem, type OrderItem } from './sim/items';
 import { LANE_COUNT, nearestLane } from './sim/lanes';
 import { stepMotion, type Bounds } from './sim/movement';
 import { resolveMove } from './sim/obstacles';
-import {
-  FishOrders,
-  isFishOrder,
-  type DeliveryOrder,
-  type ItemOrder,
-} from './sim/orders';
+import { FishOrders, isFishOrder, type DeliveryOrder, type ItemOrder } from './sim/orders';
 import { Robot } from './sim/robot';
 import { School } from './sim/school';
 import { TrashField } from './sim/trash';
@@ -222,9 +217,7 @@ export class World {
   /** Kiểm tra quy tắc tuyến/cấp mà không thay đổi ví hay tạo đơn. */
   canOrderItem(item: OrderItem): boolean {
     if (!itemOffer(this.upgrades, item)) return false;
-    const pendingItems = this.orders.filter(
-      (order): order is ItemOrder => !isFishOrder(order),
-    );
+    const pendingItems = this.orders.filter((order): order is ItemOrder => !isFishOrder(order));
     const stockedItems = this.items.filter(({ count }) => count > 0);
     switch (item.kind) {
       case 'upgrade':
@@ -325,10 +318,7 @@ export class World {
     const count = this.inventoryCounts.get(speciesId) ?? 0;
     const species = this.speciesById.get(speciesId);
     if (count <= 0 || !species) return false;
-    if (
-      this.fish.filter((fish) => !fish.leaving).length >=
-      (this.zone.fishCapacity as number)
-    ) {
+    if (this.fish.filter((fish) => !fish.leaving).length >= (this.zone.fishCapacity as number)) {
       this.bus.emit('toast', { key: 'toast.zoneFull' });
       return false;
     }
@@ -406,9 +396,7 @@ export class World {
       this.itemCount(item) <= 0 ||
       !Number.isInteger(slotIndex) ||
       !slots[slotIndex] ||
-      this.placedDevices.some(
-        (device) => device.slotIndex === slotIndex || device.type === type,
-      )
+      this.placedDevices.some((device) => device.slotIndex === slotIndex || device.type === type)
     ) {
       return false;
     }
@@ -508,6 +496,20 @@ export class World {
       this.bus.emit('toast', { key: 'toast.absenceCoins', params: { coins } });
     }
     return coins;
+  }
+
+  /**
+   * Ngủ qua đêm: tua `realSeconds` giây cho đơn đang giao và cá con chưa lớn,
+   * dời mốc rời bể lùi lại để xu vắng mặt tính thêm khoảng đó. Cá và nước giữ nguyên.
+   */
+  sleep(realSeconds: number): void {
+    if (realSeconds <= 0) return;
+    this.fishOrders.advanceAll(realSeconds);
+    for (const fish of this.fish) {
+      if (fish.leaving || fish.isGrown) continue;
+      fish.ageSeconds = Math.min(fish.species.growSeconds, fish.ageSeconds + realSeconds);
+    }
+    if (this.leftTankAt !== undefined) this.leftTankAt -= realSeconds * 1_000;
   }
 
   /** Có cá ốm trong tầm chữa quanh robot không (nút Thuốc sáng/mờ theo đây). */
@@ -663,10 +665,7 @@ export class World {
     const dive = input.dive ?? 0;
     robot.z = Math.min(
       LANE_COUNT - 1,
-      Math.max(
-        0,
-        robot.z + (dive * (LANE_COUNT - 1) * dt) / this.balance.robot.diveSeconds,
-      ),
+      Math.max(0, robot.z + (dive * (LANE_COUNT - 1) * dt) / this.balance.robot.diveSeconds),
     );
     robot.lane = nearestLane(robot.z);
     const fromX = robot.x;
@@ -724,8 +723,7 @@ export class World {
     const inAuxRange =
       robot.z <= this.balance.station.dockMaxZ &&
       auxSlot !== undefined &&
-      Math.hypot(robot.x - auxSlot.x, robot.y - auxSlot.y) <=
-        this.balance.devices.auxChargerRadius;
+      Math.hypot(robot.x - auxSlot.x, robot.y - auxSlot.y) <= this.balance.devices.auxChargerRadius;
     const auxRate = inAuxRange ? (auxLevel?.chargePerSecond ?? 0) : 0;
     this.chargingRate = Math.max(mainRate, auxRate);
     robot.battery.recharge(this.chargingRate * dt);

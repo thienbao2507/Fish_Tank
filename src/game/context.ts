@@ -4,12 +4,15 @@ import type { EventBus, GameEvents } from '../core/events';
 import type { PlayerInput } from '../core/input';
 import type { Rng } from '../core/rng';
 import type { ScaledClock } from '../core/time/clock';
+import type { DayClock } from '../core/time/dayClock';
 import type { World } from '../core/world';
 
 /** Các dịch vụ dùng chung cho mọi scene. Tạo một lần trong main.ts. */
 export interface GameContext {
   readonly content: Content;
   readonly clock: ScaledClock;
+  /** Giờ trong ngày của căn phòng (trời, đèn, ngủ). */
+  readonly day: DayClock;
   readonly rng: Rng;
   readonly bus: EventBus<GameEvents>;
   readonly world: World;

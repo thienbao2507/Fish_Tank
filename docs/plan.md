@@ -212,11 +212,11 @@ Mục tiêu: nhân vật người đi lại trong phòng isometric, có ngày/đ
   - [~] Bước 5: kệ sách góc trong, chậu cây (có va chạm), mô hình, tranh.
   - [~] Bước 6: soát tỉ lệ, hạ cửa còn khoảng 66px, ảnh trước/sau, đo FPS. Đã hạ cửa và có ảnh ghép trước/sau; chưa xem trong game thật, chưa đo FPS, chờ người dùng duyệt.
   - [~] Bước 7: vòng góp ý 6 mục (góc PC to hơn và nới chân đế bàn đến gy 2, hồ cá dựng lớp theo chiều sâu, vệt phản chiếu trên sàn, giường, tỉ lệ nhân vật và thú bông, thảm và đồ phẳng giữa phòng). Đã xem trong game thật, chờ người dùng duyệt.
-- [ ] **PR-02** Đồng hồ ngày/đêm (`src/core/time/`, số trong `balance.json`, đọc `ctx.clock.now()`): cửa sổ đổi trời, nắng ban mai, ánh sáng phòng theo giờ.
+- [~] **PR-02** Đồng hồ ngày/đêm (`src/core/time/`, số trong `balance.json`, đọc `ctx.clock.now()`): cửa sổ đổi trời, nắng ban mai, ánh sáng phòng theo giờ.
   AC: unit test đồng hồ; tua debug thấy trời đổi đủ sáng/trưa/chiều/tối.
 - [~] **PR-03** (làm trước PR-02 theo yêu cầu ngày 2026-11-09) Chuyển cảnh phòng ↔ bể (`UIScene` tách HUD phòng/bể, nút hành động theo ngữ cảnh, nút về phòng, mở game vào phòng) và hàm tính vắng mặt trong `src/core/`: cá chỉ sinh xu có trần, không đói, không ốm, không bỏ đi.
   AC: unit test luật vắng mặt; ở phòng một lúc rồi vào bể thì nhận đúng xu tích luỹ, cá không đổi trạng thái.
-- [ ] **PR-04** Giường: từ tối mới ngủ được, nhảy tới 6h sáng, cộng xu qua hàm vắng mặt của PR-03. Phần tua bộ đếm nối ở P3-01.
+- [~] **PR-04** Giường: từ tối mới ngủ được, nhảy tới 6h sáng, cộng xu qua hàm vắng mặt của PR-03. Phần tua bộ đếm nối ở P3-01.
   AC: unit test (ban ngày không ngủ được; thời lượng bỏ qua đúng theo giờ lúc ngủ).
 
 Demo PR: đi trong phòng, ngắm trời đổi qua cửa sổ, vào bể rồi về phòng nhận xu, ngủ qua đêm.
@@ -253,6 +253,8 @@ Demo P3: kiếm xu → nâng cấp → thấy robot/bể tốt lên; tua bằng 
 - [~] **SFX-01** Hiệu ứng âm thanh CC0 (Gemini tìm, ghi `public/audio/CREDITS.md`), `sounds.json`, SoundDirector nghe event và toast, âm nền phòng/bể, cài đặt Tiếng + 3 mức âm lượng.
   AC: test settings và loader sounds.json; log cue ở `?debug=1` khớp bảng; nghe thử trên điện thoại.
 
+- [~] **MU-01** (yêu cầu ngày 2026-11-10, spec 12.3) Nhạc nền 3 bài phát luân phiên, liên tục qua các cảnh, công tắc "Nhạc nền" trong Cài đặt, ghi nguồn trong `public/audio/CREDITS.md`.
+  AC: unit test thứ tự bài và cài đặt mới; nghe thử trên PC và điện thoại.
 ### P4 — Mối đe dọa
 - [ ] **P4-01** Hệ thống event/mối đe dọa theo `threats.json` (khu, lịch, cường độ, thời gian báo trước).
   AC: thêm một event mới chỉ bằng JSON.

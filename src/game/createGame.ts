@@ -3,6 +3,7 @@ import { GAME_HEIGHT } from '../config';
 import type { Settings, VolumeSetting } from '../core/settings';
 import { loadSettings, saveSettings } from '../platform/settingsStorage';
 import { setContext, type GameContext } from './context';
+import { MUSIC_ENABLED_KEY } from './audio/MusicPlayer';
 import { SOUND_ENABLED_KEY, SOUND_VOLUME_KEY } from './audio/SoundDirector';
 import { BLOOM_KEY } from './env/bloom';
 import { TILT_SHIFT_KEY, VIGNETTE_KEY } from './env/postfx';
@@ -36,6 +37,7 @@ const EFFECT_KEYS = new Set<string>([
   VIGNETTE_KEY,
   SURFACE_RIPPLE_KEY,
   SOUND_ENABLED_KEY,
+  MUSIC_ENABLED_KEY,
   SOUND_VOLUME_KEY,
 ]);
 
@@ -51,6 +53,7 @@ function registrySettings(game: Phaser.Game): Settings {
     vignette: game.registry.get(VIGNETTE_KEY) !== false,
     surfaceRipple: game.registry.get(SURFACE_RIPPLE_KEY) !== false,
     sound: game.registry.get(SOUND_ENABLED_KEY) !== false,
+    music: game.registry.get(MUSIC_ENABLED_KEY) !== false,
     volume: registryVolume(game),
   };
 }
@@ -62,6 +65,7 @@ function setupSettings(game: Phaser.Game, settings: Settings): void {
   game.registry.set(VIGNETTE_KEY, settings.vignette);
   game.registry.set(SURFACE_RIPPLE_KEY, settings.surfaceRipple);
   game.registry.set(SOUND_ENABLED_KEY, settings.sound);
+  game.registry.set(MUSIC_ENABLED_KEY, settings.music);
   game.registry.set(SOUND_VOLUME_KEY, settings.volume);
   game.registry.events.on(Phaser.Data.Events.CHANGE_DATA, (_parent: unknown, key: string) => {
     if (EFFECT_KEYS.has(key)) saveSettings(registrySettings(game));

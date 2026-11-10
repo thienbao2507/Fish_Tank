@@ -6,6 +6,7 @@ import { EventBus, type GameEvents } from './core/events';
 import { initI18n, t } from './core/i18n';
 import { createRng } from './core/rng';
 import { ScaledClock } from './core/time/clock';
+import { DayClock } from './core/time/dayClock';
 import { World } from './core/world';
 import { mountDebugPanel } from './debug/panel';
 import { createGame } from './game/createGame';
@@ -44,9 +45,11 @@ async function start(): Promise<void> {
 
   const rng = createRng(Date.now());
   const bus = new EventBus<GameEvents>();
+  const clock = new ScaledClock(() => Date.now());
   const ctx = {
     content,
-    clock: new ScaledClock(() => Date.now()),
+    clock,
+    day: new DayClock(content.balance.day, clock.now()),
     rng,
     bus,
     world: new World({ content, rng, bus }),
